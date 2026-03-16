@@ -162,7 +162,13 @@ async def test_memory_dashboard_handles_db_error_gracefully():
 
     _setup_cognee_mock()
 
-    with patch("python.api.memory_dashboard.Memory") as MockMem:
+    mock_cognee = MagicMock()
+    mock_cognee.datasets.list_datasets = AsyncMock(
+        side_effect=DatabaseNotCreatedError("db not created")
+    )
+
+    with patch("python.api.memory_dashboard.Memory") as MockMem, \
+         patch.dict("sys.modules", {"cognee": mock_cognee}):
         mock_mem_instance = MagicMock()
         mock_mem_instance._area_dataset.side_effect = lambda a: f"default_{a}"
         MockMem.get_by_subdir = AsyncMock(return_value=mock_mem_instance)

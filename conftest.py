@@ -1,5 +1,11 @@
-"""Root conftest — mock heavy optional dependencies not installed locally."""
+"""Root conftest — mock heavy optional dependencies not installed locally.
 
+Only mocks modules that fail to import. In CI (all deps installed),
+nothing gets mocked. Locally (partial deps), only missing packages
+are replaced with stubs.
+"""
+
+import importlib
 import sys
 from unittest.mock import MagicMock
 
@@ -14,7 +20,7 @@ class _MockModule(MagicMock):
         self.__path__ = []
 
 
-_EXTERNAL_MODULES = [
+_OPTIONAL_MODULES = [
     "browser_use", "browser_use.llm", "browser_use.utils",
     "cognee", "cognee.api", "cognee.api.v1", "cognee.api.v1.search",
     "cognee.api.v1.search.search_types", "cognee.datasets",
@@ -78,6 +84,15 @@ _EXTERNAL_MODULES = [
     "yaml",
 ]
 
-for mod_name in _EXTERNAL_MODULES:
+_checked_top_level: dict[str, bool] = {}
+
+for mod_name in _OPTIONAL_MODULES:
     if mod_name not in sys.modules:
-        sys.modules[mod_name] = _MockModule(name=mod_name)
+        top_level = mod_name.split(".")[0]
+        if top_level not in _checked_top_level:
+            try:
+                _checked_top_level[top_level] = importlib.util.find_spec(top_level) is not None
+            except (ValueError, ModuleNotFoundError):
+                _checked_top_level[top_level] = False
+        if not _checked_top_level[top_level]:
+            sys.modules[mod_name] = _MockModule(name=mod_name)

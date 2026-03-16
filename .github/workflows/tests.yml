@@ -4,7 +4,7 @@ on:
     branches: [main, develop]
     paths: ['python/**', 'tests/**', 'requirements*.txt', 'agent.py', 'initialize.py', 'models.py']
   pull_request:
-    paths: ['python/**', 'tests/**']
+    paths: ['python/**', 'tests/**', 'conftest.py', 'requirements*.txt']
 
 jobs:
   unit-tests:
