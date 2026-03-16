@@ -177,8 +177,8 @@ Key additions over [agent0ai/agent-zero](https://github.com/agent0ai/agent-zero)
 - **Coverage:** ~76% line coverage, ~2400 tests
 - **Structure:** mirrors `python/` — `tests/helpers/`, `tests/api/`, `tests/extensions/`, `tests/tools/`, `tests/integration/`
 
-## Upstream Sync
+## Origin
 
-- Remote: `upstream` → `https://github.com/agent0ai/agent-zero.git`
-- Merge upstream changes carefully — fork diverges in memory, MCP, and addon areas
-- Upstream version: v0.9.8 (Skills, UI Redesign, Git projects)
+- Originally forked from [agent0ai/agent-zero](https://github.com/agent0ai/agent-zero) v0.9.8
+- Upstream remote removed — this is now an independent repository
+- No further upstream syncs planned; fork diverges significantly in memory, MCP, and addon areas
