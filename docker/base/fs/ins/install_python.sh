@@ -54,8 +54,8 @@ pyenv install 3.12.4
 /opt/pyenv/versions/3.12.4/bin/python -m venv /opt/venv-a0
 source /opt/venv-a0/bin/activate
 
-# upgrade pip and install static packages
-pip install --no-cache-dir --upgrade pip
+# upgrade pip and install ipython (needed by code_execution_tool.py)
+pip install --no-cache-dir --upgrade pip ipython
 
 # Install some packages in specific variants
 pip install --no-cache-dir \
