@@ -24,10 +24,7 @@ RUN bash /ins/after_install.sh
 # --- Run image scripts ---
 COPY ./docker/run/fs/ /
 
-ARG BRANCH=local
-ENV BRANCH=$BRANCH
-
-RUN bash /ins/pre_install.sh $BRANCH
+RUN bash /ins/pre_install.sh
 
 # --- Python deps (cached unless requirements*.txt change) ---
 COPY requirements.txt requirements2.txt /tmp/deps/
@@ -37,7 +34,7 @@ RUN bash -c '. /ins/setup_venv.sh && \
     rm -rf /tmp/deps'
 
 # --- Playwright (cached with deps layer) ---
-RUN bash /ins/install_playwright.sh $BRANCH
+RUN bash /ins/install_playwright.sh
 
 # --- Bun (rarely changes) ---
 RUN apt-get update && apt-get install -y --no-install-recommends unzip \
@@ -52,9 +49,9 @@ ARG A0_VERSION=unknown
 RUN echo "$A0_VERSION" > /git/agent-zero/VERSION
 
 # Verify deps are installed (near-instant, preload moved to runtime)
-RUN bash /ins/install_A0.sh $BRANCH
+RUN bash /ins/install_A0.sh
 
-RUN bash /ins/post_install.sh $BRANCH
+RUN bash /ins/post_install.sh
 
 # --- Code snapshot for persistent-volume overlay at runtime ---
 RUN mkdir -p /a0 && cp -rn --no-preserve=ownership,mode /git/agent-zero/. /a0

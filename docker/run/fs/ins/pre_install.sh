@@ -10,4 +10,4 @@ if [ -f /etc/cron.d/* ]; then
 fi
 
 # Prepare SSH daemon
-bash /ins/setup_ssh.sh "$@"
+bash /ins/setup_ssh.sh
