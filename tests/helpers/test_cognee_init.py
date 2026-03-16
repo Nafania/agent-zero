@@ -214,8 +214,8 @@ class TestConfigureCognee:
         })
         mock_cognee.config.set_chunk_size.assert_called_once_with(512)
         mock_cognee.config.set_chunk_overlap.assert_called_once_with(50)
-        mock_cognee.config.set_data_root_directory.assert_called_once()
-        mock_cognee.config.set_system_root_directory.assert_called_once()
+        mock_cognee.config.data_root_directory.assert_called_once()
+        mock_cognee.config.system_root_directory.assert_called_once()
 
     def test_falls_back_to_env_vars_on_config_error(self, _clean_env):
         import python.helpers.cognee_init as ci
@@ -360,17 +360,13 @@ class TestInitCognee:
 
     @pytest.mark.asyncio
     async def test_init_cognee_calls_configure_and_create_tables(self):
-        """init_cognee calls configure_cognee and creates DB tables."""
+        """init_cognee delegates to configure_cognee and creates DB tables."""
         import python.helpers.cognee_init as ci
 
-        mock_cognee = MagicMock()
-        mock_search_type = MagicMock()
-        mock_cognee.SearchType = mock_search_type
         mock_create_tables = AsyncMock()
 
         with patch("python.helpers.cognee_init.configure_cognee") as mock_configure, \
              patch.dict("sys.modules", {
-                 "cognee": mock_cognee,
                  "cognee.infrastructure.databases.relational": MagicMock(
                      create_db_and_tables=mock_create_tables
                  ),
@@ -379,35 +375,191 @@ class TestInitCognee:
 
         mock_configure.assert_called_once()
         mock_create_tables.assert_awaited_once()
-        assert ci._cognee_module is mock_cognee
-        assert ci._search_type_class is mock_search_type
 
     @pytest.mark.asyncio
-    async def test_get_cognee_raises_if_not_initialized(self):
-        """get_cognee raises RuntimeError when init_cognee hasn't been called."""
-        import python.helpers.cognee_init as ci
-        with pytest.raises(RuntimeError, match="Cognee not initialized"):
-            ci.get_cognee()
-
-    @pytest.mark.asyncio
-    async def test_get_cognee_returns_modules_after_init(self):
-        """get_cognee returns (cognee, SearchType) tuple after init_cognee."""
+    async def test_configure_cognee_sets_module_globals(self):
+        """configure_cognee() sets _cognee_module and _search_type_class.
+        This is the fix: server process calls configure_cognee() (not init_cognee()),
+        so module globals must be set there."""
         import python.helpers.cognee_init as ci
 
         mock_cognee = MagicMock()
         mock_search_type = MagicMock()
         mock_cognee.SearchType = mock_search_type
-        mock_create_tables = AsyncMock()
 
-        with patch("python.helpers.cognee_init.configure_cognee"), \
-             patch.dict("sys.modules", {
-                 "cognee": mock_cognee,
-                 "cognee.infrastructure.databases.relational": MagicMock(
-                     create_db_and_tables=mock_create_tables
-                 ),
-             }):
-            await ci.init_cognee()
+        with patch("python.helpers.cognee_init.dotenv") as mock_dotenv, \
+             patch("python.helpers.cognee_init.get_settings", return_value=self._mock_settings()), \
+             patch("python.helpers.cognee_init.files") as mock_files, \
+             patch.dict("sys.modules", {"cognee": mock_cognee}):
+            mock_files.get_abs_path.return_value = "/tmp/test_cognee"
+            mock_dotenv.load_dotenv.return_value = None
+            mock_dotenv.get_dotenv_value.return_value = None
+            ci.configure_cognee()
+
+        assert ci._cognee_module is mock_cognee
+        assert ci._search_type_class is mock_search_type
+
+    @pytest.mark.asyncio
+    async def test_get_cognee_returns_modules_after_configure(self):
+        """get_cognee works after configure_cognee (no init_cognee needed).
+        This mirrors the server process which only calls configure_cognee."""
+        import python.helpers.cognee_init as ci
+
+        mock_cognee = MagicMock()
+        mock_search_type = MagicMock()
+        mock_cognee.SearchType = mock_search_type
+
+        with patch("python.helpers.cognee_init.dotenv") as mock_dotenv, \
+             patch("python.helpers.cognee_init.get_settings", return_value=self._mock_settings()), \
+             patch("python.helpers.cognee_init.files") as mock_files, \
+             patch.dict("sys.modules", {"cognee": mock_cognee}):
+            mock_files.get_abs_path.return_value = "/tmp/test_cognee"
+            mock_dotenv.load_dotenv.return_value = None
+            mock_dotenv.get_dotenv_value.return_value = None
+            ci.configure_cognee()
 
         cognee_mod, search_type = ci.get_cognee()
         assert cognee_mod is mock_cognee
         assert search_type is mock_search_type
+
+
+class TestGetCogneeRaises:
+    """get_cognee() must raise RuntimeError when configure_cognee() hasn't run."""
+
+    def test_raises_when_not_initialized(self):
+        import python.helpers.cognee_init as ci
+        with pytest.raises(RuntimeError, match="not initialized"):
+            ci.get_cognee()
+
+    def test_returns_module_after_init(self):
+        import python.helpers.cognee_init as ci
+        mock_cognee = MagicMock()
+        mock_search_type = MagicMock()
+        ci._cognee_module = mock_cognee
+        ci._search_type_class = mock_search_type
+        c, st = ci.get_cognee()
+        assert c is mock_cognee
+        assert st is mock_search_type
+
+
+class TestConfigureCogneeRetryAfterFailure:
+    """configure_cognee() must be retryable after partial failure.
+
+    Bug: _configured is set to True BEFORE doing any work. If configure_cognee()
+    fails midway (e.g. get_settings() throws), the flag stays True, making retry
+    impossible — system is permanently broken even after the underlying issue is fixed.
+    """
+
+    def _mock_settings(self):
+        return {
+            "util_model_provider": "openai",
+            "util_model_name": "gpt-4o-mini",
+            "util_model_api_base": "",
+            "embed_model_provider": "huggingface",
+            "embed_model_name": "BAAI/bge-small-en-v1.5",
+            "embed_model_api_base": "",
+            "api_keys": {"openai": "sk-test", "huggingface": "hf-test"},
+        }
+
+    def test_retry_works_after_settings_failure(self):
+        """If get_settings() fails, configure_cognee() should be retryable."""
+        import python.helpers.cognee_init as ci
+
+        mock_cognee = MagicMock()
+        call_count = 0
+
+        with patch("python.helpers.cognee_init.dotenv") as mock_dotenv, \
+             patch.dict("sys.modules", {"cognee": mock_cognee}), \
+             patch("python.helpers.cognee_init.files") as mock_files:
+            mock_dotenv.load_dotenv.return_value = None
+            mock_dotenv.get_dotenv_value.return_value = None
+            mock_files.get_abs_path.return_value = "/tmp/test_cognee"
+
+            with patch("python.helpers.cognee_init.get_settings",
+                       side_effect=Exception("settings not loaded yet")):
+                try:
+                    ci.configure_cognee()
+                except Exception:
+                    pass
+
+            assert ci._configured is False, \
+                "_configured must stay False after failure so retry is possible"
+
+            with patch("python.helpers.cognee_init.get_settings",
+                       return_value=self._mock_settings()):
+                ci.configure_cognee()
+
+            assert ci._configured is True
+            mock_cognee.config.set_llm_config.assert_called_once()
+
+    def test_flag_not_set_on_cognee_import_failure(self):
+        """If 'import cognee' fails inside configure_cognee(), _configured stays False."""
+        import python.helpers.cognee_init as ci
+
+        with patch("python.helpers.cognee_init.dotenv") as mock_dotenv, \
+             patch("python.helpers.cognee_init.get_settings",
+                   return_value=self._mock_settings()), \
+             patch("python.helpers.cognee_init.files") as mock_files, \
+             patch.dict("sys.modules", {"cognee": None}):
+            mock_dotenv.load_dotenv.return_value = None
+            mock_dotenv.get_dotenv_value.return_value = None
+            mock_files.get_abs_path.return_value = "/tmp/test_cognee"
+
+            try:
+                ci.configure_cognee()
+            except (ImportError, Exception):
+                pass
+
+            assert ci._configured is False, \
+                "_configured must stay False when cognee import fails"
+
+
+class TestPreparePyRetryLogic:
+    """prepare.py must retry init_cognee() and crash if all attempts fail.
+
+    The old behavior: catch Exception, print error, continue without cognee.
+    This left the app running but completely broken — every memory operation fails.
+    """
+
+    def test_init_cognee_retryable_after_configure_failure(self):
+        """After configure_cognee() fails, _configured stays False, allowing retry
+        via reload() + init_cognee() as prepare.py does."""
+        import python.helpers.cognee_init as ci
+        import python.helpers.memory as mem
+
+        mock_cognee = MagicMock()
+        mock_search_type = MagicMock()
+        mock_cognee.SearchType = mock_search_type
+
+        with patch("python.helpers.cognee_init.dotenv") as mock_dotenv, \
+             patch("python.helpers.cognee_init.files") as mock_files, \
+             patch.dict("sys.modules", {"cognee": mock_cognee}):
+            mock_dotenv.load_dotenv.return_value = None
+            mock_dotenv.get_dotenv_value.return_value = None
+            mock_files.get_abs_path.return_value = "/tmp/test_cognee"
+
+            with patch("python.helpers.cognee_init.get_settings",
+                       side_effect=Exception("settings not ready")):
+                try:
+                    ci.configure_cognee()
+                except Exception:
+                    pass
+
+            assert ci._configured is False
+            assert ci._cognee_module is None
+
+            mem.reload()
+
+            with patch("python.helpers.cognee_init.get_settings",
+                       return_value={
+                           "util_model_provider": "openai",
+                           "util_model_name": "gpt-4o-mini",
+                           "util_model_api_base": "",
+                           "embed_model_provider": "huggingface",
+                           "embed_model_name": "BAAI/bge-small-en-v1.5",
+                           "embed_model_api_base": "",
+                           "api_keys": {"openai": "sk-test", "huggingface": "hf-test"},
+                       }):
+                ci.configure_cognee()
+
+            assert ci._configured is True

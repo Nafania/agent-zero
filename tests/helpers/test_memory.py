@@ -242,7 +242,7 @@ class TestGetCognee:
 
     def test_raises_when_not_initialized(self):
         from python.helpers.memory import _get_cognee
-        with pytest.raises(RuntimeError, match="Cognee not initialized"):
+        with pytest.raises(RuntimeError, match="not initialized"):
             _get_cognee()
 
 

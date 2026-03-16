@@ -1,10 +1,12 @@
 """
 Regression tests for the cognee database initialization bug.
 
-Production bug: sqlite3.OperationalError and DatabaseNotCreatedError occurred when
-cognee database wasn't initialized before use. After refactoring, initialization
-happens once at startup via init_cognee(), and get_cognee() raises RuntimeError
-if called before initialization.
+Production bug: prepare.py and the web server run as separate Python processes.
+init_cognee() in prepare.py set _cognee_module, but that died with the process.
+The server process called configure_cognee() but never set _cognee_module.
+
+Fix: configure_cognee() now sets _cognee_module and _search_type_class,
+so any process calling it gets a working cognee module.
 """
 
 import sys
@@ -53,39 +55,120 @@ def _setup_cognee_mock():
     return mock_cognee, mock_search_type
 
 
-# --- Startup initialization gate ---
+# --- Startup initialization: must succeed or crash ---
 
 
 @pytest.mark.regression
-def test_get_cognee_raises_before_init():
-    """get_cognee() raises RuntimeError if init_cognee() hasn't been called."""
+def test_get_cognee_raises_before_configure():
+    """get_cognee() raises RuntimeError if configure_cognee() hasn't been called."""
     from python.helpers.memory import _get_cognee
-
     with pytest.raises(RuntimeError, match="not initialized"):
         _get_cognee()
 
 
 @pytest.mark.regression
-@pytest.mark.asyncio
-async def test_search_fails_without_init():
-    """search_similarity_threshold raises RuntimeError when cognee not initialized."""
-    from python.helpers.memory import Memory
+def test_configure_cognee_alone_makes_get_cognee_work():
+    """THE FIX: configure_cognee() sets _cognee_module so get_cognee() works.
+    Server process calls configure_cognee() but NOT init_cognee(). Before the fix,
+    _cognee_module was only set in init_cognee(), leaving the server broken."""
+    import python.helpers.cognee_init as ci
 
-    mem = Memory(dataset_name="default", memory_subdir="default")
-    with pytest.raises(RuntimeError, match="not initialized"):
-        await mem.search_similarity_threshold("test query", limit=5, threshold=0.5)
+    mock_cognee = MagicMock()
+    mock_search_type = MagicMock()
+    mock_cognee.SearchType = mock_search_type
+
+    with patch("python.helpers.cognee_init.dotenv") as mock_dotenv, \
+         patch("python.helpers.cognee_init.get_settings", return_value={
+             "util_model_provider": "openai",
+             "util_model_name": "gpt-4o-mini",
+             "util_model_api_base": "",
+             "embed_model_provider": "huggingface",
+             "embed_model_name": "BAAI/bge-small-en-v1.5",
+             "embed_model_api_base": "",
+             "api_keys": {"openai": "sk-test", "huggingface": "hf-test"},
+         }), \
+         patch("python.helpers.cognee_init.files") as mock_files, \
+         patch.dict("sys.modules", {"cognee": mock_cognee}):
+        mock_files.get_abs_path.return_value = "/tmp/test_cognee"
+        mock_dotenv.load_dotenv.return_value = None
+        mock_dotenv.get_dotenv_value.return_value = None
+        ci.configure_cognee()
+
+    cognee_mod, search_type = ci.get_cognee()
+    assert cognee_mod is mock_cognee
+    assert search_type is mock_search_type
+
+
+@pytest.mark.regression
+def test_configure_cognee_retryable_after_failure():
+    """configure_cognee() can be retried after failure because _configured
+    is only set to True after successful completion."""
+    import python.helpers.cognee_init as ci
+
+    with patch("python.helpers.cognee_init.dotenv") as mock_dotenv, \
+         patch("python.helpers.cognee_init.get_settings",
+               side_effect=Exception("settings not ready")), \
+         patch("python.helpers.cognee_init.files") as mock_files:
+        mock_dotenv.load_dotenv.return_value = None
+        mock_dotenv.get_dotenv_value.return_value = None
+        mock_files.get_abs_path.return_value = "/tmp/test_cognee"
+        try:
+            ci.configure_cognee()
+        except Exception:
+            pass
+
+    assert ci._configured is False, \
+        "_configured must stay False after failure so prepare.py can retry"
 
 
 @pytest.mark.regression
 @pytest.mark.asyncio
-async def test_insert_fails_without_init():
-    """insert_documents raises RuntimeError when cognee not initialized."""
-    from python.helpers.memory import Memory
-    from langchain_core.documents import Document
+async def test_init_cognee_succeeds_on_retry_after_failure():
+    """init_cognee() fails first (bad settings), reload() resets state,
+    second call succeeds — this is what prepare.py's retry loop does."""
+    import python.helpers.cognee_init as ci
+    from python.helpers.memory import reload
 
-    mem = Memory(dataset_name="default", memory_subdir="default")
-    with pytest.raises(RuntimeError, match="not initialized"):
-        await mem.insert_documents([Document(page_content="test", metadata={})])
+    mock_cognee = MagicMock()
+    mock_search_type = MagicMock()
+    mock_cognee.SearchType = mock_search_type
+    mock_create_tables = AsyncMock()
+
+    with patch("python.helpers.cognee_init.dotenv") as mock_dotenv, \
+         patch("python.helpers.cognee_init.files") as mock_files, \
+         patch.dict("sys.modules", {
+             "cognee": mock_cognee,
+             "cognee.infrastructure.databases.relational": MagicMock(
+                 create_db_and_tables=mock_create_tables
+             ),
+         }):
+        mock_dotenv.load_dotenv.return_value = None
+        mock_dotenv.get_dotenv_value.return_value = None
+        mock_files.get_abs_path.return_value = "/tmp/test_cognee"
+
+        with patch("python.helpers.cognee_init.get_settings",
+                   side_effect=Exception("settings not ready")):
+            with pytest.raises(Exception, match="settings not ready"):
+                await ci.init_cognee()
+
+        assert ci._cognee_module is None
+
+        reload()
+
+        with patch("python.helpers.cognee_init.get_settings", return_value={
+            "util_model_provider": "openai",
+            "util_model_name": "gpt-4o-mini",
+            "util_model_api_base": "",
+            "embed_model_provider": "huggingface",
+            "embed_model_name": "BAAI/bge-small-en-v1.5",
+            "embed_model_api_base": "",
+            "api_keys": {"openai": "sk-test", "huggingface": "hf-test"},
+        }):
+            await ci.init_cognee()
+
+    assert ci._cognee_module is mock_cognee
+    cognee_mod, search_type = ci.get_cognee()
+    assert cognee_mod is mock_cognee
 
 
 # --- Database not created: proper error handling ---

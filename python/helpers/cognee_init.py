@@ -78,10 +78,9 @@ def _get_api_key(provider: str, api_keys: dict[str, str] | None = None) -> str:
 
 
 def configure_cognee() -> None:
-    global _configured
+    global _configured, _cognee_module, _search_type_class
     if _configured:
         return
-    _configured = True
 
     dotenv.load_dotenv()
     settings = get_settings()
@@ -112,9 +111,13 @@ def configure_cognee() -> None:
     # --- Now safe to import cognee (env vars are set) ---
     try:
         import cognee
+        from cognee import SearchType
     except ImportError:
         PrintStyle.error("Cognee is not installed — memory features will not work")
         return
+
+    _cognee_module = cognee
+    _search_type_class = SearchType
 
     api_keys = settings.get("api_keys", {})
 
@@ -163,12 +166,14 @@ def configure_cognee() -> None:
     except Exception as e:
         PrintStyle.error(f"cognee.config chunk setup failed: {e}")
 
-    # --- Apply directory config via cognee API ---
+    # --- Apply directory config via cognee API (0.5.x dropped the set_ prefix) ---
     try:
-        cognee.config.set_data_root_directory(data_storage)
-        cognee.config.set_system_root_directory(system_storage)
+        cognee.config.data_root_directory(data_storage)
+        cognee.config.system_root_directory(system_storage)
     except Exception as e:
         PrintStyle.error(f"cognee.config directory setup failed: {e}")
+
+    _configured = True
 
 
 async def _create_db_tables():
@@ -179,18 +184,13 @@ async def _create_db_tables():
 
 async def init_cognee() -> None:
     """One-time startup initialization. Call after settings are loaded."""
-    global _cognee_module, _search_type_class
     configure_cognee()
-    import cognee
-    from cognee import SearchType
-    _cognee_module = cognee
-    _search_type_class = SearchType
     await _create_db_tables()
     PrintStyle.standard("Cognee fully initialized")
 
 
 def get_cognee():
-    """Get initialized cognee module. Raises RuntimeError if not initialized."""
+    """Get initialized cognee module. Raises RuntimeError if init_cognee() hasn't run."""
     if _cognee_module is None:
-        raise RuntimeError("Cognee not initialized — call init_cognee() at startup")
+        raise RuntimeError("Cognee not initialized — init_cognee() must succeed at startup")
     return _cognee_module, _search_type_class
