@@ -3,7 +3,6 @@
 import sys
 import json
 import asyncio
-import threading
 from pathlib import Path
 from unittest.mock import MagicMock, AsyncMock, patch, PropertyMock
 
@@ -19,17 +18,17 @@ def _reset_module_state():
     """Reset module-level state before each test."""
     import python.helpers.memory as mem
     import python.helpers.cognee_init as ci
-    mem._cognee = None
-    mem._SearchType = None
+    ci._cognee_module = None
+    ci._search_type_class = None
+    ci._configured = False
     mem.Memory._initialized = False
     mem.Memory._datasets_cache.clear()
-    ci._configured = False
     yield
-    mem._cognee = None
-    mem._SearchType = None
+    ci._cognee_module = None
+    ci._search_type_class = None
+    ci._configured = False
     mem.Memory._initialized = False
     mem.Memory._datasets_cache.clear()
-    ci._configured = False
 
 
 # --- _subdir_to_dataset ---
@@ -225,55 +224,26 @@ class TestGetKnowledgeSubdirsByMemorySubdir:
         assert result is not original
 
 
-# --- _get_cognee thread safety ---
+# --- _get_cognee delegates to cognee_init.get_cognee ---
 
-class TestGetCogneeThreadSafety:
+class TestGetCognee:
     def test_returns_same_instance(self):
         from python.helpers.memory import _get_cognee
+        import python.helpers.cognee_init as ci
         mock_cognee = MagicMock()
         mock_search_type = MagicMock()
-        with patch("python.helpers.memory.configure_cognee"), \
-             patch.dict("sys.modules", {
-                 "cognee": mock_cognee,
-             }):
-            mock_cognee.SearchType = mock_search_type
-            c1, st1 = _get_cognee()
-            c2, st2 = _get_cognee()
+        ci._cognee_module = mock_cognee
+        ci._search_type_class = mock_search_type
+        c1, st1 = _get_cognee()
+        c2, st2 = _get_cognee()
         assert c1 is c2
+        assert c1 is mock_cognee
+        assert st1 is mock_search_type
 
-    def test_concurrent_calls_safe(self):
+    def test_raises_when_not_initialized(self):
         from python.helpers.memory import _get_cognee
-        import python.helpers.memory as mem
-
-        call_count = 0
-
-        def mock_configure():
-            nonlocal call_count
-            call_count += 1
-
-        mock_cognee_mod = MagicMock()
-        mock_cognee_mod.SearchType = MagicMock()
-
-        errors = []
-
-        def worker():
-            try:
-                with patch("python.helpers.memory.configure_cognee", side_effect=mock_configure), \
-                     patch.dict("sys.modules", {"cognee": mock_cognee_mod}):
-                    _get_cognee()
-            except Exception as e:
-                errors.append(e)
-
-        mem._cognee = None
-        mem._SearchType = None
-
-        threads = [threading.Thread(target=worker) for _ in range(10)]
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join()
-
-        assert not errors
+        with pytest.raises(RuntimeError, match="Cognee not initialized"):
+            _get_cognee()
 
 
 # --- reload resets _configured ---
@@ -283,9 +253,13 @@ class TestReload:
         import python.helpers.memory as mem
         import python.helpers.cognee_init as ci
         ci._configured = True
+        ci._cognee_module = MagicMock()
+        ci._search_type_class = MagicMock()
         mem.Memory._initialized = True
         mem.reload()
         assert ci._configured is False
+        assert ci._cognee_module is None
+        assert ci._search_type_class is None
         assert mem.Memory._initialized is False
 
 
@@ -341,7 +315,7 @@ class TestDatasetsForFilter:
 @pytest.mark.asyncio
 async def test_delete_data_by_id_uses_raw_data_location():
     from python.helpers.memory import _delete_data_by_id
-    import python.helpers.memory as mem
+    import python.helpers.cognee_init as ci
 
     mock_cognee = MagicMock()
     mock_ds = MagicMock()
@@ -357,8 +331,8 @@ async def test_delete_data_by_id_uses_raw_data_location():
     mock_cognee.datasets.list_data = AsyncMock(return_value=[mock_item])
     mock_cognee.datasets.delete_data = AsyncMock()
 
-    mem._cognee = mock_cognee
-    mem._SearchType = MagicMock()
+    ci._cognee_module = mock_cognee
+    ci._search_type_class = MagicMock()
 
     result = await _delete_data_by_id("test_main", "abc123")
     assert result is True
@@ -370,7 +344,7 @@ async def test_delete_data_by_id_uses_raw_data_location():
 @pytest.mark.asyncio
 async def test_delete_data_by_id_returns_false_when_not_found():
     from python.helpers.memory import _delete_data_by_id
-    import python.helpers.memory as mem
+    import python.helpers.cognee_init as ci
 
     mock_cognee = MagicMock()
     mock_ds = MagicMock()
@@ -379,8 +353,8 @@ async def test_delete_data_by_id_returns_false_when_not_found():
     mock_cognee.datasets.list_datasets = AsyncMock(return_value=[mock_ds])
     mock_cognee.datasets.list_data = AsyncMock(return_value=[])
 
-    mem._cognee = mock_cognee
-    mem._SearchType = MagicMock()
+    ci._cognee_module = mock_cognee
+    ci._search_type_class = MagicMock()
 
     result = await _delete_data_by_id("test_main", "nonexistent_id")
     assert result is False
@@ -389,13 +363,13 @@ async def test_delete_data_by_id_returns_false_when_not_found():
 @pytest.mark.asyncio
 async def test_delete_data_by_id_returns_false_for_missing_dataset():
     from python.helpers.memory import _delete_data_by_id
-    import python.helpers.memory as mem
+    import python.helpers.cognee_init as ci
 
     mock_cognee = MagicMock()
     mock_cognee.datasets.list_datasets = AsyncMock(return_value=[])
 
-    mem._cognee = mock_cognee
-    mem._SearchType = MagicMock()
+    ci._cognee_module = mock_cognee
+    ci._search_type_class = MagicMock()
 
     result = await _delete_data_by_id("nonexistent_dataset", "some_id")
     assert result is False
@@ -404,35 +378,27 @@ async def test_delete_data_by_id_returns_false_for_missing_dataset():
 # --- configure_cognee integration ---
 
 class TestMemoryCallsConfigureCognee:
-    """Verify Memory operations call configure_cognee() via _get_cognee() before Cognee DB ops."""
+    """Verify Memory operations use cognee_init.get_cognee() for module access."""
 
     @pytest.mark.asyncio
-    async def test_insert_documents_triggers_configure_cognee(self):
-        """First Memory operation (insert_documents) triggers configure_cognee via _get_cognee."""
+    async def test_insert_documents_uses_initialized_cognee(self):
+        """insert_documents uses cognee module from cognee_init."""
         from python.helpers.memory import Memory
         from langchain_core.documents import Document
-        import python.helpers.memory as mem_mod
-
-        configure_called = False
-
-        def mock_configure():
-            nonlocal configure_called
-            configure_called = True
+        import python.helpers.cognee_init as ci
 
         mock_cognee = MagicMock()
         mock_cognee.add = AsyncMock()
-        mock_cognee.SearchType = MagicMock()
-        with patch("python.helpers.memory.configure_cognee", side_effect=mock_configure), \
-             patch.dict("sys.modules", {"cognee": mock_cognee}):
-            mem_mod._cognee = None
-            mem_mod._SearchType = None
-            memory = await Memory.get_by_subdir("default", preload_knowledge=False)
-            doc = Document(page_content="test", metadata={"area": "main"})
-            with patch("python.helpers.cognee_background.CogneeBackgroundWorker") as MockBg:
-                MockBg.get_instance.return_value = MagicMock()
-                await memory.insert_documents([doc])
+        ci._cognee_module = mock_cognee
+        ci._search_type_class = MagicMock()
 
-        assert configure_called is True
+        memory = await Memory.get_by_subdir("default", preload_knowledge=False)
+        doc = Document(page_content="test", metadata={"area": "main"})
+        with patch("python.helpers.cognee_background.CogneeBackgroundWorker") as MockBg:
+            MockBg.get_instance.return_value = MagicMock()
+            await memory.insert_documents([doc])
+
+        mock_cognee.add.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_get_returns_valid_memory(self):
@@ -452,15 +418,15 @@ class TestMemoryCallsConfigureCognee:
         assert mem.dataset_name == "default"
 
     @pytest.mark.asyncio
-    async def test_insert_documents_works_after_configure(self):
-        """Verify that insert_documents can add data after configure_cognee."""
+    async def test_insert_documents_works_after_init(self):
+        """Verify that insert_documents can add data after init_cognee."""
         from python.helpers.memory import Memory
-        import python.helpers.memory as mem_mod
+        import python.helpers.cognee_init as ci
 
         mock_cognee = MagicMock()
         mock_cognee.add = AsyncMock()
-        mem_mod._cognee = mock_cognee
-        mem_mod._SearchType = MagicMock()
+        ci._cognee_module = mock_cognee
+        ci._search_type_class = MagicMock()
 
         from langchain_core.documents import Document
         doc = Document(page_content="test content", metadata={"area": "main"})
@@ -477,12 +443,12 @@ class TestMemoryCallsConfigureCognee:
     async def test_insert_documents_does_not_return_id_on_failure(self):
         """Bug fix: insert_documents should NOT return an id when cognee.add() fails."""
         from python.helpers.memory import Memory
-        import python.helpers.memory as mem_mod
+        import python.helpers.cognee_init as ci
 
         mock_cognee = MagicMock()
         mock_cognee.add = AsyncMock(side_effect=Exception("add failed"))
-        mem_mod._cognee = mock_cognee
-        mem_mod._SearchType = MagicMock()
+        ci._cognee_module = mock_cognee
+        ci._search_type_class = MagicMock()
 
         from langchain_core.documents import Document
         doc = Document(page_content="test content", metadata={"area": "main"})
@@ -498,14 +464,14 @@ class TestMemoryCallsConfigureCognee:
     async def test_search_similarity_threshold_handles_cognee_failure(self):
         """If cognee.search() fails, search_similarity_threshold should return []."""
         from python.helpers.memory import Memory
-        import python.helpers.memory as mem_mod
+        import python.helpers.cognee_init as ci
 
         mock_cognee = MagicMock()
         mock_cognee.search = AsyncMock(side_effect=Exception("search failed"))
         mock_search_type = MagicMock()
         mock_search_type.CHUNKS = MagicMock(name="CHUNKS")
-        mem_mod._cognee = mock_cognee
-        mem_mod._SearchType = mock_search_type
+        ci._cognee_module = mock_cognee
+        ci._search_type_class = mock_search_type
 
         with patch("python.helpers.memory.get_cognee_setting") as mock_setting:
             mock_setting.side_effect = lambda name, default: {
@@ -542,12 +508,12 @@ class TestMemoryInsertText:
     @pytest.mark.asyncio
     async def test_insert_text_returns_id(self):
         from python.helpers.memory import Memory
-        import python.helpers.memory as mem_mod
+        import python.helpers.cognee_init as ci
 
         mock_cognee = MagicMock()
         mock_cognee.add = AsyncMock()
-        mem_mod._cognee = mock_cognee
-        mem_mod._SearchType = MagicMock()
+        ci._cognee_module = mock_cognee
+        ci._search_type_class = MagicMock()
 
         with patch("python.helpers.cognee_background.CogneeBackgroundWorker") as MockBg:
             MockBg.get_instance.return_value = MagicMock()
@@ -561,12 +527,12 @@ class TestMemoryInsertText:
     @pytest.mark.asyncio
     async def test_insert_text_with_metadata(self):
         from python.helpers.memory import Memory
-        import python.helpers.memory as mem_mod
+        import python.helpers.cognee_init as ci
 
         mock_cognee = MagicMock()
         mock_cognee.add = AsyncMock()
-        mem_mod._cognee = mock_cognee
-        mem_mod._SearchType = MagicMock()
+        ci._cognee_module = mock_cognee
+        ci._search_type_class = MagicMock()
 
         with patch("python.helpers.cognee_background.CogneeBackgroundWorker") as MockBg:
             MockBg.get_instance.return_value = MagicMock()
@@ -586,7 +552,7 @@ class TestMemoryDeleteDocumentsByQuery:
     async def test_delete_documents_by_query_returns_docs(self):
         from python.helpers.memory import Memory
         from langchain_core.documents import Document
-        import python.helpers.memory as mem_mod
+        import python.helpers.cognee_init as ci
 
         mock_cognee = MagicMock()
         mock_cognee.search = AsyncMock(return_value=[
@@ -601,8 +567,8 @@ class TestMemoryDeleteDocumentsByQuery:
         mock_cognee.datasets.list_datasets = AsyncMock(return_value=[mock_ds])
         mock_cognee.datasets.list_data = AsyncMock(return_value=[mock_item])
         mock_cognee.datasets.delete_data = AsyncMock()
-        mem_mod._cognee = mock_cognee
-        mem_mod._SearchType = MagicMock()
+        ci._cognee_module = mock_cognee
+        ci._search_type_class = MagicMock()
 
         with patch("python.helpers.memory.get_cognee_setting") as mock_setting:
             mock_setting.side_effect = lambda name, default: {
@@ -621,7 +587,7 @@ class TestMemoryDeleteDocumentsByIds:
     @pytest.mark.asyncio
     async def test_delete_documents_by_ids(self):
         from python.helpers.memory import Memory
-        import python.helpers.memory as mem_mod
+        import python.helpers.cognee_init as ci
 
         mock_cognee = MagicMock()
         mock_ds = MagicMock()
@@ -633,8 +599,8 @@ class TestMemoryDeleteDocumentsByIds:
         mock_cognee.datasets.list_datasets = AsyncMock(return_value=[mock_ds])
         mock_cognee.datasets.list_data = AsyncMock(return_value=[mock_item])
         mock_cognee.datasets.delete_data = AsyncMock()
-        mem_mod._cognee = mock_cognee
-        mem_mod._SearchType = MagicMock()
+        ci._cognee_module = mock_cognee
+        ci._search_type_class = MagicMock()
 
         memory = Memory(dataset_name="default", memory_subdir="default")
         removed = await memory.delete_documents_by_ids(["abc123"])
@@ -688,7 +654,7 @@ class TestMemoryUpdateDocuments:
     async def test_update_documents_deletes_and_inserts(self):
         from python.helpers.memory import Memory
         from langchain_core.documents import Document
-        import python.helpers.memory as mem_mod
+        import python.helpers.cognee_init as ci
 
         mock_cognee = MagicMock()
         mock_cognee.add = AsyncMock()
@@ -697,8 +663,8 @@ class TestMemoryUpdateDocuments:
         mock_ds.id = "ds1"
         mock_cognee.datasets.list_datasets = AsyncMock(return_value=[mock_ds])
         mock_cognee.datasets.list_data = AsyncMock(return_value=[])
-        mem_mod._cognee = mock_cognee
-        mem_mod._SearchType = MagicMock()
+        ci._cognee_module = mock_cognee
+        ci._search_type_class = MagicMock()
 
         doc = Document(page_content="updated", metadata={"id": "old_id", "area": "main"})
         with patch("python.helpers.cognee_background.CogneeBackgroundWorker") as MockBg:
@@ -788,3 +754,241 @@ class TestGetCustomKnowledgeSubdirAbs:
         mock_agent.config.knowledge_subdirs = ["default"]
         with pytest.raises(Exception, match="No custom knowledge subdir"):
             get_custom_knowledge_subdir_abs(mock_agent)
+
+
+# --- Memory._multi_search parallel execution ---
+
+def _make_search_type_enum():
+    """Create a mock SearchType enum with common types."""
+    from types import SimpleNamespace
+    st = SimpleNamespace()
+    for name in ["CHUNKS", "CHUNKS_LEXICAL", "GRAPH_COMPLETION"]:
+        member = SimpleNamespace(name=name, value=name)
+        setattr(st, name, member)
+    return st
+
+
+class TestMultiSearchParallel:
+    """Verify _multi_search runs search types in parallel with timeouts."""
+
+    @pytest.mark.asyncio
+    async def test_multi_search_runs_in_parallel(self):
+        """Two search types with 0.5s delay each should complete in <0.9s."""
+        from python.helpers.memory import Memory
+        import python.helpers.cognee_init as ci
+
+        SearchType = _make_search_type_enum()
+
+        async def delayed_search(query_text, query_type, top_k, datasets, node_name, **kw):
+            await asyncio.sleep(0.5)
+            return [f"result_{query_type.name}"]
+
+        mock_cognee = MagicMock()
+        mock_cognee.search = delayed_search
+        ci._cognee_module = mock_cognee
+        ci._search_type_class = SearchType
+
+        memory = Memory(dataset_name="default", memory_subdir="default")
+
+        with patch("python.helpers.memory.get_cognee_setting") as mock_setting:
+            mock_setting.side_effect = lambda name, default: {
+                "cognee_search_types": "CHUNKS,CHUNKS_LEXICAL",
+            }.get(name, default)
+
+            loop = asyncio.get_event_loop()
+            start = loop.time()
+            results = await memory._multi_search(
+                mock_cognee, SearchType, "test query", limit=5,
+                datasets=["ds_main"], node_names=["main"],
+            )
+            elapsed = loop.time() - start
+
+        assert len(results) == 2
+        assert elapsed < 0.9, f"Expected parallel execution (<0.9s), took {elapsed:.2f}s"
+
+    @pytest.mark.asyncio
+    async def test_multi_search_timeout_per_type(self):
+        """One type hangs, other returns results; overall completes without hanging."""
+        from python.helpers.memory import Memory
+        import python.helpers.cognee_init as ci
+
+        SearchType = _make_search_type_enum()
+
+        async def mixed_search(query_text, query_type, top_k, datasets, node_name, **kw):
+            if query_type.name == "CHUNKS":
+                return ["good_result"]
+            await asyncio.sleep(60)
+            return ["should_not_appear"]
+
+        mock_cognee = MagicMock()
+        mock_cognee.search = mixed_search
+        ci._cognee_module = mock_cognee
+        ci._search_type_class = SearchType
+
+        memory = Memory(dataset_name="default", memory_subdir="default")
+
+        with patch("python.helpers.memory.get_cognee_setting") as mock_setting:
+            mock_setting.side_effect = lambda name, default: {
+                "cognee_search_types": "CHUNKS,CHUNKS_LEXICAL",
+            }.get(name, default)
+
+            with patch.object(Memory, "SEARCH_TIMEOUT", 0.3):
+                loop = asyncio.get_event_loop()
+                start = loop.time()
+                results = await memory._multi_search(
+                    mock_cognee, SearchType, "test query", limit=5,
+                    datasets=["ds_main"], node_names=["main"],
+                )
+                elapsed = loop.time() - start
+
+        assert elapsed < 2.0, f"Should not hang, took {elapsed:.2f}s"
+        contents = [doc.page_content for doc in results]
+        assert any("good_result" in c for c in contents)
+        assert not any("should_not_appear" in c for c in contents)
+
+    @pytest.mark.asyncio
+    async def test_multi_search_fallback_on_all_fail(self):
+        """All types fail → fallback to CHUNKS."""
+        from python.helpers.memory import Memory
+        import python.helpers.cognee_init as ci
+
+        SearchType = _make_search_type_enum()
+        call_log = []
+
+        async def failing_then_fallback(query_text, query_type, top_k, **kw):
+            call_log.append(query_type.name)
+            if query_type.name == "CHUNKS" and len(call_log) > 2:
+                return ["fallback_result"]
+            raise Exception(f"{query_type.name} failed")
+
+        mock_cognee = MagicMock()
+        mock_cognee.search = failing_then_fallback
+        ci._cognee_module = mock_cognee
+        ci._search_type_class = SearchType
+
+        memory = Memory(dataset_name="default", memory_subdir="default")
+
+        with patch("python.helpers.memory.get_cognee_setting") as mock_setting:
+            mock_setting.side_effect = lambda name, default: {
+                "cognee_search_types": "CHUNKS,CHUNKS_LEXICAL",
+            }.get(name, default)
+
+            results = await memory._multi_search(
+                mock_cognee, SearchType, "test query", limit=5,
+                datasets=["ds_main"], node_names=["main"],
+            )
+
+        assert len(results) >= 1
+        assert any("fallback_result" in doc.page_content for doc in results)
+        assert "CHUNKS" in call_log
+
+
+# --- Bulk delete optimization ---
+
+class TestDeleteOptimization:
+    """Verify optimized delete_documents_by_ids scans once per area, not once per ID."""
+
+    def _setup_cognee(self, ci, datasets_by_area: dict[str, list]):
+        """Wire mock cognee with datasets keyed by area name."""
+        mock_cognee = MagicMock()
+
+        all_datasets = []
+        data_by_ds_id = {}
+        for area_suffix, items in datasets_by_area.items():
+            ds = MagicMock()
+            ds.name = f"default_{area_suffix}"
+            ds.id = f"ds_{area_suffix}"
+            all_datasets.append(ds)
+            data_by_ds_id[ds.id] = items
+
+        mock_cognee.datasets.list_datasets = AsyncMock(return_value=all_datasets)
+        mock_cognee.datasets.list_data = AsyncMock(
+            side_effect=lambda ds_id: data_by_ds_id.get(ds_id, [])
+        )
+        mock_cognee.datasets.delete_data = AsyncMock()
+
+        ci._cognee_module = mock_cognee
+        ci._search_type_class = MagicMock()
+        return mock_cognee
+
+    @staticmethod
+    def _make_item(raw_loc: str, item_id: str):
+        item = MagicMock()
+        item.raw_data_location = raw_loc
+        item.name = raw_loc
+        item.id = item_id
+        return item
+
+    @pytest.mark.asyncio
+    async def test_bulk_delete_single_scan_per_area(self):
+        """Deleting 3 IDs calls list_data at most 3 times (once per area), not 9."""
+        from python.helpers.memory import Memory
+        import python.helpers.cognee_init as ci
+
+        items_main = [
+            self._make_item("doc_id1_file.txt", "item1"),
+            self._make_item("doc_id2_file.txt", "item2"),
+            self._make_item("doc_id3_file.txt", "item3"),
+        ]
+        mock_cognee = self._setup_cognee(ci, {
+            "main": items_main,
+            "fragments": [],
+            "solutions": [],
+        })
+
+        memory = Memory(dataset_name="default", memory_subdir="default")
+        removed = await memory.delete_documents_by_ids(["id1", "id2", "id3"])
+
+        assert len(removed) == 3
+        assert mock_cognee.datasets.list_data.call_count <= 3
+
+    @pytest.mark.asyncio
+    async def test_bulk_delete_finds_ids_across_areas(self):
+        """IDs spread across different areas are all found and deleted."""
+        from python.helpers.memory import Memory
+        import python.helpers.cognee_init as ci
+
+        mock_cognee = self._setup_cognee(ci, {
+            "main": [self._make_item("alpha_file.txt", "item_a")],
+            "fragments": [self._make_item("beta_file.txt", "item_b")],
+            "solutions": [self._make_item("gamma_file.txt", "item_c")],
+        })
+
+        memory = Memory(dataset_name="default", memory_subdir="default")
+        removed = await memory.delete_documents_by_ids(["alpha", "beta", "gamma"])
+
+        deleted_ids = {doc.metadata["id"] for doc in removed}
+        assert deleted_ids == {"alpha", "beta", "gamma"}
+        assert mock_cognee.datasets.delete_data.call_count == 3
+
+    @pytest.mark.asyncio
+    async def test_bulk_delete_missing_ids_returns_partial(self):
+        """Some IDs not found — returns only those that were actually deleted."""
+        from python.helpers.memory import Memory
+        import python.helpers.cognee_init as ci
+
+        mock_cognee = self._setup_cognee(ci, {
+            "main": [self._make_item("found_one.txt", "item_f")],
+            "fragments": [],
+            "solutions": [],
+        })
+
+        memory = Memory(dataset_name="default", memory_subdir="default")
+        removed = await memory.delete_documents_by_ids(["found_one", "missing_two"])
+
+        assert len(removed) == 1
+        assert removed[0].metadata["id"] == "found_one"
+
+    @pytest.mark.asyncio
+    async def test_bulk_delete_empty_ids_returns_empty(self):
+        """Empty input list returns empty output without calling cognee."""
+        from python.helpers.memory import Memory
+        import python.helpers.cognee_init as ci
+
+        mock_cognee = self._setup_cognee(ci, {"main": [], "fragments": [], "solutions": []})
+
+        memory = Memory(dataset_name="default", memory_subdir="default")
+        removed = await memory.delete_documents_by_ids([])
+
+        assert removed == []
+        mock_cognee.datasets.list_datasets.assert_not_called()
