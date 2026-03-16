@@ -101,3 +101,16 @@ jobs:
         run: |
           git tag ${{ steps.version.outputs.tag }}
           git push origin ${{ steps.version.outputs.tag }}
+
+  notify-hassio:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build-and-release
+    steps:
+      - name: Trigger hassio addon update
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.HASSIO_DISPATCH_TOKEN }}
+          repository: Nafania/agent-zero-hassio
+          event-type: new-release
+          client-payload: '{"version": "${{ needs.build-and-release.outputs.version }}"}'
