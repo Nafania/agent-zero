@@ -1,0 +1,116 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths: ['python/**', 'tests/**', 'requirements*.txt', 'agent.py', 'initialize.py', 'models.py', 'Dockerfile', 'docker/**', '.github/workflows/**']
+  pull_request:
+    paths: ['python/**', 'tests/**']
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements2.txt
+          pip install -r requirements.dev.txt
+      - name: Run unit tests
+        run: python -m pytest tests/ -m "not integration" --tb=short -q --timeout=30
+        env:
+          PYTHONPATH: .
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: unit-tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements2.txt
+          pip install -r requirements.dev.txt
+      - name: Run integration tests
+        run: python -m pytest tests/integration/ --tb=short -q --timeout=60
+        env:
+          PYTHONPATH: .
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+
+  build-and-release:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: integration-tests
+    permissions:
+      contents: write
+      packages: write
+    outputs:
+      version: ${{ steps.version.outputs.semver }}
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine next version
+        id: version
+        run: |
+          LATEST=$(git tag --sort=-v:refname | grep '^v0\.9\.8\.' | head -1)
+          if [ -z "$LATEST" ]; then
+            LATEST="v0.9.8.0"
+          fi
+          PATCH=$(echo "$LATEST" | sed 's/v0\.9\.8\.//')
+          NEXT=$((PATCH + 1))
+          echo "tag=v0.9.8.$NEXT" >> "$GITHUB_OUTPUT"
+          echo "semver=0.9.8.$NEXT" >> "$GITHUB_OUTPUT"
+          echo "Next version: v0.9.8.$NEXT (previous: $LATEST)"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/nafania/agent-zero:${{ steps.version.outputs.tag }}
+          build-args: |
+            A0_VERSION=${{ steps.version.outputs.tag }}
+            BRANCH=main
+
+      - name: Create and push tag
+        run: |
+          git tag ${{ steps.version.outputs.tag }}
+          git push origin ${{ steps.version.outputs.tag }}
+
+  notify-hassio:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build-and-release
+    steps:
+      - name: Trigger hassio addon update
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.HASSIO_DISPATCH_TOKEN }}
+          repository: Nafania/agent-zero-hassio
+          event-type: new-release
+          client-payload: '{"version": "${{ needs.build-and-release.outputs.version }}"}'

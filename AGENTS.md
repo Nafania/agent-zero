@@ -80,16 +80,20 @@ agent-zero/
 
 ## Versioning & Release
 
-- Current: **v0.9.8.17**
+- Current: **v0.9.8.N** (auto-incremented)
 - Tags follow: `v0.9.8.N` increments
 - The hassio addon version MUST match the fork tag
 
-Release flow:
-1. Push code to `main`
-2. Rebuild Docker image `ghcr.io/nafania/agent-zero:latest`
-3. Tag the commit: `git tag v0.9.8.N && git push origin v0.9.8.N`
-4. Update `agent-zero-hassio/agent_zero/config.yaml` version to `"0.9.8.N"`
-5. Commit and push hassio repo
+Automated release flow (on merge to `main`):
+1. CI runs unit tests → integration tests
+2. Auto-determines next version from latest git tag
+3. Builds Docker image `ghcr.io/nafania/agent-zero:v0.9.8.N`
+4. Creates and pushes git tag `v0.9.8.N`
+5. Triggers `repository_dispatch` in `Nafania/agent-zero-hassio`
+
+Required secrets:
+- `HASSIO_DISPATCH_TOKEN` — PAT with `repo` scope for hassio repo
+- `OPENROUTER_API_KEY` — for integration tests
 
 ## Addon Deployment (agent-zero-hassio)
 
@@ -107,34 +111,20 @@ Cognee provides vector search, knowledge graphs, and document storage. Persisten
 
 | Component | Path | Purpose |
 |-----------|------|---------|
-| `cognee_init.py` | `python/helpers/` | Config, env vars, `init_cognee()` startup, `get_cognee()` getter |
-| `memory.py` | `python/helpers/` | Memory class: parallel search, insert, bulk delete, knowledge preload |
+| `cognee_init.py` | `python/helpers/` | Config: env vars (BEFORE `import cognee`), LLM/embedding, storage dirs |
+| `memory.py` | `python/helpers/` | Memory class: search, insert, delete, knowledge preload, auto re-import |
 | `cognee_background.py` | `python/helpers/` | Background cognify/memify pipeline on dirty datasets |
-| `memory_dashboard.py` | `python/api/` | Dashboard API with in-memory cache (60s TTL) and server-side pagination |
+| `memory_dashboard.py` | `python/api/` | Dashboard API for browsing/editing memories |
 
 Memory areas: `MAIN`, `FRAGMENTS`, `SOLUTIONS`. Per-agent subdirs (`default`, `projects/<name>`).
 
 Knowledge files in `usr/knowledge/` are auto-imported into Cognee on first agent use. If Cognee DB is empty but knowledge index exists, full re-import is triggered automatically.
 
-### Initialization
-
-Cognee is initialized **once at startup** in `prepare.py` via `init_cognee()`. This sets env vars, imports cognee, creates DB tables, and starts the background worker. Runtime code uses `get_cognee()` which returns the cached module or raises `RuntimeError` if not initialized. No lazy init or retry wrappers in the runtime path.
-
 **Env var order matters:** `SYSTEM_ROOT_DIRECTORY`, `DB_PROVIDER`, `DB_NAME` must be set before `import cognee`. See `cognee_init.py`.
 
-### Search
+Search types: `GRAPH_COMPLETION`, `CHUNKS_LEXICAL`, `RAG_COMPLETION`, `TRIPLET_COMPLETION`, and more. Multi-search enabled by default — queries multiple search types and deduplicates results.
 
-Search types: `GRAPH_COMPLETION`, `CHUNKS_LEXICAL`, `RAG_COMPLETION`, `TRIPLET_COMPLETION`, and more. Multi-search enabled by default — queries multiple search types **in parallel** via `asyncio.gather` and deduplicates results. Each search type has a 15-second timeout; failed/timed-out types don't block others.
-
-In auto-recall (`_50_recall_memories.py`), fast types (CHUNKS, CHUNKS_LEXICAL) run first, slow types (GRAPH_COMPLETION) run in background and merge results later.
-
-### Dashboard
-
-Memory dashboard caches listing results in-memory with 60s TTL. Cache is invalidated on insert/delete/update. Server-side pagination via `offset`/`limit` — only the requested page is returned, not all records.
-
-### Background Worker
-
-`CogneeBackgroundWorker` runs `cognify` + `memify` on dirty datasets, triggered by time interval or insert count threshold. Started at application startup from `prepare.py`.
+Background worker (`CogneeBackgroundWorker`) runs `cognify` + `memify` on dirty datasets, triggered by time interval or insert count threshold.
 
 ## MCP Integration
 
@@ -155,11 +145,8 @@ Git-based projects with clone authentication for public/private repositories. Ea
 
 Key additions over [agent0ai/agent-zero](https://github.com/agent0ai/agent-zero):
 - Cognee memory persistence on addon volume (env vars before import)
-- Cognee startup initialization (`init_cognee()` in `prepare.py`, no runtime lazy init)
-- Parallel multi-search via `asyncio.gather` with per-type timeouts
-- Dashboard in-memory cache (60s TTL) with server-side pagination
-- Optimized bulk delete (single scan per area instead of per ID)
 - Auto re-import knowledge when Cognee DB is empty
+- `cognee.setup()` with retry on `DatabaseNotCreatedError`
 - Task self-recovery (ERROR and stuck RUNNING states)
 - Skill installation via `/skill-install` chat command
 - Structured RFC 3339 logging
@@ -172,7 +159,7 @@ Key additions over [agent0ai/agent-zero](https://github.com/agent0ai/agent-zero)
 
 - **Framework:** pytest + pytest-asyncio + pytest-mock + pytest-cov + pytest-timeout
 - **Markers:** `integration` (real services), `slow` (>5s), `regression` (fixed bugs)
-- **CI:** GitHub Actions on push to `main`/`develop`, runs `pytest tests/ -m "not integration"`
+- **CI:** GitHub Actions (`ci.yml`) on push to `main`/`develop`, runs `pytest tests/ -m "not integration"`. On merge to `main`: integration tests → Docker build → auto-tag → notify hassio.
 - **Dependencies in CI:** `requirements.txt` + `requirements2.txt` + `requirements.dev.txt`
 - **Coverage:** ~76% line coverage, ~2400 tests
 - **Structure:** mirrors `python/` — `tests/helpers/`, `tests/api/`, `tests/extensions/`, `tests/tools/`, `tests/integration/`
