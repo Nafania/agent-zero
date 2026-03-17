@@ -9,7 +9,11 @@ class MemoryLoad(Tool):
 
     async def execute(self, query="", threshold=DEFAULT_THRESHOLD, limit=DEFAULT_LIMIT, filter="", **kwargs):
         db = await Memory.get(self.agent)
-        docs = await db.search_similarity_threshold(query=query, limit=limit, threshold=threshold, filter=filter)
+        session_id = getattr(self.agent.context, 'id', None)
+        docs = await db.search_similarity_threshold(
+            query=query, limit=limit, threshold=threshold, filter=filter,
+            session_id=session_id,
+        )
 
         if len(docs) == 0:
             result = self.agent.read_prompt("fw.memories_not_found.md", query=query)
