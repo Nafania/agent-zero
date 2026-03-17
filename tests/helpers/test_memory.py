@@ -888,36 +888,15 @@ class TestMultiSearchParallel:
         assert "CHUNKS" in call_log
 
 
-# --- Default search types include CHUNKS ---
+# --- Default search types: GRAPH_COMPLETION only ---
 
-class TestDefaultSearchTypesIncludeChunks:
-    """Verify CHUNKS is in the default cognee_search_types."""
+class TestDefaultSearchTypesGraphOnly:
+    """Verify GRAPH_COMPLETION is the only default search type."""
 
-    @pytest.mark.asyncio
-    async def test_default_search_types_include_chunks(self):
-        from python.helpers.memory import Memory
-        import python.helpers.cognee_init as ci
-
-        SearchType = _make_search_type_enum()
-
-        async def mock_search(**kw):
-            return [f"result_{kw['query_type'].name}"]
-
-        mock_cognee = MagicMock()
-        mock_cognee.search = mock_search
-        ci._cognee_module = mock_cognee
-        ci._search_type_class = SearchType
-
-        memory = Memory(dataset_name="default", memory_subdir="default")
-
-        with patch.object(Memory, "_get_existing_dataset_names", return_value={"ds_main"}):
-            results = await memory._multi_search(
-                mock_cognee, SearchType, "test", limit=5,
-                datasets=["ds_main"], node_names=["main"],
-            )
-
-        contents = [doc.page_content for doc in results]
-        assert any("CHUNKS" in c for c in contents), "CHUNKS must be a default search type"
+    def test_default_search_types_is_graph_completion(self):
+        from python.helpers.cognee_init import _COGNEE_DEFAULTS
+        val = _COGNEE_DEFAULTS["cognee_search_types"]
+        assert val == "GRAPH_COMPLETION", f"Expected 'GRAPH_COMPLETION', got '{val}'"
 
 
 # --- Dataset filtering ---

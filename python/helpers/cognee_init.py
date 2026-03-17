@@ -9,7 +9,7 @@ T = TypeVar("T")
 
 _COGNEE_DEFAULTS: dict[str, Any] = {
     "cognee_search_type": "GRAPH_COMPLETION",
-    "cognee_search_types": "GRAPH_COMPLETION,CHUNKS,CHUNKS_LEXICAL",
+    "cognee_search_types": "GRAPH_COMPLETION",
     "cognee_multi_search_enabled": True,
     "cognee_cognify_interval": 5,
     "cognee_cognify_after_n_inserts": 10,
