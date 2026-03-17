@@ -102,7 +102,7 @@ def configure_cognee() -> None:
     os.environ["CACHE_ROOT_DIRECTORY"] = cache_storage
     os.environ["DB_PROVIDER"] = "sqlite"
     os.environ["DB_NAME"] = "cognee_db"
-    os.environ["ENABLE_BACKEND_ACCESS_CONTROL"] = "false"
+    os.environ["ENABLE_BACKEND_ACCESS_CONTROL"] = "true"
     os.environ["CACHING"] = "true"
     os.environ["CACHE_ADAPTER"] = get_cognee_setting("cognee_session_cache", "filesystem")
 

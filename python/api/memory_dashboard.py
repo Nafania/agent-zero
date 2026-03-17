@@ -157,6 +157,7 @@ class MemoryDashboard(ApiHandler):
                     limit=limit,
                     threshold=threshold,
                     filter=f"area == '{area_filter}'" if area_filter else "",
+                    include_default=False,
                 )
                 formatted = [self._format_memory_for_dashboard(m) for m in docs]
                 total = len(formatted)
@@ -190,15 +191,8 @@ class MemoryDashboard(ApiHandler):
                 from python.helpers.memory import _extract_metadata_from_text
                 from python.helpers import guids
 
-                datasets_to_check = []
-                if area_filter:
-                    datasets_to_check.append(memory._area_dataset(area_filter))
-                else:
-                    for area in Memory.Area:
-                        datasets_to_check.append(memory._area_dataset(area.value))
-
                 all_datasets = await cognee.datasets.list_datasets()
-                target_names = set(datasets_to_check)
+                target_names = {memory.dataset_name}
                 for ds in all_datasets:
                     if ds.name not in target_names:
                         continue
@@ -214,6 +208,8 @@ class MemoryDashboard(ApiHandler):
                             meta["id"] = guids.generate_id(10)
                         if not meta.get("area"):
                             meta["area"] = Memory.Area.MAIN.value
+                        if area_filter and meta.get("area", "").lower() != area_filter.lower():
+                            continue
                         memories.append(Document(page_content=text, metadata=meta))
             except Exception as e:
                 PrintStyle.error(f"[MemoryDashboard] Failed to list Cognee datasets: {e}")

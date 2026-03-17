@@ -160,6 +160,7 @@ class TestMemorizeMemories:
         mock_log = MagicMock(update=MagicMock())
         mock_agent.context.log.log = MagicMock(return_value=mock_log)
 
+        mock_db = MagicMock(insert_text=AsyncMock(), delete_documents_by_query=AsyncMock(return_value=[]))
         with patch(
             "python.extensions.monologue_end._50_memorize_fragments.settings.get_settings",
             return_value={"memory_memorize_enabled": True, "memory_memorize_replace_threshold": 0},
@@ -173,7 +174,7 @@ class TestMemorizeMemories:
 
                 ext = MemorizeMemories(agent=mock_agent)
                 # Call memorize directly to test empty response handling
-                await ext.memorize(mock_loop_data, mock_log)
+                await ext.memorize(mock_loop_data, mock_log, mock_db)
 
         mock_log.update.assert_called()
         calls = [str(c) for c in mock_log.update.call_args_list]
@@ -229,6 +230,7 @@ class TestMemorizeSolutions:
         mock_log = MagicMock(update=MagicMock())
         mock_agent.context.log.log = MagicMock(return_value=mock_log)
 
+        mock_db = MagicMock(insert_text=AsyncMock(), delete_documents_by_query=AsyncMock(return_value=[]))
         with patch(
             "python.extensions.monologue_end._51_memorize_solutions.settings.get_settings",
             return_value={"memory_memorize_enabled": True, "memory_memorize_replace_threshold": 0},
@@ -245,7 +247,7 @@ class TestMemorizeSolutions:
                     from python.extensions.monologue_end._51_memorize_solutions import MemorizeSolutions
 
                     ext = MemorizeSolutions(agent=mock_agent)
-                    await ext.memorize(mock_loop_data, mock_log)
+                    await ext.memorize(mock_loop_data, mock_log, mock_db)
 
         mock_log.update.assert_called()
         calls = [str(c) for c in mock_log.update.call_args_list]

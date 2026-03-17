@@ -186,8 +186,10 @@ async def test_search_handles_sqlite_operational_error():
         side_effect=sqlite3.OperationalError("no such table: datasets")
     )
 
-    mem = Memory(dataset_name="default", memory_subdir="default")
-    result = await mem.search_similarity_threshold("query", limit=5, threshold=0.5)
+    _node_set_mod = MagicMock(NodeSet=MagicMock())
+    with patch.dict("sys.modules", {"cognee.modules.engine.models.node_set": _node_set_mod}):
+        mem = Memory(dataset_name="default", memory_subdir="default")
+        result = await mem.search_similarity_threshold("query", limit=5, threshold=0.5)
 
     assert result == []
     assert isinstance(result, list)
@@ -208,8 +210,10 @@ async def test_search_handles_database_not_created_error():
         side_effect=DatabaseNotCreatedError("DB not created")
     )
 
-    mem = Memory(dataset_name="default", memory_subdir="default")
-    result = await mem.search_similarity_threshold("query", limit=5, threshold=0.5)
+    _node_set_mod = MagicMock(NodeSet=MagicMock())
+    with patch.dict("sys.modules", {"cognee.modules.engine.models.node_set": _node_set_mod}):
+        mem = Memory(dataset_name="default", memory_subdir="default")
+        result = await mem.search_similarity_threshold("query", limit=5, threshold=0.5)
 
     assert result == []
 

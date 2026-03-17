@@ -302,7 +302,7 @@ class TestSearchMemoriesOffset:
 
         mock_cognee = MagicMock()
         mock_ds = MagicMock()
-        mock_ds.name = "default_main"
+        mock_ds.name = "default"
         mock_ds.id = "ds1"
         mock_cognee.datasets.list_datasets = AsyncMock(return_value=[mock_ds])
 
@@ -317,12 +317,9 @@ class TestSearchMemoriesOffset:
         with patch.dict("sys.modules", {"cognee": mock_cognee}), \
              patch("python.api.memory_dashboard.Memory") as MockMem:
             mock_mem_instance = MagicMock()
-            mock_mem_instance._area_dataset.side_effect = lambda a: f"default_{a}"
+            mock_mem_instance.dataset_name = "default"
             MockMem.get_by_subdir = AsyncMock(return_value=mock_mem_instance)
             MockMem.Area = MagicMock()
-            MockMem.Area.__iter__ = MagicMock(return_value=iter([
-                MagicMock(value="main"),
-            ]))
             MockMem.Area.MAIN = MagicMock(value="main")
 
             result = await dashboard._search_memories({
@@ -465,9 +462,7 @@ class TestDashboardCaching:
         content_file.write_text(_build_meta_text("Hello", meta))
 
         mock_cognee, _ = _make_cognee_with_items({
-            "default_main": [(str(content_file), "item_1", "Hello")],
-            "default_fragments": [],
-            "default_solutions": [],
+            "default": [(str(content_file), "item_1", "Hello")],
         })
         _setup_cognee(mock_cognee)
 
@@ -494,9 +489,7 @@ class TestDashboardCaching:
         content_file.write_text(_build_meta_text("Hello", meta))
 
         mock_cognee, _ = _make_cognee_with_items({
-            "default_main": [(str(content_file), "item_1", "Hello")],
-            "default_fragments": [],
-            "default_solutions": [],
+            "default": [(str(content_file), "item_1", "Hello")],
         })
         _setup_cognee(mock_cognee)
 
@@ -525,9 +518,7 @@ class TestDashboardCaching:
         content_file.write_text(_build_meta_text("Hello", meta))
 
         mock_cognee, _ = _make_cognee_with_items({
-            "default_main": [(str(content_file), "item_1", "Hello")],
-            "default_fragments": [],
-            "default_solutions": [],
+            "default": [(str(content_file), "item_1", "Hello")],
         })
         _setup_cognee(mock_cognee)
 
@@ -570,9 +561,7 @@ class TestDashboardPagination:
         """5 items, offset=2 limit=2 → returns exactly 2 items."""
         items = self._make_items(tmp_path, 5)
         mock_cognee, _ = _make_cognee_with_items({
-            "default_main": items,
-            "default_fragments": [],
-            "default_solutions": [],
+            "default": items,
         })
         _setup_cognee(mock_cognee)
 
@@ -596,9 +585,7 @@ class TestDashboardPagination:
         """Even with pagination, total_db_count returns full count."""
         items = self._make_items(tmp_path, 5)
         mock_cognee, _ = _make_cognee_with_items({
-            "default_main": items,
-            "default_fragments": [],
-            "default_solutions": [],
+            "default": items,
         })
         _setup_cognee(mock_cognee)
 
