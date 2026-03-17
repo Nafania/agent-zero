@@ -1,4 +1,4 @@
-"""Tests for _50_recall_memories.py — Two-phase search, timeouts, system_prompt."""
+"""Tests for _50_recall_memories.py — Single-phase GRAPH_COMPLETION search, timeouts, system_prompt."""
 
 import sys
 import asyncio
@@ -50,10 +50,9 @@ class TestResolveSearchTypes:
             fast, slow = _resolve_search_types(SearchType)
 
         fast_names = {t.name for t in fast}
-        slow_names = {t.name for t in slow}
+        assert "GRAPH_COMPLETION" in fast_names
         assert "CHUNKS_LEXICAL" in fast_names
-        assert "GRAPH_COMPLETION" in slow_names
-        assert "CHUNKS_LEXICAL" not in slow_names
+        assert len(slow) == 0
 
     def test_all_slow_types_get_chunks_as_fast_fallback(self):
         SearchType = _make_search_type_enum()
@@ -66,9 +65,10 @@ class TestResolveSearchTypes:
             }.get(name, default)
             fast, slow = _resolve_search_types(SearchType)
 
-        assert len(fast) == 1
-        assert fast[0].name == "CHUNKS"
-        assert len(slow) == 2
+        fast_names = {t.name for t in fast}
+        assert "GRAPH_COMPLETION" in fast_names
+        assert "RAG_COMPLETION" in fast_names
+        assert len(slow) == 0
 
     def test_single_search_mode(self):
         SearchType = _make_search_type_enum()
@@ -85,7 +85,7 @@ class TestResolveSearchTypes:
         assert fast[0].name == "CHUNKS"
         assert len(slow) == 0
 
-    def test_invalid_type_falls_back_to_chunks(self):
+    def test_invalid_type_falls_back_to_graph_completion(self):
         SearchType = _make_search_type_enum()
         with patch(
             "python.extensions.message_loop_prompts_after._50_recall_memories.get_cognee_setting"
@@ -97,7 +97,7 @@ class TestResolveSearchTypes:
             fast, slow = _resolve_search_types(SearchType)
 
         assert len(fast) == 1
-        assert fast[0].name == "CHUNKS"
+        assert fast[0].name == "GRAPH_COMPLETION"
 
     def test_temporal_is_slow(self):
         SearchType = _make_search_type_enum()
@@ -111,7 +111,13 @@ class TestResolveSearchTypes:
             fast, slow = _resolve_search_types(SearchType)
 
         assert any(t.name == "CHUNKS" for t in fast)
-        assert any(t.name == "TEMPORAL" for t in slow)
+        assert any(t.name == "TEMPORAL" for t in fast)
+        assert len(slow) == 0
+
+    def test_graph_completion_is_not_slow(self):
+        from python.extensions.message_loop_prompts_after._50_recall_memories import _SLOW_SEARCH_NAMES
+        assert "GRAPH_COMPLETION" not in _SLOW_SEARCH_NAMES
+        assert len(_SLOW_SEARCH_NAMES) == 0
 
 
 # --- _extract_texts ---

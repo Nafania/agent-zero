@@ -10,17 +10,7 @@ DATA_NAME_TASK = "_recall_memories_task"
 DATA_NAME_ITER = "_recall_memories_iter"
 SEARCH_TIMEOUT = 30
 
-_SLOW_SEARCH_NAMES = frozenset({
-    "GRAPH_COMPLETION",
-    "RAG_COMPLETION",
-    "TRIPLET_COMPLETION",
-    "GRAPH_SUMMARY_COMPLETION",
-    "GRAPH_COMPLETION_COT",
-    "GRAPH_COMPLETION_CONTEXT_EXTENSION",
-    "NATURAL_LANGUAGE",
-    "TEMPORAL",
-    "FEELING_LUCKY",
-})
+_SLOW_SEARCH_NAMES = frozenset()  # all search types run in Phase 1 now
 
 
 class RecallMemories(Extension):
@@ -100,7 +90,7 @@ class RecallMemories(Extension):
         from python.helpers.memory import _get_cognee
         cognee, SearchType = _get_cognee()
 
-        fast_types, slow_types = _resolve_search_types(SearchType)
+        fast_types, _ = _resolve_search_types(SearchType)
 
         search_system_prompt = get_cognee_setting("cognee_search_system_prompt", "")
 
@@ -163,8 +153,8 @@ class RecallMemories(Extension):
                 PrintStyle.error(f"Solutions fallback search failed: {e}")
                 solution_results = []
 
-        memories = _extract_texts(memory_results, set["memory_recall_memories_max_result"])
-        solutions = _extract_texts(solution_results, set["memory_recall_solutions_max_result"])
+        memories = _extract_texts(memory_results, set["memory_recall_memories_max_result"], label="P1-mem")
+        solutions = _extract_texts(solution_results, set["memory_recall_solutions_max_result"], label="P1-sol")
 
         if set["memory_recall_post_filter"] and (memories or solutions):
             memories, solutions = await self._post_filter(
@@ -172,28 +162,6 @@ class RecallMemories(Extension):
             )
 
         _write_extras(self.agent, extras, memories, solutions, log_item)
-
-        # --- Phase 2: slow search in background (GRAPH_COMPLETION, etc.) ---
-        if slow_types:
-            asyncio.create_task(
-                _slow_search_and_merge(
-                    agent=self.agent,
-                    cognee=cognee,
-                    slow_types=slow_types,
-                    query=query,
-                    recall_settings=set,
-                    mem_datasets=mem_datasets,
-                    sol_datasets=sol_datasets,
-                    mem_node_name=mem_node_name,
-                    sol_node_name=sol_node_name,
-                    session_id=session_id,
-                    extras=extras,
-                    log_item=log_item,
-                    existing_memories=memories,
-                    existing_solutions=solutions,
-                    system_prompt=search_system_prompt,
-                )
-            )
 
     async def _post_filter(self, cognee, memories, solutions, history, user_instruction, session_id):
         all_items = memories + solutions
@@ -279,69 +247,20 @@ def _write_extras(agent, extras, memories, solutions, log_item):
         )
 
 
-async def _slow_search_and_merge(
-    *, agent, cognee, slow_types, query, recall_settings,
-    mem_datasets, sol_datasets, mem_node_name, sol_node_name,
-    session_id, extras, log_item, existing_memories, existing_solutions,
-    system_prompt="",
-):
-    try:
-        slow_mem, slow_sol = await asyncio.gather(
-            _multi_cognee_search(
-                cognee, search_types=slow_types,
-                query=query,
-                top_k=recall_settings["memory_recall_memories_max_search"],
-                datasets=mem_datasets,
-                node_name=mem_node_name,
-                session_id=session_id,
-                system_prompt=system_prompt,
-            ),
-            _multi_cognee_search(
-                cognee, search_types=slow_types,
-                query=query,
-                top_k=recall_settings["memory_recall_solutions_max_search"],
-                datasets=sol_datasets,
-                node_name=sol_node_name,
-                session_id=session_id,
-                system_prompt=system_prompt,
-            ),
-        )
-
-        new_memories = _extract_texts(
-            slow_mem, recall_settings["memory_recall_memories_max_result"]
-        )
-        new_solutions = _extract_texts(
-            slow_sol, recall_settings["memory_recall_solutions_max_result"]
-        )
-
-        existing_mem_keys = frozenset(existing_memories) if existing_memories else frozenset()
-        existing_sol_keys = frozenset(existing_solutions) if existing_solutions else frozenset()
-        merged_memories = list(existing_memories) + [
-            m for m in new_memories if m not in existing_mem_keys
-        ]
-        merged_solutions = list(existing_solutions) + [
-            s for s in new_solutions if s not in existing_sol_keys
-        ]
-
-        if merged_memories != existing_memories or merged_solutions != existing_solutions:
-            _write_extras(agent, extras, merged_memories, merged_solutions, log_item)
-
-    except Exception as e:
-        PrintStyle.error(f"Background memory search failed: {e}")
-
-
-def _extract_texts(results, limit: int) -> list[str]:
+def _extract_texts(results, limit: int, label: str = "") -> list[str]:
     texts = []
     if not results:
         return texts
 
-    for result in results:
+    for i, result in enumerate(results):
         if len(texts) >= limit:
             break
 
         raw = result
+        branch = "raw"
         if hasattr(result, "search_result"):
             raw = result.search_result
+            branch = "search_result"
 
         if isinstance(raw, str):
             text = raw
@@ -352,15 +271,26 @@ def _extract_texts(results, limit: int) -> list[str]:
                 except ValueError:
                     pass
             texts.append(text)
+            branch += "->str"
         elif hasattr(raw, "page_content"):
             texts.append(raw.page_content)
+            branch += "->page_content"
         elif hasattr(raw, "text"):
             texts.append(str(raw.text))
+            branch += "->text"
         elif isinstance(raw, dict):
             texts.append(raw.get("text", raw.get("content", str(raw))))
+            branch += "->dict"
         else:
             texts.append(str(raw))
+            branch += "->fallback"
 
+        PrintStyle.hint(
+            f"DIAG _extract[{label}][{i}] {branch}: "
+            f"type={type(raw).__name__} text={texts[-1][:200]}"
+        )
+
+    PrintStyle.hint(f"DIAG _extract[{label}]: {len(texts)} texts from {len(results)} results (limit={limit})")
     return texts
 
 
@@ -368,26 +298,26 @@ def _resolve_search_types(SearchType):
     """Returns (fast_types, slow_types) tuple."""
     multi_enabled = get_cognee_setting("cognee_multi_search_enabled", True)
     if multi_enabled:
-        type_names = get_cognee_setting("cognee_search_types", "GRAPH_COMPLETION,CHUNKS,CHUNKS_LEXICAL")
+        type_names = get_cognee_setting("cognee_search_types", "GRAPH_COMPLETION")
         all_types = []
         for name in type_names.split(","):
             name = name.strip()
             if hasattr(SearchType, name):
                 all_types.append(getattr(SearchType, name))
         if not all_types:
-            all_types = [SearchType.CHUNKS]
+            all_types = [SearchType.GRAPH_COMPLETION]
     else:
         name = get_cognee_setting("cognee_search_type", "GRAPH_COMPLETION")
         try:
             all_types = [getattr(SearchType, name)]
         except AttributeError:
-            all_types = [SearchType.CHUNKS]
+            all_types = [SearchType.GRAPH_COMPLETION]
 
     fast = [t for t in all_types if t.name not in _SLOW_SEARCH_NAMES]
     slow = [t for t in all_types if t.name in _SLOW_SEARCH_NAMES]
 
     if not fast:
-        fast = [SearchType.CHUNKS]
+        fast = [SearchType.GRAPH_COMPLETION]
 
     return fast, slow
 
