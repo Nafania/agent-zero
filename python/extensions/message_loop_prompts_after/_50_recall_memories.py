@@ -109,11 +109,8 @@ class RecallMemories(Extension):
             db._area_dataset(Memory.Area.FRAGMENTS.value),
         ]
         sol_datasets = [db._area_dataset(Memory.Area.SOLUTIONS.value)]
-        mem_node_name = [
-            db._area_dataset(Memory.Area.MAIN.value),
-            db._area_dataset(Memory.Area.FRAGMENTS.value),
-        ]
-        sol_node_name = [db._area_dataset(Memory.Area.SOLUTIONS.value)]
+        mem_node_name = [Memory.Area.MAIN.value, Memory.Area.FRAGMENTS.value]
+        sol_node_name = [Memory.Area.SOLUTIONS.value]
 
         # --- Phase 1: fast search (CHUNKS, CHUNKS_LEXICAL, etc.) ---
         memory_results, solution_results = await asyncio.gather(
@@ -402,11 +399,17 @@ async def _multi_cognee_search(
     cognee, *, search_types, query, top_k, datasets, node_name, session_id,
     system_prompt="",
 ):
+    stypes = [st.name for st in search_types]
     if datasets:
         existing = await Memory._get_existing_dataset_names()
+        before = list(datasets)
         datasets = [d for d in datasets if d in existing]
+        PrintStyle.hint(f"DIAG _multi_cognee_search: types={stypes} ds_before={before} ds_after={datasets} existing={existing} node_name={node_name}")
         if not datasets:
+            PrintStyle.hint(f"DIAG _multi_cognee_search: ALL datasets filtered out, returning []")
             return []
+    else:
+        PrintStyle.hint(f"DIAG _multi_cognee_search: types={stypes} no datasets, node_name={node_name}")
 
     search_kwargs = dict(
         query_text=query,
@@ -419,21 +422,30 @@ async def _multi_cognee_search(
         search_kwargs["system_prompt"] = system_prompt
 
     async def _search_one(st):
+        import time as _t
+        t0 = _t.monotonic()
         task = asyncio.ensure_future(
             cognee.search(query_type=st, **search_kwargs)
         )
         try:
             done, _ = await asyncio.wait({task}, timeout=PER_SEARCH_TIMEOUT)
+            elapsed = _t.monotonic() - t0
             if task in done:
                 results = task.result()
+                PrintStyle.hint(f"DIAG {st.name}: {len(results) if results else 0} results in {elapsed:.2f}s ds={datasets}")
+                if results:
+                    for i, r in enumerate(results[:3]):
+                        raw = r.get('search_result', r) if isinstance(r, dict) else r
+                        text = str(raw)[:150]
+                        PrintStyle.hint(f"  DIAG {st.name}[{i}]: {text}")
                 return results or []
             task.cancel()
-            PrintStyle.error(f"Cognee search ({st.name}) timed out")
+            PrintStyle.error(f"Cognee search ({st.name}) timed out after {_t.monotonic()-t0:.1f}s")
             return []
         except Exception as e:
             if not task.done():
                 task.cancel()
-            PrintStyle.error(f"Cognee search ({st.name}) failed: {e}")
+            PrintStyle.error(f"Cognee search ({st.name}) failed after {_t.monotonic()-t0:.1f}s: {e}")
             return []
 
     per_type_results = await asyncio.gather(*[_search_one(st) for st in search_types])
