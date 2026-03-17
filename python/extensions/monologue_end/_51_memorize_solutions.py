@@ -17,19 +17,20 @@ class MemorizeSolutions(Extension):
         if not set["memory_memorize_enabled"]:
             return
 
+        db = await Memory.get(self.agent)
+
         log_item = self.agent.context.log.log(
             type="util",
             heading="Memorizing succesful solutions...",
         )
 
         task = DeferredTask(thread_name=THREAD_BACKGROUND)
-        task.start_task(self.memorize, loop_data, log_item)
+        task.start_task(self.memorize, loop_data, log_item, db)
         return task
 
-    async def memorize(self, loop_data: LoopData, log_item: LogItem, **kwargs):
+    async def memorize(self, loop_data: LoopData, log_item: LogItem, db: Memory, **kwargs):
         try:
             set = settings.get_settings()
-            db = await Memory.get(self.agent)
 
             system = self.agent.read_prompt("memory.solutions_sum.sys.md")
             msgs_text = self.agent.concat_messages(self.agent.history)

@@ -6,6 +6,7 @@ import os
 import json
 import asyncio
 
+
 from python.helpers.print_style import PrintStyle
 from python.helpers import files
 from langchain_core.documents import Document
@@ -32,6 +33,9 @@ class Memory:
 
     _initialized: bool = False
     _datasets_cache: dict[str, str] = {}
+    _existing_datasets_cache: set[str] | None = None
+    _existing_datasets_ts: float = 0
+    _DATASETS_CACHE_TTL = 30
     SEARCH_TIMEOUT = 15
 
     @staticmethod
@@ -80,15 +84,34 @@ class Memory:
         self.dataset_name = dataset_name
         self.memory_subdir = memory_subdir
 
-    def _build_node_sets(self, area: str) -> list[str]:
-        node_sets = [area]
-        if self.memory_subdir.startswith("projects/"):
-            project_name = self.memory_subdir.split("/", 1)[1]
-            node_sets.append(f"project_{project_name}")
-        return node_sets
+    def get_search_datasets(self) -> list[str]:
+        """Always search in 'default' + current project dataset (if any)."""
+        ds = ["default"]
+        if self.dataset_name != "default" and self.dataset_name not in ds:
+            ds.append(self.dataset_name)
+        return ds
 
-    def _area_dataset(self, area: str) -> str:
-        return f"{self.dataset_name}_{area}"
+    @staticmethod
+    async def _get_existing_dataset_names() -> set[str]:
+        import time as _t
+        now = _t.monotonic()
+        if (Memory._existing_datasets_cache is not None
+                and now - Memory._existing_datasets_ts < Memory._DATASETS_CACHE_TTL):
+            return Memory._existing_datasets_cache
+        try:
+            cognee, _ = _get_cognee()
+            all_ds = await cognee.datasets.list_datasets()
+            Memory._existing_datasets_cache = {ds.name for ds in all_ds}
+            Memory._existing_datasets_ts = now
+        except Exception:
+            if Memory._existing_datasets_cache is not None:
+                return Memory._existing_datasets_cache
+            return set()
+        return Memory._existing_datasets_cache
+
+    @staticmethod
+    def _invalidate_datasets_cache():
+        Memory._existing_datasets_cache = None
 
     async def preload_knowledge(
         self, log_item: LogItem | None, kn_dirs: list[str], memory_subdir: str
@@ -126,18 +149,19 @@ class Memory:
             if entry["state"] in ["changed", "removed"] and entry.get("ids", []):
                 for data_id in entry["ids"]:
                     try:
-                        await _delete_data_by_id(self._area_dataset("main"), data_id)
+                        await _delete_data_by_id(self.dataset_name, data_id)
                     except Exception:
                         pass
             if entry["state"] == "changed" and entry.get("documents"):
                 new_ids = []
+                area = entry.get("metadata", {}).get("area", "main")
                 for doc in entry["documents"]:
                     content = doc.page_content if hasattr(doc, "page_content") else str(doc)
                     try:
                         await cognee.add(
                             content,
-                            dataset_name=self._area_dataset(entry.get("metadata", {}).get("area", "main")),
-                            node_set=self._build_node_sets("knowledge"),
+                            dataset_name=self.dataset_name,
+                            node_set=[area],
                         )
                         new_ids.append(guids.generate_id(10))
                     except Exception as e:
@@ -183,130 +207,44 @@ class Memory:
         return None
 
     async def search_similarity_threshold(
-        self, query: str, limit: int, threshold: float, filter: str = ""
+        self, query: str, limit: int, threshold: float, filter: str = "",
+        include_default: bool = True, session_id: str | None = None,
     ) -> list[Document]:
         cognee, SearchType = _get_cognee()
+        from cognee.modules.engine.models.node_set import NodeSet
+
         node_names = _parse_filter_to_node_names(filter)
-        datasets = self._datasets_for_filter(filter)
-
-        multi_enabled = get_cognee_setting("cognee_multi_search_enabled", True)
-
-        if multi_enabled:
-            return await self._multi_search(
-                cognee, SearchType, query, limit, datasets, node_names
-            )
-
-        search_type_name = get_cognee_setting("cognee_search_type", "GRAPH_COMPLETION")
-        try:
-            search_type = getattr(SearchType, search_type_name)
-        except AttributeError:
-            search_type = SearchType.CHUNKS
+        datasets = self.get_search_datasets() if include_default else [self.dataset_name]
 
         try:
             results = await cognee.search(
                 query_text=query,
-                query_type=search_type,
                 top_k=limit,
-                datasets=datasets if datasets else None,
+                datasets=datasets,
+                node_type=NodeSet,
                 node_name=node_names if node_names else None,
+                session_id=session_id,
             )
-        except Exception:
-            try:
-                results = await cognee.search(
-                    query_text=query,
-                    query_type=SearchType.CHUNKS,
-                    top_k=limit,
-                    datasets=datasets if datasets else None,
-                )
-            except Exception as e:
-                PrintStyle.error(f"Cognee search failed: {e}")
-                return []
+        except Exception as e:
+            PrintStyle.error(f"cognee.search failed: {e}")
+            return []
 
-        return _results_to_documents(results, limit)
-
-    async def _multi_search(
-        self, cognee, SearchType, query: str, limit: int,
-        datasets: list[str], node_names: list[str],
-    ) -> list[Document]:
-        type_names = get_cognee_setting("cognee_search_types", "GRAPH_COMPLETION,CHUNKS_LEXICAL")
-        search_types = []
-        for name in type_names.split(","):
-            name = name.strip()
-            if hasattr(SearchType, name):
-                search_types.append(getattr(SearchType, name))
-        if not search_types:
-            search_types = [SearchType.CHUNKS]
-
-        per_type_limit = max(limit, 10)
-
-        async def _search_one(st):
-            try:
-                return await asyncio.wait_for(
-                    cognee.search(
-                        query_text=query,
-                        query_type=st,
-                        top_k=per_type_limit,
-                        datasets=datasets if datasets else None,
-                        node_name=node_names if node_names else None,
-                    ),
-                    timeout=self.SEARCH_TIMEOUT,
-                )
-            except asyncio.TimeoutError:
-                PrintStyle.error(f"Cognee multi-search ({st.name}) timed out after {self.SEARCH_TIMEOUT}s")
-                return []
-            except Exception as e:
-                PrintStyle.error(f"Cognee multi-search ({st.name}) failed: {e}")
-                return []
-
-        per_type_results = await asyncio.gather(*[_search_one(st) for st in search_types])
-
-        all_results = []
-        for results in per_type_results:
-            if results:
-                all_results.extend(results)
-
-        if not all_results:
-            try:
-                all_results = await cognee.search(
-                    query_text=query,
-                    query_type=SearchType.CHUNKS,
-                    top_k=limit,
-                    datasets=datasets if datasets else None,
-                )
-            except Exception as e:
-                PrintStyle.error(f"Cognee fallback search failed: {e}")
-                return []
-
-        docs = _results_to_documents(all_results, limit * len(search_types))
-        return _deduplicate_documents(docs)[:limit]
-
-    def _datasets_for_filter(self, filter: str) -> list[str]:
-        if not filter:
-            return [
-                self._area_dataset(area.value)
-                for area in Memory.Area
-            ]
-
-        datasets = []
-        for area in Memory.Area:
-            if area.value in filter:
-                datasets.append(self._area_dataset(area.value))
-        return datasets if datasets else [self._area_dataset(Memory.Area.MAIN.value)]
+        return _results_to_documents(results or [], limit)
 
     async def delete_documents_by_query(
         self, query: str, threshold: float, filter: str = ""
     ) -> list[Document]:
         docs = await self.search_similarity_threshold(
-            query=query, limit=100, threshold=threshold, filter=filter
+            query=query, limit=100, threshold=threshold, filter=filter,
+            include_default=False,
         )
         if docs:
             ids = [doc.metadata.get("id", "") for doc in docs if doc.metadata.get("id")]
             for doc_id in ids:
-                for area in Memory.Area:
-                    try:
-                        await _delete_data_by_id(self._area_dataset(area.value), doc_id)
-                    except Exception:
-                        pass
+                try:
+                    await _delete_data_by_id(self.dataset_name, doc_id)
+                except Exception:
+                    pass
             _invalidate_dashboard_cache()
         return docs
 
@@ -318,19 +256,14 @@ class Memory:
         removed = []
         id_set = set(ids)
 
-        for area in Memory.Area:
-            if not id_set:
-                break
-            dataset_name = self._area_dataset(area.value)
-            try:
-                datasets = await cognee.datasets.list_datasets()
-                target = None
-                for ds in datasets:
-                    if ds.name == dataset_name:
-                        target = ds
-                        break
-                if not target:
-                    continue
+        try:
+            datasets_list = await cognee.datasets.list_datasets()
+            target = None
+            for ds in datasets_list:
+                if ds.name == self.dataset_name:
+                    target = ds
+                    break
+            if target:
                 data_items = await cognee.datasets.list_data(target.id)
                 for item in data_items:
                     item_text = getattr(item, "raw_data_location", "") or getattr(item, "name", "") or ""
@@ -344,8 +277,8 @@ class Memory:
                             removed.append(Document(page_content="", metadata={"id": doc_id}))
                             id_set.discard(doc_id)
                             break
-            except Exception as e:
-                PrintStyle.error(f"Failed to delete from {dataset_name}: {e}")
+        except Exception as e:
+            PrintStyle.error(f"Failed to delete from {self.dataset_name}: {e}")
 
         if removed:
             _invalidate_dashboard_cache()
@@ -371,20 +304,17 @@ class Memory:
                 area = Memory.Area.MAIN.value
                 doc.metadata["area"] = area
 
-            dataset = self._area_dataset(area)
-            node_sets = self._build_node_sets(area)
-
             meta_header = json.dumps(doc.metadata, default=str)
             enriched_text = f"[META:{meta_header}]\n{doc.page_content}"
 
             try:
                 await cognee.add(
                     enriched_text,
-                    dataset_name=dataset,
-                    node_set=node_sets,
+                    dataset_name=self.dataset_name,
+                    node_set=[area],
                 )
                 ids.append(doc_id)
-                CogneeBackgroundWorker.get_instance().mark_dirty(dataset)
+                CogneeBackgroundWorker.get_instance().mark_dirty(self.dataset_name)
             except Exception as e:
                 PrintStyle.error(f"Cognee insert failed for {doc_id}: {e}")
 
@@ -553,6 +483,8 @@ def reload():
     ci._search_type_class = None
     Memory._initialized = False
     Memory._datasets_cache.clear()
+    Memory._invalidate_datasets_cache()
+    ci.configure_cognee()
 
 
 def abs_db_dir(memory_subdir: str) -> str:

@@ -170,10 +170,10 @@ A0_PATH="/opt/${A0_NAME}"
 A0_PORT="50080"
 
 # Pull latest image
-docker pull agent0ai/agent-zero:latest
+docker pull ghcr.io/nafania/agent-zero:latest
 
 # Run container
-docker run -d   --name ${A0_NAME}   --restart unless-stopped   -p ${A0_PORT}:80   -v ${A0_PATH}/.env:/a0/.env   -v ${A0_PATH}/usr:/a0/usr   agent0ai/agent-zero:latest
+docker run -d   --name ${A0_NAME}   --restart unless-stopped   -p ${A0_PORT}:80   -v ${A0_PATH}/.env:/a0/.env   -v ${A0_PATH}/usr:/a0/usr   ghcr.io/nafania/agent-zero:latest
 ```
 
 ### Step 5: Verify Container
@@ -631,7 +631,7 @@ docker exec a0-instance cat /a0/.env
 
 ```bash
 # Pull latest image
-docker pull agent0ai/agent-zero:latest
+docker pull ghcr.io/nafania/agent-zero:latest
 
 # Stop and remove old container (data persists in volumes)
 docker stop a0-instance

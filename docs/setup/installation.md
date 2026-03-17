@@ -151,7 +151,7 @@ If you installed Docker Desktop, launch it from your applications menu.
 
 **Using Docker Desktop GUI:**
 
-- Search for `agent0ai/agent-zero` in Docker Desktop
+- Search for `ghcr.io/nafania/agent-zero` in Docker Desktop
 - Click the `Pull` button
 - The image will be downloaded to your machine in a few minutes
 
@@ -160,7 +160,7 @@ If you installed Docker Desktop, launch it from your applications menu.
 **Using Terminal:**
 
 ```bash
-docker pull agent0ai/agent-zero
+docker pull ghcr.io/nafania/agent-zero
 ```
 
 ### 2.2. (Optional) Map Folders for Persistence
@@ -187,7 +187,7 @@ You can map just the `/a0/usr` directory (recommended) or individual subfolders 
 **Using Docker Desktop GUI:**
 
 - In Docker Desktop, go to the "Images" tab
-- Click the `Run` button next to the `agent0ai/agent-zero` image
+- Click the `Run` button next to the `ghcr.io/nafania/agent-zero` image
 - Open the "Optional settings" menu
 - **Ensure at least one host port is mapped to container port `80`** (set host port to `0` for automatic assignment)
 - Click the `Run` button
@@ -218,7 +218,7 @@ Open `http://localhost:<PORT>` in your browser. The Web UI will open - Agent Zer
 **Running A0 using Terminal?**
 
 ```bash
-docker run -p 0:80 -v /path/to/your/work_dir:/a0/usr agent0ai/agent-zero
+docker run -p 0:80 -v /path/to/your/work_dir:/a0/usr ghcr.io/nafania/agent-zero
 ```
 
 - Replace `0` with a fixed port if you prefer (e.g., `50080:80`)
@@ -476,7 +476,7 @@ ollama rm <model-name>
 ### Recommended Update Process (Docker)
 
 1. **Keep the old container running** and note its port.
-2. **Pull the new image** (`agent0ai/agent-zero:latest`).
+2. **Pull the new image** (`ghcr.io/nafania/agent-zero:latest`).
 3. **Start a new container** on a different host port.
 4. In the **old** instance, open **Settings → Backup & Restore** and create a backup.
 5. In the **new** instance, restore that backup from the same panel.
@@ -557,7 +557,7 @@ When running Docker, you can pass these as environment variables:
 docker run -p 50080:80 \
   -e A0_SET_chat_model_provider=anthropic \
   -e A0_SET_chat_model_name=claude-3-5-sonnet-20241022 \
-  agent0ai/agent-zero
+  ghcr.io/nafania/agent-zero
 ```
 
 **Notes:**
@@ -582,4 +582,4 @@ After following the instructions for your specific operating system, you should 
 - For development setup and extensions, see the [Development Setup Guide](dev-setup.md)
 - For remote access via tunnel, see [Remote Access via Tunneling](../guides/usage.md#remote-access-via-tunneling)
 
-If you encounter any issues during the installation process, please consult the [Troubleshooting section](../guides/troubleshooting.md) of this documentation or refer to the Agent Zero [Skool](https://www.skool.com/agent-zero) or [Discord](https://discord.gg/B8KZKNsPpj) community for assistance.
+If you encounter any issues during the installation process, please consult the [Troubleshooting section](../guides/troubleshooting.md) of this documentation or open an issue at [Nafania/agent-zero](https://github.com/Nafania/agent-zero/issues).

@@ -640,11 +640,15 @@ def _apply_settings(previous: Settings | None):
                 whisper.preload, _settings["stt_model_size"]
             )  # TODO overkill, replace with background task
 
-        # force memory reload on embedding model change
+        # force memory/cognee reload on embedding or LLM model/key change
         if not previous or (
             _settings["embed_model_name"] != previous["embed_model_name"]
             or _settings["embed_model_provider"] != previous["embed_model_provider"]
             or _settings["embed_model_kwargs"] != previous["embed_model_kwargs"]
+            or _settings["util_model_provider"] != previous["util_model_provider"]
+            or _settings["util_model_name"] != previous["util_model_name"]
+            or _settings.get("util_model_api_base") != previous.get("util_model_api_base")
+            or _settings.get("api_keys") != previous.get("api_keys")
         ):
             from python.helpers.memory import reload as memory_reload
 

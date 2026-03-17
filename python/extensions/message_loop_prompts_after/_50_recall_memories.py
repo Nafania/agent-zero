@@ -10,18 +10,6 @@ DATA_NAME_TASK = "_recall_memories_task"
 DATA_NAME_ITER = "_recall_memories_iter"
 SEARCH_TIMEOUT = 30
 
-_SLOW_SEARCH_NAMES = frozenset({
-    "GRAPH_COMPLETION",
-    "RAG_COMPLETION",
-    "TRIPLET_COMPLETION",
-    "GRAPH_SUMMARY_COMPLETION",
-    "GRAPH_COMPLETION_COT",
-    "GRAPH_COMPLETION_CONTEXT_EXTENSION",
-    "NATURAL_LANGUAGE",
-    "TEMPORAL",
-    "FEELING_LUCKY",
-})
-
 
 class RecallMemories(Extension):
 
@@ -94,108 +82,51 @@ class RecallMemories(Extension):
             )
             return
 
-        db = await Memory.get(self.agent)
-        session_id = f"context_{id(self.agent.context)}"
-
         from python.helpers.memory import _get_cognee
         cognee, SearchType = _get_cognee()
+        from cognee.modules.engine.models.node_set import NodeSet
 
-        fast_types, slow_types = _resolve_search_types(SearchType)
+        db = await Memory.get(self.agent)
 
-        search_system_prompt = get_cognee_setting("cognee_search_system_prompt", "")
-
-        mem_datasets = [
-            db._area_dataset(Memory.Area.MAIN.value),
-            db._area_dataset(Memory.Area.FRAGMENTS.value),
-        ]
-        sol_datasets = [db._area_dataset(Memory.Area.SOLUTIONS.value)]
+        datasets = db.get_search_datasets()
         mem_node_name = [Memory.Area.MAIN.value, Memory.Area.FRAGMENTS.value]
         sol_node_name = [Memory.Area.SOLUTIONS.value]
 
-        # --- Phase 1: fast search (CHUNKS, CHUNKS_LEXICAL, etc.) ---
-        memory_results, solution_results = await asyncio.gather(
-            _multi_cognee_search(
-                cognee, search_types=fast_types,
-                query=query,
-                top_k=set["memory_recall_memories_max_search"],
-                datasets=mem_datasets,
-                node_name=mem_node_name,
-                session_id=session_id,
-                system_prompt=search_system_prompt,
-            ),
-            _multi_cognee_search(
-                cognee, search_types=fast_types,
-                query=query,
-                top_k=set["memory_recall_solutions_max_search"],
-                datasets=sol_datasets,
-                node_name=sol_node_name,
-                session_id=session_id,
-                system_prompt=search_system_prompt,
-            ),
-        )
+        try:
+            session_id = getattr(self.agent.context, 'id', None)
+            mem_answers, sol_answers = await asyncio.gather(
+                cognee.search(
+                    query_text=query,
+                    top_k=set["memory_recall_memories_max_search"],
+                    datasets=datasets,
+                    node_type=NodeSet,
+                    node_name=mem_node_name,
+                    session_id=session_id,
+                ),
+                cognee.search(
+                    query_text=query,
+                    top_k=set["memory_recall_solutions_max_search"],
+                    datasets=datasets,
+                    node_type=NodeSet,
+                    node_name=sol_node_name,
+                    session_id=session_id,
+                ),
+            )
+        except Exception as e:
+            PrintStyle.error(f"cognee.search failed: {e}")
+            mem_answers, sol_answers = [], []
 
-        if memory_results is None:
-            try:
-                memory_results = await asyncio.wait_for(
-                    db.search_similarity_threshold(
-                        query=query,
-                        limit=set["memory_recall_memories_max_search"],
-                        threshold=set["memory_recall_similarity_threshold"],
-                        filter=f"area == '{Memory.Area.MAIN.value}' or area == '{Memory.Area.FRAGMENTS.value}'",
-                    ),
-                    timeout=PER_SEARCH_TIMEOUT,
-                )
-            except (asyncio.TimeoutError, Exception) as e:
-                PrintStyle.error(f"Memory fallback search failed: {e}")
-                memory_results = []
-        if solution_results is None:
-            try:
-                solution_results = await asyncio.wait_for(
-                    db.search_similarity_threshold(
-                        query=query,
-                        limit=set["memory_recall_solutions_max_search"],
-                        threshold=set["memory_recall_similarity_threshold"],
-                        filter=f"area == '{Memory.Area.SOLUTIONS.value}'",
-                    ),
-                    timeout=PER_SEARCH_TIMEOUT,
-                )
-            except (asyncio.TimeoutError, Exception) as e:
-                PrintStyle.error(f"Solutions fallback search failed: {e}")
-                solution_results = []
-
-        memories = _extract_texts(memory_results, set["memory_recall_memories_max_result"])
-        solutions = _extract_texts(solution_results, set["memory_recall_solutions_max_result"])
+        memories = _to_strings(mem_answers, set["memory_recall_memories_max_result"])
+        solutions = _to_strings(sol_answers, set["memory_recall_solutions_max_result"])
 
         if set["memory_recall_post_filter"] and (memories or solutions):
             memories, solutions = await self._post_filter(
-                cognee, memories, solutions, history, user_instruction, session_id,
+                memories, solutions, history, user_instruction,
             )
 
         _write_extras(self.agent, extras, memories, solutions, log_item)
 
-        # --- Phase 2: slow search in background (GRAPH_COMPLETION, etc.) ---
-        if slow_types:
-            asyncio.create_task(
-                _slow_search_and_merge(
-                    agent=self.agent,
-                    cognee=cognee,
-                    slow_types=slow_types,
-                    query=query,
-                    recall_settings=set,
-                    mem_datasets=mem_datasets,
-                    sol_datasets=sol_datasets,
-                    mem_node_name=mem_node_name,
-                    sol_node_name=sol_node_name,
-                    session_id=session_id,
-                    extras=extras,
-                    log_item=log_item,
-                    existing_memories=memories,
-                    existing_solutions=solutions,
-                    system_prompt=search_system_prompt,
-                )
-            )
-
-    async def _post_filter(self, cognee, memories, solutions, history, user_instruction, session_id):
+    async def _post_filter(self, memories, solutions, history, user_instruction):
         all_items = memories + solutions
         mems_list = {i: text for i, text in enumerate(all_items)}
 
@@ -226,23 +157,6 @@ class RecallMemories(Extension):
                 memories = filtered_memories
                 solutions = filtered_solutions
 
-                feedback_enabled = get_cognee_setting("cognee_feedback_enabled", True)
-                if feedback_enabled:
-                    try:
-                        entries = await cognee.session.get_session(
-                            session_id=session_id, last_n=1
-                        )
-                        if entries:
-                            qa_id = entries[-1].qa_id
-                            score = 5 if (memories or solutions) else 2
-                            await cognee.session.add_feedback(
-                                session_id=session_id,
-                                qa_id=qa_id,
-                                feedback_score=score,
-                            )
-                    except Exception as fb_err:
-                        PrintStyle.error(f"Cognee feedback failed: {fb_err}")
-
         except Exception as e:
             err = errors.format_error(e)
             self.agent.context.log.log(
@@ -250,6 +164,27 @@ class RecallMemories(Extension):
             )
 
         return memories, solutions
+
+
+def _to_strings(answers, limit: int) -> list[str]:
+    """Convert cognee.search results to plain strings."""
+    if not answers:
+        return []
+
+    texts = []
+    for answer in answers:
+        if len(texts) >= limit:
+            break
+        text = str(answer)
+        if text.startswith("[META:"):
+            try:
+                meta_end = text.index("]\n")
+                text = text[meta_end + 2:]
+            except ValueError:
+                pass
+        texts.append(text)
+
+    return texts
 
 
 def _write_extras(agent, extras, memories, solutions, log_item):
@@ -277,166 +212,3 @@ def _write_extras(agent, extras, memories, solutions, log_item):
         extras["solutions"] = agent.parse_prompt(
             "agent.system.solutions.md", solutions=solutions_txt
         )
-
-
-async def _slow_search_and_merge(
-    *, agent, cognee, slow_types, query, recall_settings,
-    mem_datasets, sol_datasets, mem_node_name, sol_node_name,
-    session_id, extras, log_item, existing_memories, existing_solutions,
-    system_prompt="",
-):
-    try:
-        slow_mem, slow_sol = await asyncio.gather(
-            _multi_cognee_search(
-                cognee, search_types=slow_types,
-                query=query,
-                top_k=recall_settings["memory_recall_memories_max_search"],
-                datasets=mem_datasets,
-                node_name=mem_node_name,
-                session_id=session_id,
-                system_prompt=system_prompt,
-            ),
-            _multi_cognee_search(
-                cognee, search_types=slow_types,
-                query=query,
-                top_k=recall_settings["memory_recall_solutions_max_search"],
-                datasets=sol_datasets,
-                node_name=sol_node_name,
-                session_id=session_id,
-                system_prompt=system_prompt,
-            ),
-        )
-
-        new_memories = _extract_texts(
-            slow_mem, recall_settings["memory_recall_memories_max_result"]
-        )
-        new_solutions = _extract_texts(
-            slow_sol, recall_settings["memory_recall_solutions_max_result"]
-        )
-
-        existing_mem_keys = frozenset(existing_memories) if existing_memories else frozenset()
-        existing_sol_keys = frozenset(existing_solutions) if existing_solutions else frozenset()
-        merged_memories = list(existing_memories) + [
-            m for m in new_memories if m not in existing_mem_keys
-        ]
-        merged_solutions = list(existing_solutions) + [
-            s for s in new_solutions if s not in existing_sol_keys
-        ]
-
-        if merged_memories != existing_memories or merged_solutions != existing_solutions:
-            _write_extras(agent, extras, merged_memories, merged_solutions, log_item)
-
-    except Exception as e:
-        PrintStyle.error(f"Background memory search failed: {e}")
-
-
-def _extract_texts(results, limit: int) -> list[str]:
-    texts = []
-    if not results:
-        return texts
-
-    for result in results:
-        if len(texts) >= limit:
-            break
-
-        raw = result
-        if hasattr(result, "search_result"):
-            raw = result.search_result
-
-        if isinstance(raw, str):
-            text = raw
-            if text.startswith("[META:"):
-                try:
-                    meta_end = text.index("]\n")
-                    text = text[meta_end + 2:]
-                except ValueError:
-                    pass
-            texts.append(text)
-        elif hasattr(raw, "page_content"):
-            texts.append(raw.page_content)
-        elif hasattr(raw, "text"):
-            texts.append(str(raw.text))
-        elif isinstance(raw, dict):
-            texts.append(raw.get("text", raw.get("content", str(raw))))
-        else:
-            texts.append(str(raw))
-
-    return texts
-
-
-def _resolve_search_types(SearchType):
-    """Returns (fast_types, slow_types) tuple."""
-    multi_enabled = get_cognee_setting("cognee_multi_search_enabled", True)
-    if multi_enabled:
-        type_names = get_cognee_setting("cognee_search_types", "GRAPH_COMPLETION,CHUNKS_LEXICAL")
-        all_types = []
-        for name in type_names.split(","):
-            name = name.strip()
-            if hasattr(SearchType, name):
-                all_types.append(getattr(SearchType, name))
-        if not all_types:
-            all_types = [SearchType.CHUNKS]
-    else:
-        name = get_cognee_setting("cognee_search_type", "GRAPH_COMPLETION")
-        try:
-            all_types = [getattr(SearchType, name)]
-        except AttributeError:
-            all_types = [SearchType.CHUNKS]
-
-    fast = [t for t in all_types if t.name not in _SLOW_SEARCH_NAMES]
-    slow = [t for t in all_types if t.name in _SLOW_SEARCH_NAMES]
-
-    if not fast:
-        fast = [SearchType.CHUNKS]
-
-    return fast, slow
-
-
-PER_SEARCH_TIMEOUT = 15
-
-
-async def _multi_cognee_search(
-    cognee, *, search_types, query, top_k, datasets, node_name, session_id,
-    system_prompt="",
-):
-    search_kwargs = dict(
-        query_text=query,
-        top_k=top_k,
-        datasets=datasets,
-        node_name=node_name,
-        session_id=session_id,
-    )
-    if system_prompt:
-        search_kwargs["system_prompt"] = system_prompt
-
-    async def _search_one(st):
-        try:
-            results = await asyncio.wait_for(
-                cognee.search(query_type=st, **search_kwargs),
-                timeout=PER_SEARCH_TIMEOUT,
-            )
-            return results or []
-        except asyncio.TimeoutError:
-            PrintStyle.error(f"Cognee search ({st.name}) timed out after {PER_SEARCH_TIMEOUT}s (likely SQLite lock)")
-            return []
-        except Exception as e:
-            PrintStyle.error(f"Cognee search ({st.name}) failed: {e}")
-            return []
-
-    per_type_results = await asyncio.gather(*[_search_one(st) for st in search_types])
-
-    all_results = []
-    for results in per_type_results:
-        all_results.extend(results)
-
-    if all_results:
-        seen = {}
-        unique = []
-        for r in all_results:
-            raw = r.search_result if hasattr(r, "search_result") else r
-            key = str(raw)[:200]
-            if key not in seen:
-                seen[key] = True
-                unique.append(r)
-        return unique
-    return None
