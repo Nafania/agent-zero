@@ -54,7 +54,7 @@ class TestResolveSearchTypes:
         assert "CHUNKS_LEXICAL" in fast_names
         assert len(slow) == 0
 
-    def test_all_slow_types_get_chunks_as_fast_fallback(self):
+    def test_all_types_run_in_phase1(self):
         SearchType = _make_search_type_enum()
         with patch(
             "python.extensions.message_loop_prompts_after._50_recall_memories.get_cognee_setting"
@@ -99,7 +99,7 @@ class TestResolveSearchTypes:
         assert len(fast) == 1
         assert fast[0].name == "GRAPH_COMPLETION"
 
-    def test_temporal_is_slow(self):
+    def test_temporal_runs_in_phase1(self):
         SearchType = _make_search_type_enum()
         with patch(
             "python.extensions.message_loop_prompts_after._50_recall_memories.get_cognee_setting"

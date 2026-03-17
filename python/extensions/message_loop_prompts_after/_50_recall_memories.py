@@ -102,7 +102,7 @@ class RecallMemories(Extension):
         mem_node_name = [Memory.Area.MAIN.value, Memory.Area.FRAGMENTS.value]
         sol_node_name = [Memory.Area.SOLUTIONS.value]
 
-        # --- Phase 1: fast search (CHUNKS, CHUNKS_LEXICAL, etc.) ---
+        # --- Run all search types (blocking) ---
         memory_results, solution_results = await asyncio.gather(
             _multi_cognee_search(
                 cognee, search_types=fast_types,

@@ -252,14 +252,14 @@ class Memory:
         self, cognee, SearchType, query: str, limit: int,
         datasets: list[str], node_names: list[str],
     ) -> list[Document]:
-        type_names = get_cognee_setting("cognee_search_types", "GRAPH_COMPLETION,CHUNKS,CHUNKS_LEXICAL")
+        type_names = get_cognee_setting("cognee_search_types", "GRAPH_COMPLETION")
         search_types = []
         for name in type_names.split(","):
             name = name.strip()
             if hasattr(SearchType, name):
                 search_types.append(getattr(SearchType, name))
         if not search_types:
-            search_types = [SearchType.CHUNKS]
+            search_types = [SearchType.GRAPH_COMPLETION]
 
         per_type_limit = max(limit, 10)
         if datasets:
@@ -298,7 +298,7 @@ class Memory:
             try:
                 all_results = await cognee.search(
                     query_text=query,
-                    query_type=SearchType.CHUNKS,
+                    query_type=SearchType.GRAPH_COMPLETION,
                     top_k=limit,
                     datasets=datasets if datasets else None,
                     node_name=node_names if node_names else None,

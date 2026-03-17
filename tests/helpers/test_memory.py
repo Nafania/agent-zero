@@ -852,7 +852,7 @@ class TestMultiSearchParallel:
 
     @pytest.mark.asyncio
     async def test_multi_search_fallback_on_all_fail(self):
-        """All types fail → fallback to CHUNKS."""
+        """All types fail → fallback to GRAPH_COMPLETION."""
         from python.helpers.memory import Memory
         import python.helpers.cognee_init as ci
 
@@ -861,7 +861,7 @@ class TestMultiSearchParallel:
 
         async def failing_then_fallback(**kw):
             call_log.append(kw["query_type"].name)
-            if kw["query_type"].name == "CHUNKS" and len(call_log) > 2:
+            if kw["query_type"].name == "GRAPH_COMPLETION" and len(call_log) >= 2:
                 return ["fallback_result"]
             raise Exception(f"{kw['query_type'].name} failed")
 
@@ -885,7 +885,7 @@ class TestMultiSearchParallel:
 
         assert len(results) >= 1
         assert any("fallback_result" in doc.page_content for doc in results)
-        assert "CHUNKS" in call_log
+        assert "GRAPH_COMPLETION" in call_log
 
 
 # --- Default search types: GRAPH_COMPLETION only ---
