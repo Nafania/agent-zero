@@ -32,6 +32,9 @@ class Memory:
 
     _initialized: bool = False
     _datasets_cache: dict[str, str] = {}
+    _existing_datasets_cache: set[str] | None = None
+    _existing_datasets_ts: float = 0
+    _DATASETS_CACHE_TTL = 30
     SEARCH_TIMEOUT = 15
 
     @staticmethod
@@ -89,6 +92,28 @@ class Memory:
 
     def _area_dataset(self, area: str) -> str:
         return f"{self.dataset_name}_{area}"
+
+    @staticmethod
+    async def _get_existing_dataset_names() -> set[str]:
+        import time as _t
+        now = _t.monotonic()
+        if (Memory._existing_datasets_cache is not None
+                and now - Memory._existing_datasets_ts < Memory._DATASETS_CACHE_TTL):
+            return Memory._existing_datasets_cache
+        try:
+            cognee, _ = _get_cognee()
+            all_ds = await cognee.datasets.list_datasets()
+            Memory._existing_datasets_cache = {ds.name for ds in all_ds}
+            Memory._existing_datasets_ts = now
+        except Exception:
+            if Memory._existing_datasets_cache is not None:
+                return Memory._existing_datasets_cache
+            return set()
+        return Memory._existing_datasets_cache
+
+    @staticmethod
+    def _invalidate_datasets_cache():
+        Memory._existing_datasets_cache = None
 
     async def preload_knowledge(
         self, log_item: LogItem | None, kn_dirs: list[str], memory_subdir: str
@@ -188,8 +213,6 @@ class Memory:
         cognee, SearchType = _get_cognee()
         node_names = _parse_filter_to_node_names(filter)
         datasets = self._datasets_for_filter(filter)
-        PrintStyle.hint(f"DEBUG search_similarity_threshold: filter='{filter}', datasets={datasets}, node_names={node_names}")
-
         multi_enabled = get_cognee_setting("cognee_multi_search_enabled", True)
 
         if multi_enabled:
@@ -229,7 +252,7 @@ class Memory:
         self, cognee, SearchType, query: str, limit: int,
         datasets: list[str], node_names: list[str],
     ) -> list[Document]:
-        type_names = get_cognee_setting("cognee_search_types", "GRAPH_COMPLETION,CHUNKS_LEXICAL")
+        type_names = get_cognee_setting("cognee_search_types", "GRAPH_COMPLETION,CHUNKS,CHUNKS_LEXICAL")
         search_types = []
         for name in type_names.split(","):
             name = name.strip()
@@ -239,7 +262,11 @@ class Memory:
             search_types = [SearchType.CHUNKS]
 
         per_type_limit = max(limit, 10)
-        PrintStyle.hint(f"DEBUG _multi_search: datasets={datasets}, node_names={node_names}")
+        if datasets:
+            existing = await Memory._get_existing_dataset_names()
+            datasets = [d for d in datasets if d in existing]
+            if not datasets:
+                return []
 
         async def _search_one(st):
             try:
@@ -556,6 +583,7 @@ def reload():
     ci._search_type_class = None
     Memory._initialized = False
     Memory._datasets_cache.clear()
+    Memory._invalidate_datasets_cache()
     ci.configure_cognee()
 
 

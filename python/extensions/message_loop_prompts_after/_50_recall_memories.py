@@ -109,8 +109,11 @@ class RecallMemories(Extension):
             db._area_dataset(Memory.Area.FRAGMENTS.value),
         ]
         sol_datasets = [db._area_dataset(Memory.Area.SOLUTIONS.value)]
-        mem_node_name = [Memory.Area.MAIN.value, Memory.Area.FRAGMENTS.value]
-        sol_node_name = [Memory.Area.SOLUTIONS.value]
+        mem_node_name = [
+            db._area_dataset(Memory.Area.MAIN.value),
+            db._area_dataset(Memory.Area.FRAGMENTS.value),
+        ]
+        sol_node_name = [db._area_dataset(Memory.Area.SOLUTIONS.value)]
 
         # --- Phase 1: fast search (CHUNKS, CHUNKS_LEXICAL, etc.) ---
         memory_results, solution_results = await asyncio.gather(
@@ -368,7 +371,7 @@ def _resolve_search_types(SearchType):
     """Returns (fast_types, slow_types) tuple."""
     multi_enabled = get_cognee_setting("cognee_multi_search_enabled", True)
     if multi_enabled:
-        type_names = get_cognee_setting("cognee_search_types", "GRAPH_COMPLETION,CHUNKS_LEXICAL")
+        type_names = get_cognee_setting("cognee_search_types", "GRAPH_COMPLETION,CHUNKS,CHUNKS_LEXICAL")
         all_types = []
         for name in type_names.split(","):
             name = name.strip()
@@ -399,6 +402,12 @@ async def _multi_cognee_search(
     cognee, *, search_types, query, top_k, datasets, node_name, session_id,
     system_prompt="",
 ):
+    if datasets:
+        existing = await Memory._get_existing_dataset_names()
+        datasets = [d for d in datasets if d in existing]
+        if not datasets:
+            return []
+
     search_kwargs = dict(
         query_text=query,
         top_k=top_k,
@@ -410,29 +419,21 @@ async def _multi_cognee_search(
         search_kwargs["system_prompt"] = system_prompt
 
     async def _search_one(st):
-        import time as _t
-        t0 = _t.monotonic()
+        task = asyncio.ensure_future(
+            cognee.search(query_type=st, **search_kwargs)
+        )
         try:
-            PrintStyle.hint(f"DEBUG recall _search_one: st={st.name}, datasets={datasets}, node_name={node_name}")
-            results = await asyncio.wait_for(
-                cognee.search(query_type=st, **search_kwargs),
-                timeout=PER_SEARCH_TIMEOUT,
-            )
-            elapsed = _t.monotonic() - t0
-            if results:
-                for i, r in enumerate(results[:5]):
-                    raw = r.search_result if hasattr(r, 'search_result') else r
-                    text = getattr(raw, 'text', None) or (raw.get('text', '') if isinstance(raw, dict) else str(raw)[:300])
-                    PrintStyle.hint(f"DEBUG recall result[{i}] ({st.name}): text={str(text)[:200]}")
-            PrintStyle.hint(f"DEBUG recall _search_one OK: st={st.name}, {len(results) if results else 0} results, {elapsed:.2f}s")
-            return results or []
-        except asyncio.TimeoutError:
-            elapsed = _t.monotonic() - t0
-            PrintStyle.error(f"Cognee search ({st.name}) timed out after {elapsed:.2f}s")
+            done, _ = await asyncio.wait({task}, timeout=PER_SEARCH_TIMEOUT)
+            if task in done:
+                results = task.result()
+                return results or []
+            task.cancel()
+            PrintStyle.error(f"Cognee search ({st.name}) timed out")
             return []
         except Exception as e:
-            elapsed = _t.monotonic() - t0
-            PrintStyle.error(f"Cognee search ({st.name}) failed after {elapsed:.2f}s: {e}")
+            if not task.done():
+                task.cancel()
+            PrintStyle.error(f"Cognee search ({st.name}) failed: {e}")
             return []
 
     per_type_results = await asyncio.gather(*[_search_one(st) for st in search_types])

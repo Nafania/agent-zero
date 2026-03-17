@@ -792,7 +792,8 @@ class TestMultiSearchParallel:
 
         memory = Memory(dataset_name="default", memory_subdir="default")
 
-        with patch("python.helpers.memory.get_cognee_setting") as mock_setting:
+        with patch("python.helpers.memory.get_cognee_setting") as mock_setting, \
+             patch.object(Memory, "_get_existing_dataset_names", return_value={"ds_main"}):
             mock_setting.side_effect = lambda name, default: {
                 "cognee_search_types": "CHUNKS,CHUNKS_LEXICAL",
             }.get(name, default)
@@ -829,7 +830,8 @@ class TestMultiSearchParallel:
 
         memory = Memory(dataset_name="default", memory_subdir="default")
 
-        with patch("python.helpers.memory.get_cognee_setting") as mock_setting:
+        with patch("python.helpers.memory.get_cognee_setting") as mock_setting, \
+             patch.object(Memory, "_get_existing_dataset_names", return_value={"ds_main"}):
             mock_setting.side_effect = lambda name, default: {
                 "cognee_search_types": "CHUNKS,CHUNKS_LEXICAL",
             }.get(name, default)
@@ -870,7 +872,8 @@ class TestMultiSearchParallel:
 
         memory = Memory(dataset_name="default", memory_subdir="default")
 
-        with patch("python.helpers.memory.get_cognee_setting") as mock_setting:
+        with patch("python.helpers.memory.get_cognee_setting") as mock_setting, \
+             patch.object(Memory, "_get_existing_dataset_names", return_value={"ds_main"}):
             mock_setting.side_effect = lambda name, default: {
                 "cognee_search_types": "CHUNKS,CHUNKS_LEXICAL",
             }.get(name, default)
@@ -883,6 +886,118 @@ class TestMultiSearchParallel:
         assert len(results) >= 1
         assert any("fallback_result" in doc.page_content for doc in results)
         assert "CHUNKS" in call_log
+
+
+# --- Default search types include CHUNKS ---
+
+class TestDefaultSearchTypesIncludeChunks:
+    """Verify CHUNKS is in the default cognee_search_types."""
+
+    @pytest.mark.asyncio
+    async def test_default_search_types_include_chunks(self):
+        from python.helpers.memory import Memory
+        import python.helpers.cognee_init as ci
+
+        SearchType = _make_search_type_enum()
+
+        async def mock_search(**kw):
+            return [f"result_{kw['query_type'].name}"]
+
+        mock_cognee = MagicMock()
+        mock_cognee.search = mock_search
+        ci._cognee_module = mock_cognee
+        ci._search_type_class = SearchType
+
+        memory = Memory(dataset_name="default", memory_subdir="default")
+
+        with patch.object(Memory, "_get_existing_dataset_names", return_value={"ds_main"}):
+            results = await memory._multi_search(
+                mock_cognee, SearchType, "test", limit=5,
+                datasets=["ds_main"], node_names=["main"],
+            )
+
+        contents = [doc.page_content for doc in results]
+        assert any("CHUNKS" in c for c in contents), "CHUNKS must be a default search type"
+
+
+# --- Dataset filtering ---
+
+class TestDatasetFiltering:
+    """Verify _multi_search skips non-existent datasets."""
+
+    @pytest.mark.asyncio
+    async def test_multi_search_skips_nonexistent_datasets(self):
+        from python.helpers.memory import Memory
+        import python.helpers.cognee_init as ci
+
+        SearchType = _make_search_type_enum()
+
+        mock_cognee = MagicMock()
+        mock_cognee.search = AsyncMock(return_value=["result"])
+        ci._cognee_module = mock_cognee
+        ci._search_type_class = SearchType
+
+        memory = Memory(dataset_name="default", memory_subdir="default")
+
+        with patch("python.helpers.memory.get_cognee_setting") as mock_setting, \
+             patch.object(Memory, "_get_existing_dataset_names", return_value={"ds_main"}):
+            mock_setting.side_effect = lambda name, default: {
+                "cognee_search_types": "CHUNKS",
+            }.get(name, default)
+
+            results = await memory._multi_search(
+                mock_cognee, SearchType, "test", limit=5,
+                datasets=["nonexistent_ds"], node_names=["main"],
+            )
+
+        assert results == []
+        mock_cognee.search.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_multi_search_keeps_existing_datasets(self):
+        from python.helpers.memory import Memory
+        import python.helpers.cognee_init as ci
+
+        SearchType = _make_search_type_enum()
+
+        async def mock_search(**kw):
+            return ["result"]
+
+        mock_cognee = MagicMock()
+        mock_cognee.search = mock_search
+        ci._cognee_module = mock_cognee
+        ci._search_type_class = SearchType
+
+        memory = Memory(dataset_name="default", memory_subdir="default")
+
+        with patch("python.helpers.memory.get_cognee_setting") as mock_setting, \
+             patch.object(Memory, "_get_existing_dataset_names", return_value={"ds_main", "ds_other"}):
+            mock_setting.side_effect = lambda name, default: {
+                "cognee_search_types": "CHUNKS",
+            }.get(name, default)
+
+            results = await memory._multi_search(
+                mock_cognee, SearchType, "test", limit=5,
+                datasets=["ds_main"], node_names=["main"],
+            )
+
+        assert len(results) >= 1
+
+
+# --- Reload invalidates datasets cache ---
+
+class TestReloadInvalidatesDatasetsCache:
+    def test_reload_invalidates_datasets_cache(self):
+        from python.helpers.memory import Memory, reload
+        import python.helpers.cognee_init as ci
+
+        Memory._existing_datasets_cache = {"old_ds"}
+        Memory._existing_datasets_ts = 999.0
+
+        with patch.object(ci, "configure_cognee"):
+            reload()
+
+        assert Memory._existing_datasets_cache is None
 
 
 # --- Bulk delete optimization ---

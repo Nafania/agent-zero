@@ -156,9 +156,67 @@ class TestExtractTexts:
         assert len(texts) == 5
 
 
+# --- _multi_cognee_search dataset filtering ---
+
+class TestMultiCogneeSearchDatasetFiltering:
+    @pytest.mark.asyncio
+    async def test_skips_nonexistent_datasets(self):
+        mock_cognee = MagicMock()
+        mock_cognee.search = AsyncMock(return_value=["result"])
+        SearchType = _make_search_type_enum()
+
+        with patch(
+            "python.helpers.memory.Memory._get_existing_dataset_names",
+            return_value={"existing_ds"},
+        ):
+            results = await _multi_cognee_search(
+                mock_cognee,
+                search_types=[SearchType.CHUNKS],
+                query="test",
+                top_k=10,
+                datasets=["nonexistent_ds"],
+                node_name=["main"],
+                session_id="sess",
+            )
+
+        assert results == []
+        mock_cognee.search.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_passes_existing_datasets(self):
+        mock_cognee = MagicMock()
+        mock_cognee.search = AsyncMock(return_value=["result"])
+        SearchType = _make_search_type_enum()
+
+        with patch(
+            "python.helpers.memory.Memory._get_existing_dataset_names",
+            return_value={"ds_main"},
+        ):
+            results = await _multi_cognee_search(
+                mock_cognee,
+                search_types=[SearchType.CHUNKS],
+                query="test",
+                top_k=10,
+                datasets=["ds_main"],
+                node_name=["main"],
+                session_id="sess",
+            )
+
+        assert results is not None
+        assert len(results) == 1
+
+
 # --- _multi_cognee_search ---
 
 class TestMultiCogneeSearch:
+    @pytest.fixture(autouse=True)
+    def _mock_existing_datasets(self):
+        with patch(
+            "python.helpers.memory.Memory._get_existing_dataset_names",
+            return_value={"ds_main", "ds"},
+        ):
+            yield
+
     @pytest.mark.asyncio
     async def test_returns_results(self):
         mock_cognee = MagicMock()
