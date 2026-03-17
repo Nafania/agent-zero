@@ -188,6 +188,7 @@ class Memory:
         cognee, SearchType = _get_cognee()
         node_names = _parse_filter_to_node_names(filter)
         datasets = self._datasets_for_filter(filter)
+        PrintStyle.hint(f"DEBUG search_similarity_threshold: filter='{filter}', datasets={datasets}, node_names={node_names}")
 
         multi_enabled = get_cognee_setting("cognee_multi_search_enabled", True)
 
@@ -238,20 +239,21 @@ class Memory:
             search_types = [SearchType.CHUNKS]
 
         per_type_limit = max(limit, 10)
+        PrintStyle.hint(f"DEBUG _multi_search: datasets={datasets}, node_names={node_names}")
 
         async def _search_one(st):
             try:
-                return await asyncio.wait_for(
-                    cognee.search(
-                        query_text=query,
-                        query_type=st,
-                        top_k=per_type_limit,
-                        datasets=datasets if datasets else None,
-                        node_name=node_names if node_names else None,
-                    ),
-                    timeout=self.SEARCH_TIMEOUT,
-                )
-            except asyncio.TimeoutError:
+                task = asyncio.ensure_future(cognee.search(
+                    query_text=query,
+                    query_type=st,
+                    top_k=per_type_limit,
+                    datasets=datasets if datasets else None,
+                    node_name=node_names if node_names else None,
+                ))
+                done, _ = await asyncio.wait([task], timeout=self.SEARCH_TIMEOUT)
+                if task in done:
+                    return task.result()
+                task.cancel()
                 PrintStyle.error(f"Cognee multi-search ({st.name}) timed out after {self.SEARCH_TIMEOUT}s")
                 return []
             except Exception as e:
@@ -272,6 +274,7 @@ class Memory:
                     query_type=SearchType.CHUNKS,
                     top_k=limit,
                     datasets=datasets if datasets else None,
+                    node_name=node_names if node_names else None,
                 )
             except Exception as e:
                 PrintStyle.error(f"Cognee fallback search failed: {e}")
@@ -553,6 +556,7 @@ def reload():
     ci._search_type_class = None
     Memory._initialized = False
     Memory._datasets_cache.clear()
+    ci.configure_cognee()
 
 
 def abs_db_dir(memory_subdir: str) -> str:

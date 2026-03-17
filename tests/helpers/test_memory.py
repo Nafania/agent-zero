@@ -249,7 +249,7 @@ class TestGetCognee:
 # --- reload resets _configured ---
 
 class TestReload:
-    def test_reload_resets_configured_flag(self):
+    def test_reload_reconfigures_cognee(self):
         import python.helpers.memory as mem
         import python.helpers.cognee_init as ci
         ci._configured = True
@@ -257,10 +257,12 @@ class TestReload:
         ci._search_type_class = MagicMock()
         mem.Memory._initialized = True
         mem.reload()
-        assert ci._configured is False
-        assert ci._cognee_module is None
-        assert ci._search_type_class is None
+        # After reload, configure_cognee() runs eagerly so _configured is True again
+        assert ci._configured is True
+        assert ci._cognee_module is not None
+        assert ci._search_type_class is not None
         assert mem.Memory._initialized is False
+        assert len(mem.Memory._datasets_cache) == 0
 
 
 # --- Memory._area_dataset ---
@@ -779,9 +781,9 @@ class TestMultiSearchParallel:
 
         SearchType = _make_search_type_enum()
 
-        async def delayed_search(query_text, query_type, top_k, datasets, node_name, **kw):
+        async def delayed_search(**kw):
             await asyncio.sleep(0.5)
-            return [f"result_{query_type.name}"]
+            return [f"result_{kw['query_type'].name}"]
 
         mock_cognee = MagicMock()
         mock_cognee.search = delayed_search
@@ -814,8 +816,8 @@ class TestMultiSearchParallel:
 
         SearchType = _make_search_type_enum()
 
-        async def mixed_search(query_text, query_type, top_k, datasets, node_name, **kw):
-            if query_type.name == "CHUNKS":
+        async def mixed_search(**kw):
+            if kw["query_type"].name == "CHUNKS":
                 return ["good_result"]
             await asyncio.sleep(60)
             return ["should_not_appear"]
@@ -855,11 +857,11 @@ class TestMultiSearchParallel:
         SearchType = _make_search_type_enum()
         call_log = []
 
-        async def failing_then_fallback(query_text, query_type, top_k, **kw):
-            call_log.append(query_type.name)
-            if query_type.name == "CHUNKS" and len(call_log) > 2:
+        async def failing_then_fallback(**kw):
+            call_log.append(kw["query_type"].name)
+            if kw["query_type"].name == "CHUNKS" and len(call_log) > 2:
                 return ["fallback_result"]
-            raise Exception(f"{query_type.name} failed")
+            raise Exception(f"{kw['query_type'].name} failed")
 
         mock_cognee = MagicMock()
         mock_cognee.search = failing_then_fallback
