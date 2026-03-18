@@ -176,9 +176,18 @@ Check current base image during implementation — may need different package ma
 | Existing `test_skills.py` tests | Update for any changes to skills.py interface |
 | E2E | Manual: install skill via UI, verify agent sees and uses it |
 
+## Skill Scoping
+
+Marketplace installs skills globally into `usr/skills/`. From the UI, users can assign a skill to a specific project scope. The Settings > Skills tab is the single management interface for all skills — global and project-scoped.
+
+- **Global skills** are visible to all chats and projects.
+- **Project-scoped skills** are visible only when that project is active.
+- UI shows a scope filter (All / Global / Project X) and a "Move to project" action per skill.
+
+The existing multi-root discovery in `skills.py` (`get_skill_roots`) continues to work — it already searches `usr/skills/`, project skills, and agent profile skills. No changes needed there.
+
 ## Out of Scope
 
-- Project-scoped skills — keep as-is
 - Hooks and commands from `.cursor-plugin` — Cursor-specific, not supported
 - Auto-update skills — only manual via button
 - Custom hand-written skills — continue working via `usr/skills/`

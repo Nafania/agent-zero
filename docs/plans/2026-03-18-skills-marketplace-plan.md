@@ -653,7 +653,9 @@ class TestSkillsUpdate:
 
 **Step 3: Add actions to `skills.py`**
 
-Add `check_updates` and `update` actions. Keep `list` and `delete` as-is (delete still uses disk-based removal via `skills.delete_skill` — this is fine since skills are stored locally).
+Add `check_updates`, `update`, and `move` actions. Keep `list` and `delete` as-is (delete still uses disk-based removal via `skills.delete_skill` — this is fine since skills are stored locally).
+
+The `move` action moves a skill directory between global (`usr/skills/`) and a project scope (`usr/projects/{name}/.a0proj/skills/`). Implementation: `shutil.move(src, dest)` with validation that both paths are within allowed skill roots.
 
 **Step 4: Run — expect PASS**
 
@@ -835,7 +837,12 @@ File: `webui/components/settings/skills/skills-settings.html`
 
 Two sections in one page:
 1. **Catalog search** — search input, results list with Add buttons, direct install input
-2. **Installed skills** — list with delete and update buttons
+2. **Installed skills** — list with delete, update, and "move to project" buttons. Scope filter dropdown (All / Global / Project X).
+
+The store needs:
+- `scope` filter state (all / global / project name)
+- `moveToProject(skill, projectName)` — moves skill dir from `usr/skills/` to `usr/projects/{name}/.a0proj/skills/`
+- `loadProjects()` — for the scope filter and move-to dropdown (same pattern as old `skills-list-store.js`)
 
 Follow the styling patterns from the existing `list.html` (`.skill-card`, `.skill-header`, etc.) and `import.html` (`.install-input-row`).
 
