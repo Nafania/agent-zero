@@ -772,3 +772,28 @@
     opacity: 0;
   }
 }
+/* Skill chip in user messages */
+.msg-skill-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  background: rgba(66, 72, 241, 0.18);
+  border: 1px solid rgba(66, 72, 241, 0.35);
+  border-radius: 5px;
+  padding: 0.15rem 0.5rem 0.15rem 0.3rem;
+  font-family: "Roboto Mono", monospace;
+  font-size: 0.82em;
+  font-weight: 600;
+  color: #7b82f6;
+  white-space: nowrap;
+  vertical-align: middle;
+  line-height: 1.4;
+}
+.msg-skill-slash {
+  opacity: 0.5;
+  font-weight: 400;
+}
+.light-mode .msg-skill-chip {
+  background: rgba(66, 72, 241, 0.1);
+  color: #4248f1;
+}

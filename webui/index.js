@@ -57,6 +57,15 @@ export async function sendMessage() {
       }
     }
 
+    // If a skill chip is active, prepend the skill prefix
+    if (inputStore.activeSkill) {
+      const skillName = inputStore.activeSkill;
+      const userText = message || "";
+      message = userText
+        ? `[Load and use skill: ${skillName}] ${userText}`
+        : `[Load and use skill: ${skillName}]`;
+    }
+
     // If empty input but has queued messages, send all queued
     if (!message && !hasAttachments && messageQueueStore.hasQueue) {
       await messageQueueStore.sendAll();

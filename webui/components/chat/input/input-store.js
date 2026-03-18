@@ -8,6 +8,7 @@ import { store as chatsStore } from "/components/sidebar/chats/chats-store.js";
 const model = {
   paused: false,
   message: "",
+  activeSkill: "",
 
   _getSendState() {
     const hasInput = this.message.trim() || attachmentsStore?.attachments?.length > 0;
@@ -201,8 +202,13 @@ const model = {
     await fileBrowserStore.open(path);
   },
 
+  clearSkill() {
+    this.activeSkill = "";
+  },
+
   reset() {
     this.message = "";
+    this.activeSkill = "";
     attachmentsStore.clearAttachments();
     this.adjustTextareaHeight();
   }

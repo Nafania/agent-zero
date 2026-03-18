@@ -1,8 +1,9 @@
-"""Tests for python/helpers/skills_cli.py."""
+"""Tests for python/helpers/skills_cli.py — npx skills CLI wrapper."""
 
+import asyncio
 import sys
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -11,258 +12,269 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 
-# --- Fixtures ---
-
-
 @pytest.fixture
-def patch_files(tmp_path):
-    """Patch files.get_abs_path for skills dirs."""
-    skills_base = tmp_path / "usr" / "skills"
-    (skills_base / "custom").mkdir(parents=True)
-    (skills_base / "default").mkdir(parents=True)
+def mock_subprocess():
+    """Mock asyncio.create_subprocess_exec."""
+    with patch("python.helpers.skills_cli.asyncio.create_subprocess_exec") as mock_exec:
+        process = AsyncMock()
+        process.returncode = 0
+        process.communicate = AsyncMock(return_value=(b"", b""))
+        mock_exec.return_value = process
+        yield mock_exec, process
 
-    with patch("python.helpers.skills_cli.files") as mock_files:
-        mock_files.get_abs_path.side_effect = lambda *parts: str(
-            tmp_path.joinpath(*[str(p) for p in parts])
+
+# --- _run_npx ---
+
+class TestRunNpx:
+    @pytest.mark.asyncio
+    async def test_runs_npx_with_args(self, mock_subprocess):
+        from python.helpers.skills_cli import _run_npx
+        mock_exec, process = mock_subprocess
+        process.communicate.return_value = (b"output text", b"")
+
+        result = await _run_npx("find", "python")
+        assert result == "output text"
+        mock_exec.assert_called_once()
+        args = mock_exec.call_args[0]
+        assert "npx" in args[0]
+        assert "skills" in args
+        assert "find" in args
+        assert "python" in args
+
+    @pytest.mark.asyncio
+    async def test_raises_on_nonzero_exit(self, mock_subprocess):
+        from python.helpers.skills_cli import _run_npx, SkillsCLIError
+        _, process = mock_subprocess
+        process.returncode = 1
+        process.communicate.return_value = (b"", b"some error")
+
+        with pytest.raises(SkillsCLIError, match="some error"):
+            await _run_npx("find", "nonexistent")
+
+    @pytest.mark.asyncio
+    async def test_raises_on_timeout(self, mock_subprocess):
+        from python.helpers.skills_cli import _run_npx, SkillsCLIError
+        _, process = mock_subprocess
+        process.communicate.side_effect = asyncio.TimeoutError()
+        process.wait = AsyncMock()
+
+        with pytest.raises(SkillsCLIError, match="timed out"):
+            await _run_npx("add", "owner/repo", timeout=1)
+        process.kill.assert_called_once()
+        process.wait.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_raises_when_npx_not_found(self, mock_subprocess):
+        from python.helpers.skills_cli import _run_npx, SkillsCLIError
+        mock_exec, _ = mock_subprocess
+        mock_exec.side_effect = FileNotFoundError("npx not found")
+
+        with pytest.raises(SkillsCLIError, match="Node.js"):
+            await _run_npx("find", "test")
+
+
+# --- parse_find_output ---
+
+class TestParseFindOutput:
+    def test_parses_skill_entries(self):
+        from python.helpers.skills_cli import parse_find_output
+        output = (
+            "obra/superpowers@using-superpowers 26.8K installs\n"
+            "└ https://skills.sh/obra/superpowers/using-superpowers\n"
+            "\n"
+            "makfly/superpowers-symfony@symfony:using-symfony-superpowers 121 installs\n"
+            "└ https://skills.sh/makfly/superpowers-symfony/symfony:using-symfony-superpowers\n"
         )
-        yield mock_files, tmp_path
+        results = parse_find_output(output)
+        assert len(results) == 2
+        assert results[0]["name"] == "using-superpowers"
+        assert results[0]["source"] == "obra/superpowers@using-superpowers"
+        assert results[0]["installs"] == "26.8K installs"
+        assert results[0]["description"] == ""
+        assert results[0]["url"] == "https://skills.sh/obra/superpowers/using-superpowers"
+        assert results[1]["source"] == "makfly/superpowers-symfony@symfony:using-symfony-superpowers"
 
-
-# --- get_skills_dirs ---
-
-
-class TestGetSkillsDirs:
-    def test_returns_custom_and_default(self, patch_files):
-        from python.helpers.skills_cli import get_skills_dirs
-
-        mock_files, tmp_path = patch_files
-        mock_files.get_abs_path.return_value = str(tmp_path / "usr" / "skills")
-
-        dirs = get_skills_dirs()
-        assert len(dirs) == 2
-        assert any("custom" in str(d) for d in dirs)
-        assert any("default" in str(d) for d in dirs)
-
-
-# --- parse_skill_file ---
-
-
-class TestParseSkillFile:
-    def test_returns_none_for_no_frontmatter(self, tmp_path):
-        from python.helpers.skills_cli import parse_skill_file
-
-        skill_file = tmp_path / "SKILL.md"
-        skill_file.write_text("Just body content")
-
-        result = parse_skill_file(skill_file)
-        assert result is None
-
-    def test_parses_valid_frontmatter(self, tmp_path):
-        from python.helpers.skills_cli import parse_skill_file
-
-        skill_file = tmp_path / "SKILL.md"
-        skill_file.write_text(
-            """---
-name: "test-skill"
-description: "A test skill for unit testing"
-version: "1.0.0"
-author: "Tester"
-tags: ["custom", "test"]
-trigger_patterns: ["test"]
----
-
-# Test Skill
-
-Body content here with at least 100 characters to satisfy validation requirements.
-"""
+    def test_parses_ansi_output(self):
+        from python.helpers.skills_cli import parse_find_output
+        output = (
+            "\x1b[38;5;145mobra/superpowers@using-superpowers\x1b[0m \x1b[36m26.8K installs\x1b[0m\n"
+            "\x1b[38;5;102m└ https://skills.sh/obra/superpowers/using-superpowers\x1b[0m\n"
         )
+        results = parse_find_output(output)
+        assert len(results) == 1
+        assert results[0]["name"] == "using-superpowers"
+        assert results[0]["source"] == "obra/superpowers@using-superpowers"
 
-        result = parse_skill_file(skill_file)
-        assert result is not None
-        assert result.name == "test-skill"
-        assert result.description == "A test skill for unit testing"
-        assert result.version == "1.0.0"
-        assert result.path == tmp_path
-        assert "Body content" in result.content
+    def test_returns_empty_for_no_results(self):
+        from python.helpers.skills_cli import parse_find_output
+        results = parse_find_output("No skills found matching 'xyznonexistent'")
+        assert results == []
+
+    def test_handles_empty_output(self):
+        from python.helpers.skills_cli import parse_find_output
+        assert parse_find_output("") == []
 
 
-# --- validate_skill ---
+# --- parse_list_output ---
 
-
-class TestValidateSkill:
-    def test_missing_name(self):
-        from python.helpers.skills_cli import validate_skill, Skill
-
-        skill = Skill(name="", description="x" * 20, path=Path("/x"), content="x" * 100)
-        issues = validate_skill(skill)
-        assert any("name" in i.lower() for i in issues)
-
-    def test_missing_description(self):
-        from python.helpers.skills_cli import validate_skill, Skill
-
-        skill = Skill(name="valid", description="", path=Path("/x"), content="x" * 100)
-        issues = validate_skill(skill)
-        assert any("description" in i.lower() for i in issues)
-
-    def test_invalid_name_format(self):
-        from python.helpers.skills_cli import validate_skill, Skill
-
-        skill = Skill(
-            name="InvalidName",
-            description="A valid description here",
-            path=Path("/x"),
-            content="x" * 100,
+class TestParseListOutput:
+    def test_parses_skill_names_and_descriptions(self):
+        from python.helpers.skills_cli import parse_list_output
+        output = (
+            "│  Available Skills\n"
+            "│\n"
+            "│    brainstorming\n"
+            "│\n"
+            "│      You MUST use this before any creative work.\n"
+            "│\n"
+            "│    writing-plans\n"
+            "│\n"
+            "│      Use when you have a spec or requirements.\n"
+            "│\n"
         )
-        issues = validate_skill(skill)
-        assert any("name" in i.lower() or "format" in i.lower() for i in issues)
+        result = parse_list_output(output)
+        assert len(result) == 2
+        assert result["brainstorming"] == "You MUST use this before any creative work."
+        assert result["writing-plans"] == "Use when you have a spec or requirements."
 
-    def test_content_too_short(self):
-        from python.helpers.skills_cli import validate_skill, Skill
+    def test_handles_empty_output(self):
+        from python.helpers.skills_cli import parse_list_output
+        assert parse_list_output("") == {}
 
-        skill = Skill(
-            name="valid-skill",
-            description="A valid description here",
-            path=Path("/x"),
-            content="short",
+    def test_skips_noise_lines(self):
+        from python.helpers.skills_cli import parse_list_output
+        output = (
+            "│  Tip: use the --yes flag\n"
+            "│  Source: https://github.com/obra/superpowers.git\n"
+            "│  Found 2 skills\n"
+            "│  Available Skills\n"
+            "│    my-skill\n"
+            "│      Does something cool.\n"
+            "│  Use --skill <name> to install\n"
         )
-        issues = validate_skill(skill)
-        assert any("content" in i.lower() or "100" in i for i in issues)
-
-    def test_valid_skill_returns_empty_issues(self):
-        from python.helpers.skills_cli import validate_skill, Skill
-
-        skill = Skill(
-            name="valid-skill",
-            description="A valid description with at least twenty chars",
-            path=Path("/x"),
-            content="x" * 100,
-        )
-        issues = validate_skill(skill)
-        assert issues == []
+        result = parse_list_output(output)
+        assert len(result) == 1
+        assert result["my-skill"] == "Does something cool."
 
 
-# --- search_skills ---
+# --- find ---
 
-
-class TestSearchSkills:
-    def test_matches_by_name(self):
-        from python.helpers.skills_cli import search_skills, Skill
-
-        with patch("python.helpers.skills_cli.list_skills") as mock_list:
-            mock_list.return_value = [
-                Skill(
-                    name="python-skill",
-                    description="Python stuff",
-                    path=Path("/x"),
-                    content="",
-                ),
-            ]
-            results = search_skills("python")
-            assert len(results) == 1
-            assert results[0].name == "python-skill"
-
-    def test_matches_by_tag(self):
-        from python.helpers.skills_cli import search_skills, Skill
-
-        with patch("python.helpers.skills_cli.list_skills") as mock_list:
-            mock_list.return_value = [
-                Skill(
-                    name="x",
-                    description="",
-                    path=Path("/x"),
-                    content="",
-                    tags=["automation"],
-                ),
-            ]
-            results = search_skills("automation")
-            assert len(results) == 1
-
-
-# --- create_skill ---
-
-
-class TestCreateSkill:
-    def test_creates_skill_directory_structure(self, patch_files):
-        from python.helpers.skills_cli import create_skill
-
-        mock_files, tmp_path = patch_files
-        custom_dir = tmp_path / "usr" / "skills" / "custom"
-        mock_files.get_abs_path.side_effect = lambda *args: str(
-            tmp_path / "usr" / "skills" / "custom"
-            if args == ("usr", "skills", "custom")
-            else tmp_path / "usr" / "skills"
+class TestFind:
+    @pytest.mark.asyncio
+    async def test_find_returns_parsed_results(self, mock_subprocess):
+        from python.helpers.skills_cli import find
+        _, process = mock_subprocess
+        process.communicate.return_value = (
+            b"obra/superpowers@brainstorming 500 installs\n"
+            b"\xe2\x94\x94 https://skills.sh/obra/superpowers/brainstorming\n",
+            b"",
         )
 
-        result = create_skill("my-new-skill", description="Test desc", author="Me")
+        results = await find("brainstorming")
+        assert len(results) == 1
+        assert results[0]["name"] == "brainstorming"
+        assert results[0]["source"] == "obra/superpowers@brainstorming"
 
-        assert result.exists()
-        assert (result / "SKILL.md").exists()
-        assert (result / "scripts").exists()
-        assert (result / "docs").exists()
-        assert (result / "docs" / "README.md").exists()
+    @pytest.mark.asyncio
+    async def test_find_uses_cache(self, mock_subprocess):
+        from python.helpers.skills_cli import find, _cache
+        _cache.clear()
+        _, process = mock_subprocess
+        process.communicate.return_value = (
+            b"owner/repo@skill1 10 installs\n"
+            b"\xe2\x94\x94 https://skills.sh/owner/repo/skill1\n",
+            b"",
+        )
 
-    def test_raises_when_skill_exists(self, patch_files):
-        from python.helpers.skills_cli import create_skill
+        r1 = await find("test-query")
+        r2 = await find("test-query")
+        assert r1 == r2
+        assert mock_subprocess[0].call_count == 1
+        _cache.clear()
 
-        mock_files, tmp_path = patch_files
-        (tmp_path / "usr" / "skills" / "custom" / "existing").mkdir(parents=True)
-
-        with pytest.raises(ValueError, match="already exists"):
-            create_skill("existing")
-
-
-# --- find_skill ---
-
-
-class TestFindSkill:
-    def test_finds_by_name(self):
-        from python.helpers.skills_cli import find_skill, Skill
-
-        with patch("python.helpers.skills_cli.list_skills") as mock_list:
-            skill = Skill(
-                name="target",
-                description="",
-                path=Path("/x/target"),
-                content="",
-            )
-            mock_list.return_value = [skill]
-            result = find_skill("target")
-            assert result is not None
-            assert result.name == "target"
-
-    def test_returns_none_when_not_found(self):
-        from python.helpers.skills_cli import find_skill
-
-        with patch("python.helpers.skills_cli.list_skills", return_value=[]):
-            assert find_skill("nonexistent") is None
+    @pytest.mark.asyncio
+    async def test_find_empty_query_returns_empty(self, mock_subprocess):
+        from python.helpers.skills_cli import find
+        results = await find("")
+        assert results == []
 
 
-# --- print_skill_table ---
+# --- add ---
+
+class TestAdd:
+    @pytest.mark.asyncio
+    async def test_add_single_skill(self, mock_subprocess):
+        from python.helpers.skills_cli import add, _cache
+        _cache.clear()
+        _, process = mock_subprocess
+        process.communicate.return_value = (b"Installed brainstorming", b"")
+
+        result = await add("obra/superpowers@brainstorming")
+        assert "Installed" in result
+        args = mock_subprocess[0].call_args[0]
+        assert "add" in args
+        assert "obra/superpowers@brainstorming" in args
+
+    @pytest.mark.asyncio
+    async def test_add_multi_skill_repo(self, mock_subprocess):
+        from python.helpers.skills_cli import add, _cache
+        _cache.clear()
+        _, process = mock_subprocess
+        process.communicate.return_value = (b"ok", b"")
+
+        with patch("python.helpers.skills_cli.list_repo_skills",
+                    return_value={"brainstorming": "desc1", "writing-plans": "desc2"}):
+            result = await add("obra/superpowers")
+        assert "2 skills" in result
+        assert mock_subprocess[0].call_count >= 2
+
+    @pytest.mark.asyncio
+    async def test_add_clears_cache(self, mock_subprocess):
+        from python.helpers.skills_cli import add, _cache
+        _cache["old-query"] = ([], 0)
+        _, process = mock_subprocess
+        process.communicate.return_value = (b"ok", b"")
+
+        await add("owner/repo@skill")
+        assert len(_cache) == 0
 
 
-class TestPrintSkillTable:
-    def test_prints_no_skills_message(self, capsys):
-        from python.helpers.skills_cli import print_skill_table
+# --- remove ---
 
-        print_skill_table([])
-        out = capsys.readouterr().out
-        assert "No skills" in out
+class TestRemove:
+    @pytest.mark.asyncio
+    async def test_remove_calls_npx_skills_remove(self, mock_subprocess):
+        from python.helpers.skills_cli import remove, _cache
+        _cache.clear()
+        _, process = mock_subprocess
+        process.communicate.return_value = (b"Removed skill", b"")
 
-    def test_prints_table_with_skills(self, capsys):
-        from python.helpers.skills_cli import print_skill_table, Skill
+        result = await remove("brainstorming")
+        args = mock_subprocess[0].call_args[0]
+        assert "remove" in args
 
-        skills = [
-            Skill(
-                name="a",
-                description="Desc A",
-                path=Path("/x"),
-                version="1.0",
-                tags=["t1"],
-                content="",
-            ),
-        ]
-        print_skill_table(skills)
-        out = capsys.readouterr().out
-        assert "a" in out
-        assert "Desc A" in out
-        assert "1.0" in out
+
+# --- check_updates ---
+
+class TestCheckUpdates:
+    @pytest.mark.asyncio
+    async def test_check_calls_npx_skills_check(self, mock_subprocess):
+        from python.helpers.skills_cli import check_updates
+        _, process = mock_subprocess
+        process.communicate.return_value = (b"All skills up to date", b"")
+
+        result = await check_updates()
+        assert isinstance(result, str)
+
+
+# --- update ---
+
+class TestUpdate:
+    @pytest.mark.asyncio
+    async def test_update_calls_npx_skills_update(self, mock_subprocess):
+        from python.helpers.skills_cli import update
+        _, process = mock_subprocess
+        process.communicate.return_value = (b"Updated 2 skills", b"")
+
+        result = await update()
+        assert isinstance(result, str)
