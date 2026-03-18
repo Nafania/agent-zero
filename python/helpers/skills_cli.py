@@ -87,7 +87,8 @@ def parse_find_output(output: str) -> list[dict[str, str]]:
             results.append({
                 "name": name,
                 "source": source,
-                "description": f"{installs}",
+                "description": "",
+                "installs": installs,
                 "url": url,
             })
         i += 1
@@ -95,7 +96,7 @@ def parse_find_output(output: str) -> list[dict[str, str]]:
     return results
 
 
-async def find(query: str) -> list[dict[str, str]]:
+async def find(query: str, enrich: bool = False) -> list[dict[str, str]]:
     query = (query or "").strip()
     if not query:
         return []
@@ -110,6 +111,31 @@ async def find(query: str) -> list[dict[str, str]]:
     output = await _run_npx("find", query, timeout=TIMEOUT_FIND)
     results = parse_find_output(output)
 
+    if enrich and results:
+        repos: set[str] = set()
+        for r in results:
+            src = r.get("source", "")
+            if "@" in src:
+                repos.add(src.split("@")[0])
+            elif "/" in src:
+                repos.add(src)
+
+        desc_map: dict[str, dict[str, str]] = {}
+        for repo in repos:
+            desc_map[repo] = await list_repo_skills(repo)
+
+        for r in results:
+            src = r.get("source", "")
+            if "@" in src:
+                repo, skill = src.split("@", 1)
+            elif "/" in src:
+                repo, skill = src, src.rsplit("/", 1)[-1]
+            else:
+                continue
+            repo_descs = desc_map.get(repo, {})
+            if skill in repo_descs and repo_descs[skill]:
+                r["description"] = repo_descs[skill]
+
     _cache[query] = (results, now)
     _cache.move_to_end(query)
     while len(_cache) > CACHE_MAX:
@@ -118,24 +144,68 @@ async def find(query: str) -> list[dict[str, str]]:
     return results
 
 
-async def _list_repo_skills(owner_repo: str) -> list[str]:
-    """Query GitHub API for all skill directories in a repo's skills/ folder."""
-    import aiohttp
+_CTRL_RE = re.compile(r"\x1b\[\?\d+[hl]|\x1b\[\d*[A-Za-z]|\x1b\].*?\x07|\r")
 
-    url = f"https://api.github.com/repos/{owner_repo}/contents/skills"
+def _strip_all_ansi(text: str) -> str:
+    return _CTRL_RE.sub("", _strip_ansi(text))
+
+
+def parse_list_output(output: str) -> dict[str, str]:
+    """Parse `npx skills add <repo> --list` output into {skill_name: description}."""
+    if not output:
+        return {}
+
+    clean = _strip_all_ansi(output)
+    result: dict[str, str] = {}
+    lines = clean.strip().splitlines()
+
+    current_name: str | None = None
+    for raw_line in lines:
+        line = raw_line.strip()
+        if not line:
+            current_name = None
+            continue
+        stripped = line.lstrip("│ ").strip()
+        if not stripped or stripped.startswith("Tip:") or stripped.startswith("Source:"):
+            continue
+        if stripped.startswith("Available Skills") or stripped.startswith("Found "):
+            continue
+        if stripped.startswith("Use --"):
+            continue
+
+        if re.match(r"^[a-z0-9][a-z0-9._:-]*$", stripped, re.IGNORECASE):
+            current_name = stripped
+            result[current_name] = ""
+        elif current_name is not None and current_name in result:
+            result[current_name] = stripped
+
+    return result
+
+
+_desc_cache: OrderedDict[str, tuple[dict[str, str], float]] = OrderedDict()
+
+
+async def list_repo_skills(owner_repo: str) -> dict[str, str]:
+    """Run `npx skills add <repo> --list` and return {skill_name: description}."""
+    now = time.monotonic()
+    if owner_repo in _desc_cache:
+        data, ts = _desc_cache[owner_repo]
+        if now - ts < CACHE_TTL:
+            _desc_cache.move_to_end(owner_repo)
+            return data
+
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, timeout=aiohttp.ClientTimeout(total=15)) as resp:
-                if resp.status != 200:
-                    return []
-                data = await resp.json()
-                return [
-                    item["name"]
-                    for item in data
-                    if isinstance(item, dict) and item.get("type") == "dir"
-                ]
-    except Exception:
-        return []
+        output = await _run_npx("add", owner_repo, "--list", timeout=TIMEOUT_ADD)
+    except SkillsCLIError:
+        return {}
+
+    data = parse_list_output(output)
+    _desc_cache[owner_repo] = (data, now)
+    _desc_cache.move_to_end(owner_repo)
+    while len(_desc_cache) > CACHE_MAX:
+        _desc_cache.popitem(last=False)
+
+    return data
 
 
 async def add(source: str) -> str:
@@ -146,7 +216,8 @@ async def add(source: str) -> str:
     has_skill_specifier = "@" in source
 
     if not has_skill_specifier and "/" in source:
-        skill_names = await _list_repo_skills(source)
+        repo_skills = await list_repo_skills(source)
+        skill_names = list(repo_skills.keys())
         if len(skill_names) > 1:
             results = []
             for skill_name in skill_names:

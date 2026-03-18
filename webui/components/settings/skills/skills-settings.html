@@ -28,7 +28,9 @@
                             <span x-show="!$store.skillsStore.catalogLoading">
                                 <span class="icon material-symbols-outlined">search</span> Search
                             </span>
-                            <span x-show="$store.skillsStore.catalogLoading">Searching...</span>
+                            <span x-show="$store.skillsStore.catalogLoading" class="install-spinner-inline">
+                                Searching... <span class="install-spinner"></span>
+                            </span>
                         </button>
                     </div>
 
@@ -60,6 +62,14 @@
                                     </button>
                                 </div>
                                 <div class="catalog-description" x-text="item.description"></div>
+                                <div class="catalog-meta">
+                                    <span class="catalog-installs" x-text="item.installs || ''" x-show="item.installs"></span>
+                                    <a class="catalog-link" :href="item.url" target="_blank" rel="noopener"
+                                       x-show="item.url" @click.stop>
+                                        <span class="icon material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">open_in_new</span>
+                                        skills.sh
+                                    </a>
+                                </div>
                             </div>
                         </template>
                     </div>
@@ -244,6 +254,31 @@
             margin-top: 0.35rem;
             color: var(--color-text-secondary);
             font-size: var(--font-size-small);
+        }
+
+        .catalog-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-top: 0.35rem;
+            font-size: 0.8rem;
+            color: var(--color-text-muted);
+        }
+
+        .catalog-installs {
+            opacity: 0.8;
+        }
+
+        .catalog-link {
+            color: var(--color-secondary);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.2rem;
+        }
+
+        .catalog-link:hover {
+            text-decoration: underline;
         }
 
         /* Direct install */

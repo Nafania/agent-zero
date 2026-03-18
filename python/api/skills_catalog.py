@@ -11,7 +11,7 @@ class SkillsCatalog(ApiHandler):
             return {"ok": False, "error": "query is required"}
 
         try:
-            results = await skills_cli.find(query)
+            results = await skills_cli.find(query, enrich=True)
             return {"ok": True, "results": results}
         except Exception as e:
             return {"ok": False, "error": str(e)}

@@ -89,7 +89,8 @@ class TestParseFindOutput:
         assert len(results) == 2
         assert results[0]["name"] == "using-superpowers"
         assert results[0]["source"] == "obra/superpowers@using-superpowers"
-        assert "26.8K installs" in results[0]["description"]
+        assert results[0]["installs"] == "26.8K installs"
+        assert results[0]["description"] == ""
         assert results[0]["url"] == "https://skills.sh/obra/superpowers/using-superpowers"
         assert results[1]["source"] == "makfly/superpowers-symfony@symfony:using-symfony-superpowers"
 
@@ -112,6 +113,48 @@ class TestParseFindOutput:
     def test_handles_empty_output(self):
         from python.helpers.skills_cli import parse_find_output
         assert parse_find_output("") == []
+
+
+# --- parse_list_output ---
+
+class TestParseListOutput:
+    def test_parses_skill_names_and_descriptions(self):
+        from python.helpers.skills_cli import parse_list_output
+        output = (
+            "│  Available Skills\n"
+            "│\n"
+            "│    brainstorming\n"
+            "│\n"
+            "│      You MUST use this before any creative work.\n"
+            "│\n"
+            "│    writing-plans\n"
+            "│\n"
+            "│      Use when you have a spec or requirements.\n"
+            "│\n"
+        )
+        result = parse_list_output(output)
+        assert len(result) == 2
+        assert result["brainstorming"] == "You MUST use this before any creative work."
+        assert result["writing-plans"] == "Use when you have a spec or requirements."
+
+    def test_handles_empty_output(self):
+        from python.helpers.skills_cli import parse_list_output
+        assert parse_list_output("") == {}
+
+    def test_skips_noise_lines(self):
+        from python.helpers.skills_cli import parse_list_output
+        output = (
+            "│  Tip: use the --yes flag\n"
+            "│  Source: https://github.com/obra/superpowers.git\n"
+            "│  Found 2 skills\n"
+            "│  Available Skills\n"
+            "│    my-skill\n"
+            "│      Does something cool.\n"
+            "│  Use --skill <name> to install\n"
+        )
+        result = parse_list_output(output)
+        assert len(result) == 1
+        assert result["my-skill"] == "Does something cool."
 
 
 # --- find ---
@@ -174,13 +217,13 @@ class TestAdd:
 
     @pytest.mark.asyncio
     async def test_add_multi_skill_repo(self, mock_subprocess):
-        from python.helpers.skills_cli import add, _cache, _list_repo_skills
+        from python.helpers.skills_cli import add, _cache
         _cache.clear()
         _, process = mock_subprocess
         process.communicate.return_value = (b"ok", b"")
 
-        with patch("python.helpers.skills_cli._list_repo_skills",
-                    return_value=["brainstorming", "writing-plans"]):
+        with patch("python.helpers.skills_cli.list_repo_skills",
+                    return_value={"brainstorming": "desc1", "writing-plans": "desc2"}):
             result = await add("obra/superpowers")
         assert "2 skills" in result
         assert mock_subprocess[0].call_count >= 2
