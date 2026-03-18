@@ -1,6 +1,5 @@
 import { createStore } from "/js/AlpineStore.js";
-
-const fetchApi = globalThis.fetchApi;
+import { fetchApi } from "/js/api.js";
 
 const model = {
     searchQuery: "",
@@ -10,7 +9,9 @@ const model = {
 
     directSource: "",
     installLoading: false,
+    installingSource: "",
     installError: "",
+    installSuccess: "",
     installResult: null,
 
     installed: [],
@@ -27,11 +28,16 @@ const model = {
         await Promise.all([this.loadInstalled(), this.loadProjects()]);
     },
 
+    isInstalled(catalogItem) {
+        return this.installed.some(s => s.source === catalogItem.source);
+    },
+
     onClose() {
         this.catalogResults = [];
         this.catalogError = "";
         this.installResult = null;
         this.installError = "";
+        this.installSuccess = "";
     },
 
     async searchCatalog() {
@@ -62,7 +68,9 @@ const model = {
     async installSkill(source) {
         if (!source) return;
         this.installLoading = true;
+        this.installingSource = source;
         this.installError = "";
+        this.installSuccess = "";
         this.installResult = null;
         try {
             const resp = await fetchApi("/skill_install", {
@@ -74,10 +82,8 @@ const model = {
             if (result.ok) {
                 this.installResult = result;
                 this.directSource = "";
+                this.installSuccess = `Successfully installed: ${source}`;
                 await this.loadInstalled();
-                if (window.toastFrontendSuccess) {
-                    window.toastFrontendSuccess(`Installed from ${source}`, "Skills");
-                }
             } else {
                 this.installError = result.error || "Install failed";
             }
@@ -85,6 +91,7 @@ const model = {
             this.installError = e?.message || "Install failed";
         } finally {
             this.installLoading = false;
+            this.installingSource = "";
         }
     },
 

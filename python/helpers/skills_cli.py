@@ -54,25 +54,42 @@ async def _run_npx(*args: str, timeout: int = TIMEOUT_DEFAULT) -> str:
     return stdout.decode("utf-8", errors="replace").strip()
 
 
+_ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def _strip_ansi(text: str) -> str:
+    return _ANSI_RE.sub("", text)
+
+
 def parse_find_output(output: str) -> list[dict[str, str]]:
     if not output or not output.strip():
         return []
 
+    clean = _strip_ansi(output)
     results: list[dict[str, str]] = []
-    lines = output.strip().splitlines()
+    lines = clean.strip().splitlines()
 
     i = 0
     while i < len(lines):
         line = lines[i].strip()
-        m = re.match(r"^(.+?)\s*\(([^)]+)\)\s*$", line)
+        m = re.match(r"^(\S+)\s+(\S+\s+installs)\s*$", line)
         if m:
-            name = m.group(1).strip()
-            source = m.group(2).strip()
-            desc = ""
-            if i + 1 < len(lines) and lines[i + 1].startswith("  "):
-                desc = lines[i + 1].strip()
-                i += 1
-            results.append({"name": name, "source": source, "description": desc})
+            source = m.group(1)
+            installs = m.group(2)
+            url = ""
+            if i + 1 < len(lines):
+                url_line = lines[i + 1].strip()
+                url_m = re.match(r"^[└|]?\s*(https?://\S+)", url_line)
+                if url_m:
+                    url = url_m.group(1)
+                    i += 1
+            name = source.split("@")[-1] if "@" in source else source.rsplit("/", 1)[-1]
+            results.append({
+                "name": name,
+                "source": source,
+                "description": f"{installs}",
+                "url": url,
+            })
         i += 1
 
     return results
@@ -101,12 +118,50 @@ async def find(query: str) -> list[dict[str, str]]:
     return results
 
 
+async def _list_repo_skills(owner_repo: str) -> list[str]:
+    """Query GitHub API for all skill directories in a repo's skills/ folder."""
+    import aiohttp
+
+    url = f"https://api.github.com/repos/{owner_repo}/contents/skills"
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, timeout=aiohttp.ClientTimeout(total=15)) as resp:
+                if resp.status != 200:
+                    return []
+                data = await resp.json()
+                return [
+                    item["name"]
+                    for item in data
+                    if isinstance(item, dict) and item.get("type") == "dir"
+                ]
+    except Exception:
+        return []
+
+
 async def add(source: str) -> str:
     source = (source or "").strip()
     if not source:
         raise SkillsCLIError("source is required")
 
-    result = await _run_npx("add", source, timeout=TIMEOUT_ADD)
+    has_skill_specifier = "@" in source
+
+    if not has_skill_specifier and "/" in source:
+        skill_names = await _list_repo_skills(source)
+        if len(skill_names) > 1:
+            results = []
+            for skill_name in skill_names:
+                full_source = f"{source}@{skill_name}"
+                try:
+                    out = await _run_npx(
+                        "add", full_source, "--yes", "--global", timeout=TIMEOUT_ADD
+                    )
+                    results.append(f"+ {skill_name}")
+                except SkillsCLIError as e:
+                    results.append(f"x {skill_name}: {e}")
+            _cache.clear()
+            return f"Installed {len(results)} skills from {source}:\n" + "\n".join(results)
+
+    result = await _run_npx("add", source, "--yes", "--global", timeout=TIMEOUT_ADD)
     _cache.clear()
     return result
 
@@ -116,7 +171,7 @@ async def remove(skill_name: str) -> str:
     if not skill_name:
         raise SkillsCLIError("skill_name is required")
 
-    result = await _run_npx("remove", skill_name, timeout=TIMEOUT_DEFAULT)
+    result = await _run_npx("remove", skill_name, "--yes", "--global", timeout=TIMEOUT_DEFAULT)
     _cache.clear()
     return result
 

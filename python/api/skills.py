@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 
@@ -62,15 +63,32 @@ class Skills(ApiHandler):
                 if any(files.is_in_dir(str(s.path), r) for r in roots)
             ]
 
+        lock = self._read_skill_lock()
+
         result = []
         for skill in skill_list:
-            result.append({
+            entry = {
                 "name": skill.name,
                 "description": skill.description,
                 "path": str(skill.path),
-            })
+            }
+            if skill.name in lock:
+                src = lock[skill.name].get("source", "")
+                if src:
+                    entry["source"] = f"{src}@{skill.name}"
+            result.append(entry)
         result.sort(key=lambda x: (x["name"], x["path"]))
         return result
+
+    @staticmethod
+    def _read_skill_lock() -> dict:
+        lock_path = os.path.expanduser("~/.agents/.skill-lock.json")
+        try:
+            with open(lock_path, "r") as f:
+                data = json.load(f)
+            return data.get("skills", {})
+        except (FileNotFoundError, json.JSONDecodeError):
+            return {}
 
     def delete_skill(self, input: Input):
         skill_path = str(input.get("skill_path") or "").strip()

@@ -38,8 +38,13 @@
                 </template>
             </div>
 
-            <textarea id="chat-input" :placeholder="$store.chatInput.inputPlaceholder" rows="1"
-                      @keydown="if ($store.slashCommands.onKeydown($event)) return; if ($event.key === 'Enter' && !$event.shiftKey && !$event.isComposing && $event.keyCode !== 229) { $event.preventDefault(); $store.chatInput.sendMessage(); }"
+            <div class="skill-chip" x-show="$store.chatInput.activeSkill" x-cloak>
+                <span class="skill-chip-icon">/</span>
+                <span class="skill-chip-name" x-text="$store.chatInput.activeSkill"></span>
+                <button class="skill-chip-remove" @click.stop="$store.chatInput.clearSkill(); $el.closest('#chat-input-container').querySelector('#chat-input').focus()" aria-label="Remove skill">&times;</button>
+            </div>
+            <textarea id="chat-input" :placeholder="$store.chatInput.activeSkill ? 'Type your message...' : $store.chatInput.inputPlaceholder" rows="1"
+                      @keydown="if ($store.chatInput.activeSkill && !$store.chatInput.message && $event.key === 'Backspace') { $store.chatInput.clearSkill(); return; } if ($store.slashCommands.onKeydown($event)) return; if ($event.key === 'Enter' && !$event.shiftKey && !$event.isComposing && $event.keyCode !== 229) { $event.preventDefault(); $store.chatInput.sendMessage(); }"
                       @input="$store.chatInput.adjustTextareaHeight(); $store.slashCommands.onInput($store.chatInput.message)"
                       x-model="$store.chatInput.message"></textarea>
             <button id="expand-button" @click="$store.fullScreenInputModal.openModal()" aria-label="Expand input">
@@ -81,41 +86,48 @@
     .attachment-icon { cursor: pointer; color: var(--color-text); opacity: 0.7; transition: opacity 0.2s ease; display: flex; align-items: center; }
     .attachment-icon:hover { opacity: 1; }
     .attachment-icon:active { opacity: 0.5; }
-/* Text input */
+/* Text input — container acts as the visual input box */
     #chat-input-container {
     position: relative;
     width: 100%;
+    display: flex;
+    align-items: flex-start;
+    background-color: var(--color-input);
+    border-radius: 8px;
+    border: 6px solid transparent;
+    outline: 1px solid var(--color-border);
+    margin-right: var(--spacing-xs);
+    transition: all 0.3s ease;
+    -webkit-transition: all 0.3s ease;
+    }
+    #chat-input-container:focus-within {
+    outline: 0.05rem solid rgba(155,155,155,0.5);
+    background-color: var(--color-input-focus);
     }
     #chat-input {
-    background-color: var(--color-input);
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
+    background: transparent;
+    border: none;
+    outline: none;
     color: var(--color-text);
-    flex-grow: 1;
+    flex: 1;
+    min-width: 0;
     font-family: "Roboto Mono", monospace;
     font-optical-sizing: auto;
     -webkit-font-optical-sizing: auto;
     font-size: 0.9rem;
     max-height: 7rem;
     min-height: 3.05rem;
-    width: 100%;
     padding: 0.48rem 40px var(--spacing-sm) var(--spacing-sm);
-    margin-right: var(--spacing-xs);
     overflow-y: auto;
     scroll-behavior: smooth;
     resize: none;
     align-content: start;
-    background-clip: border-box;
-    border: 6px solid transparent;
-    outline: 1px solid var(--color-border);
-    transition: all 0.3s ease;
-    -webkit-transition: all 0.3s ease;
     }
     #chat-input::-webkit-scrollbar { width: 6px; height: 6px; }
     #chat-input::-webkit-scrollbar-track { background: transparent; margin: 4px 0; border-radius: 6px; }
     #chat-input::-webkit-scrollbar-thumb { background-color: rgba(155,155,155,0.5); border-radius: 6px; -webkit-transition: background-color 0.2s ease; transition: background-color 0.2s ease; }
     #chat-input::-webkit-scrollbar-thumb:hover { background-color: rgba(155,155,155,0.7); }
-    #chat-input:focus { outline: 0.05rem solid rgba(155,155,155,0.5); font-size: 0.955rem; padding-top: 0.45rem; background-color: var(--color-input-focus); }
+    #chat-input:focus { font-size: 0.955rem; padding-top: 0.45rem; }
     #chat-input::placeholder { color: var(--color-text-muted); opacity: 0.7; }
 
     #expand-button { position: absolute; top: 12px; right: 10px; background: transparent; border: none; cursor: pointer; font-size: 1.2rem; color: var(--color-text); opacity: 0.4; transition: opacity 0.2s; }
@@ -203,6 +215,42 @@
       overflow-y: auto;
     }
     [x-cloak] { display: none !important; }
+
+    /* Skill chip inside input */
+    .skill-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      background: rgba(66, 72, 241, 0.15);
+      border: 1px solid rgba(66, 72, 241, 0.35);
+      border-radius: 5px;
+      padding: 0.2rem 0.5rem 0.2rem 0.35rem;
+      font-family: "Roboto Mono", monospace;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #7b82f6;
+      white-space: nowrap;
+      user-select: none;
+      line-height: 1;
+      flex-shrink: 0;
+      margin: 0.55rem 0 0 0.5rem;
+    }
+    .skill-chip-icon {
+      opacity: 0.55;
+      font-weight: 400;
+    }
+    .skill-chip-remove {
+      background: none;
+      border: none;
+      color: #7b82f6;
+      cursor: pointer;
+      font-size: 1rem;
+      line-height: 1;
+      padding: 0 0.1rem;
+      opacity: 0.5;
+      transition: opacity 0.15s;
+    }
+    .skill-chip-remove:hover { opacity: 1; }
     </style>
 </body>
 </html>

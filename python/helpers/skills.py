@@ -45,22 +45,25 @@ def get_skill_roots(
     agent: Agent|None=None,
 ) -> List[str]:
 
+    marketplace = os.path.expanduser("~/.agents/skills")
+
     if agent:
-        # skill roots available to agent
         paths = subagents.get_paths(agent, "skills")
+        if marketplace not in paths and os.path.isdir(marketplace):
+            paths.append(marketplace)
     else:
-        # skill roots available globally
-        project_agents = files.find_existing_paths_by_pattern("usr/projects/*/.a0proj/agents/*/skills") # agents in projects
-        projects = files.find_existing_paths_by_pattern("usr/projects/*/.a0proj/skills") # projects
-        usr_agents = files.find_existing_paths_by_pattern("usr/agents/*/skills") # agents
-        agents = files.find_existing_paths_by_pattern("agents/*/skills") # agents
+        project_agents = files.find_existing_paths_by_pattern("usr/projects/*/.a0proj/agents/*/skills")
+        projects = files.find_existing_paths_by_pattern("usr/projects/*/.a0proj/skills")
+        usr_agents = files.find_existing_paths_by_pattern("usr/agents/*/skills")
+        agents = files.find_existing_paths_by_pattern("agents/*/skills")
         paths = [
-            files.get_abs_path("skills"), 
+            files.get_abs_path("skills"),
             files.get_abs_path("usr/skills"),
+            marketplace,
             *project_agents,
             *projects,
             *usr_agents,
-            *agents 
+            *agents
         ]
     return paths
 

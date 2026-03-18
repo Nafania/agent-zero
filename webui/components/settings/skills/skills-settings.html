@@ -44,10 +44,19 @@
                                         <div class="catalog-title" x-text="item.name"></div>
                                         <code class="catalog-source" x-text="item.source"></code>
                                     </div>
-                                    <button class="button confirm"
+                                    <button class="button"
                                         @click="$store.skillsStore.installFromCatalog(item)"
-                                        :disabled="$store.skillsStore.installLoading">
-                                        <span class="icon material-symbols-outlined">add</span> Add
+                                        :disabled="$store.skillsStore.installLoading || $store.skillsStore.isInstalled(item)"
+                                        :class="$store.skillsStore.isInstalled(item) ? '' : 'confirm'">
+                                        <template x-if="$store.skillsStore.installingSource === item.source">
+                                            <span class="install-spinner-inline"><span class="install-spinner"></span> Installing...</span>
+                                        </template>
+                                        <template x-if="$store.skillsStore.installingSource !== item.source && $store.skillsStore.isInstalled(item)">
+                                            <span><span class="icon material-symbols-outlined">check</span> Installed</span>
+                                        </template>
+                                        <template x-if="$store.skillsStore.installingSource !== item.source && !$store.skillsStore.isInstalled(item)">
+                                            <span><span class="icon material-symbols-outlined">add</span> Add</span>
+                                        </template>
                                     </button>
                                 </div>
                                 <div class="catalog-description" x-text="item.description"></div>
@@ -67,13 +76,19 @@
                                 @click="$store.skillsStore.installDirect()"
                                 :disabled="$store.skillsStore.installLoading || !$store.skillsStore.directSource.trim()">
                                 <span x-show="!$store.skillsStore.installLoading">Install</span>
-                                <span x-show="$store.skillsStore.installLoading">Installing...</span>
+                                <span x-show="$store.skillsStore.installLoading" class="install-spinner-inline">
+                                    <span class="install-spinner"></span> Installing...
+                                </span>
                             </button>
                         </div>
                     </div>
 
                     <div x-show="$store.skillsStore.installError" class="error">
                         <span x-text="$store.skillsStore.installError"></span>
+                    </div>
+                    <div x-show="$store.skillsStore.installSuccess" class="success">
+                        <span class="icon material-symbols-outlined" style="vertical-align: middle;">check_circle</span>
+                        <span x-text="$store.skillsStore.installSuccess"></span>
                     </div>
                 </div>
 
@@ -429,6 +444,18 @@
             border-radius: 4px;
         }
 
+        .success {
+            color: var(--color-success, #2e7d32);
+            margin: 0.5rem 0;
+            padding: 0.5rem 0.75rem;
+            background: var(--color-success-bg, rgba(46, 125, 50, 0.1));
+            border: 1px solid var(--color-success, rgba(46, 125, 50, 0.3));
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
         .update-status {
             margin: 0.5rem 0;
             padding: 0.5rem 0.75rem;
@@ -438,6 +465,27 @@
             font-size: 0.88rem;
             color: var(--color-text-secondary);
             white-space: pre-wrap;
+        }
+
+        .install-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--color-border);
+            border-top-color: var(--color-text-primary);
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            vertical-align: middle;
+        }
+
+        .install-spinner-inline {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
     </style>
 </body>

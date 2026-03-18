@@ -78,16 +78,31 @@ class TestRunNpx:
 class TestParseFindOutput:
     def test_parses_skill_entries(self):
         from python.helpers.skills_cli import parse_find_output
-        output = """brainstorming (obra/superpowers)
-  Use before any creative work — creating features, building components
-test-driven-development (obra/superpowers)
-  Use when implementing any feature or bugfix"""
-
+        output = (
+            "obra/superpowers@using-superpowers 26.8K installs\n"
+            "└ https://skills.sh/obra/superpowers/using-superpowers\n"
+            "\n"
+            "makfly/superpowers-symfony@symfony:using-symfony-superpowers 121 installs\n"
+            "└ https://skills.sh/makfly/superpowers-symfony/symfony:using-symfony-superpowers\n"
+        )
         results = parse_find_output(output)
-        assert len(results) >= 2
-        assert results[0]["name"] == "brainstorming"
-        assert results[0]["source"] == "obra/superpowers"
-        assert "creative work" in results[0]["description"]
+        assert len(results) == 2
+        assert results[0]["name"] == "using-superpowers"
+        assert results[0]["source"] == "obra/superpowers@using-superpowers"
+        assert "26.8K installs" in results[0]["description"]
+        assert results[0]["url"] == "https://skills.sh/obra/superpowers/using-superpowers"
+        assert results[1]["source"] == "makfly/superpowers-symfony@symfony:using-symfony-superpowers"
+
+    def test_parses_ansi_output(self):
+        from python.helpers.skills_cli import parse_find_output
+        output = (
+            "\x1b[38;5;145mobra/superpowers@using-superpowers\x1b[0m \x1b[36m26.8K installs\x1b[0m\n"
+            "\x1b[38;5;102m└ https://skills.sh/obra/superpowers/using-superpowers\x1b[0m\n"
+        )
+        results = parse_find_output(output)
+        assert len(results) == 1
+        assert results[0]["name"] == "using-superpowers"
+        assert results[0]["source"] == "obra/superpowers@using-superpowers"
 
     def test_returns_empty_for_no_results(self):
         from python.helpers.skills_cli import parse_find_output
@@ -107,25 +122,30 @@ class TestFind:
         from python.helpers.skills_cli import find
         _, process = mock_subprocess
         process.communicate.return_value = (
-            b"brainstorming (obra/superpowers)\n  Use before any creative work\n",
+            b"obra/superpowers@brainstorming 500 installs\n"
+            b"\xe2\x94\x94 https://skills.sh/obra/superpowers/brainstorming\n",
             b"",
         )
 
         results = await find("brainstorming")
-        assert len(results) >= 1
+        assert len(results) == 1
         assert results[0]["name"] == "brainstorming"
+        assert results[0]["source"] == "obra/superpowers@brainstorming"
 
     @pytest.mark.asyncio
     async def test_find_uses_cache(self, mock_subprocess):
         from python.helpers.skills_cli import find, _cache
         _cache.clear()
         _, process = mock_subprocess
-        process.communicate.return_value = (b"skill1 (owner/repo)\n  desc\n", b"")
+        process.communicate.return_value = (
+            b"owner/repo@skill1 10 installs\n"
+            b"\xe2\x94\x94 https://skills.sh/owner/repo/skill1\n",
+            b"",
+        )
 
         r1 = await find("test-query")
         r2 = await find("test-query")
         assert r1 == r2
-        # subprocess called only once due to cache
         assert mock_subprocess[0].call_count == 1
         _cache.clear()
 

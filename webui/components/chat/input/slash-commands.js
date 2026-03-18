@@ -119,7 +119,11 @@ const model = {
     if (!input) return;
 
     const store = globalThis.Alpine?.store("chatInput");
-    if (store) {
+
+    if (cmd.isSkill && store) {
+      store.activeSkill = cmd.command.slice(1);
+      store.message = "";
+    } else if (store) {
       store.message = cmd.command + " ";
     } else {
       input.value = cmd.command + " ";

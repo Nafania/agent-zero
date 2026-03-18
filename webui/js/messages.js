@@ -916,7 +916,7 @@ export function drawMessageUser({
       spanElement = document.createElement("pre");
       textDiv.appendChild(spanElement);
     }
-    spanElement.innerHTML = escapeHTML(content);
+    spanElement.innerHTML = formatUserMessageContent(content);
   } else {
     if (textDiv) textDiv.remove();
   }
@@ -1640,6 +1640,18 @@ function escapeHTML(str) {
     '"': "&quot;",
   };
   return str.replace(/[&<>'"]/g, (char) => escapeChars[char]);
+}
+
+const _SKILL_MSG_RE = /^\[Load and use skill:\s*([^\]]+)\]\s*/i;
+
+function formatUserMessageContent(content) {
+  const m = content.match(_SKILL_MSG_RE);
+  if (!m) return escapeHTML(content);
+
+  const skillName = m[1].trim();
+  const rest = content.slice(m[0].length);
+  const chip = `<span class="msg-skill-chip"><span class="msg-skill-slash">/</span>${escapeHTML(skillName)}</span>`;
+  return rest.trim() ? chip + " " + escapeHTML(rest) : chip;
 }
 
 function convertPathsToLinks(str) {
