@@ -36,6 +36,10 @@ RUN bash -c '. /ins/setup_venv.sh && \
 # --- Playwright (cached with deps layer) ---
 RUN bash /ins/install_playwright.sh
 
+# --- Node.js (for npx skills CLI) ---
+RUN apt-get update && apt-get install -y --no-install-recommends nodejs npm \
+    && rm -rf /var/lib/apt/lists/*
+
 # --- Bun (rarely changes) ---
 RUN apt-get update && apt-get install -y --no-install-recommends unzip \
     && rm -rf /var/lib/apt/lists/*
