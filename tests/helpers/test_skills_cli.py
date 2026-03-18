@@ -160,17 +160,30 @@ class TestFind:
 
 class TestAdd:
     @pytest.mark.asyncio
-    async def test_add_calls_npx_skills_add(self, mock_subprocess):
+    async def test_add_single_skill(self, mock_subprocess):
         from python.helpers.skills_cli import add, _cache
         _cache.clear()
         _, process = mock_subprocess
         process.communicate.return_value = (b"Installed brainstorming", b"")
 
-        result = await add("obra/superpowers")
+        result = await add("obra/superpowers@brainstorming")
         assert "Installed" in result
         args = mock_subprocess[0].call_args[0]
         assert "add" in args
-        assert "obra/superpowers" in args
+        assert "obra/superpowers@brainstorming" in args
+
+    @pytest.mark.asyncio
+    async def test_add_multi_skill_repo(self, mock_subprocess):
+        from python.helpers.skills_cli import add, _cache, _list_repo_skills
+        _cache.clear()
+        _, process = mock_subprocess
+        process.communicate.return_value = (b"ok", b"")
+
+        with patch("python.helpers.skills_cli._list_repo_skills",
+                    return_value=["brainstorming", "writing-plans"]):
+            result = await add("obra/superpowers")
+        assert "2 skills" in result
+        assert mock_subprocess[0].call_count >= 2
 
     @pytest.mark.asyncio
     async def test_add_clears_cache(self, mock_subprocess):
@@ -179,7 +192,7 @@ class TestAdd:
         _, process = mock_subprocess
         process.communicate.return_value = (b"ok", b"")
 
-        await add("owner/repo")
+        await add("owner/repo@skill")
         assert len(_cache) == 0
 
 
