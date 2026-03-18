@@ -1,38 +1,444 @@
 <html>
-  <head>
+<head>
     <title>Skills</title>
-  </head>
-
-  <body>
+    <script type="module">
+        import { store } from "/components/settings/skills/skills-store.js";
+    </script>
+</head>
+<body>
     <div x-data>
-      <template x-if="$store.settings">
-        <div>
-          <nav>
-            <ul>
-              <li>
-                <a href="#section-skills-list">
-                  <img src="/public/skills.svg" alt="Skills" />
-                  <span>List Skills</span>
-                </a>
-              </li>
-              <li>
-                <a href="#section-skills-import">
-                  <img src="/public/skills_add.svg" alt="Skills" />
-                  <span>Install Skills</span>
-                </a>
-              </li>
-            </ul>
-          </nav>
+        <template x-if="$store.skillsStore">
+            <div x-init="$store.skillsStore.init()" x-destroy="$store.skillsStore.onClose()">
 
-          <div id="section-skills-list" class="section">
-            <x-component path="settings/skills/list.html"></x-component>
-          </div>
+                <!-- Catalog Search -->
+                <div class="section-title">Skills Marketplace</div>
+                <div class="section-description">
+                    Search and install skills from the skills.sh marketplace.
+                </div>
 
-          <div id="section-skills-import" class="section">
-            <x-component path="settings/skills/import.html"></x-component>
-          </div>
-        </div>
-      </template>
+                <div class="catalog-section">
+                    <div class="search-row">
+                        <input type="text" class="search-input"
+                            placeholder="Search skills marketplace..."
+                            x-model="$store.skillsStore.searchQuery"
+                            @keydown.enter="$store.skillsStore.searchCatalog()">
+                        <button class="button confirm"
+                            @click="$store.skillsStore.searchCatalog()"
+                            :disabled="$store.skillsStore.catalogLoading || !$store.skillsStore.searchQuery.trim()">
+                            <span x-show="!$store.skillsStore.catalogLoading">
+                                <span class="icon material-symbols-outlined">search</span> Search
+                            </span>
+                            <span x-show="$store.skillsStore.catalogLoading">Searching...</span>
+                        </button>
+                    </div>
+
+                    <div x-show="$store.skillsStore.catalogError" class="error">
+                        <span x-text="$store.skillsStore.catalogError"></span>
+                    </div>
+
+                    <div class="catalog-results">
+                        <template x-for="item in $store.skillsStore.catalogResults" :key="item.name + item.source">
+                            <div class="catalog-card">
+                                <div class="catalog-header">
+                                    <div class="catalog-heading">
+                                        <div class="catalog-title" x-text="item.name"></div>
+                                        <code class="catalog-source" x-text="item.source"></code>
+                                    </div>
+                                    <button class="button confirm"
+                                        @click="$store.skillsStore.installFromCatalog(item)"
+                                        :disabled="$store.skillsStore.installLoading">
+                                        <span class="icon material-symbols-outlined">add</span> Add
+                                    </button>
+                                </div>
+                                <div class="catalog-description" x-text="item.description"></div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- Direct Install -->
+                    <div class="direct-install">
+                        <div class="section-subtitle">Direct Install</div>
+                        <div class="install-row">
+                            <input type="text" class="install-input"
+                                placeholder="owner/repo or owner/repo/skill-name"
+                                x-model="$store.skillsStore.directSource"
+                                @keydown.enter="$store.skillsStore.installDirect()">
+                            <button class="button confirm"
+                                @click="$store.skillsStore.installDirect()"
+                                :disabled="$store.skillsStore.installLoading || !$store.skillsStore.directSource.trim()">
+                                <span x-show="!$store.skillsStore.installLoading">Install</span>
+                                <span x-show="$store.skillsStore.installLoading">Installing...</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div x-show="$store.skillsStore.installError" class="error">
+                        <span x-text="$store.skillsStore.installError"></span>
+                    </div>
+                </div>
+
+                <!-- Installed Skills -->
+                <div class="section-title" style="margin-top: 2rem;">Installed Skills</div>
+
+                <div class="skills-toolbar">
+                    <div class="skills-toolbar-row">
+                        <label class="skills-toolbar-item">
+                            <span class="skills-toolbar-label">Scope</span>
+                            <select x-model="$store.skillsStore.projectFilter"
+                                @change="$store.skillsStore.loadInstalled()">
+                                <option value="">All</option>
+                                <template x-for="p in $store.skillsStore.projects" :key="p.key">
+                                    <option :value="p.key" x-text="p.label"></option>
+                                </template>
+                            </select>
+                        </label>
+                        <div class="skills-toolbar-actions">
+                            <button type="button" class="button" title="Refresh"
+                                @click="$store.skillsStore.loadInstalled()"
+                                :disabled="$store.skillsStore.installedLoading">
+                                <span class="icon material-symbols-outlined">refresh</span> Refresh
+                            </button>
+                            <button type="button" class="button" title="Check for updates"
+                                @click="$store.skillsStore.checkUpdates()"
+                                :disabled="$store.skillsStore.updateLoading">
+                                <span class="icon material-symbols-outlined">update</span> Check Updates
+                            </button>
+                            <button type="button" class="button confirm" title="Update all"
+                                @click="$store.skillsStore.updateAll()"
+                                :disabled="$store.skillsStore.updateLoading">
+                                <span class="icon material-symbols-outlined">system_update_alt</span> Update All
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div x-show="$store.skillsStore.updateStatus" class="update-status">
+                    <span x-text="$store.skillsStore.updateStatus"></span>
+                </div>
+
+                <div x-show="$store.skillsStore.installedLoading" class="loading">
+                    Loading skills...
+                </div>
+                <div x-show="$store.skillsStore.installedError" class="error">
+                    <span x-text="$store.skillsStore.installedError"></span>
+                </div>
+
+                <template x-if="!$store.skillsStore.installedLoading && !$store.skillsStore.installedError && $store.skillsStore.installed.length === 0">
+                    <div class="skills-empty">No skills installed yet. Search the marketplace above or install directly.</div>
+                </template>
+
+                <div class="skills-list">
+                    <template x-for="skill in $store.skillsStore.installed" :key="skill.path">
+                        <div class="skill-card">
+                            <div class="skill-header">
+                                <div class="skill-heading">
+                                    <div class="skill-title" x-text="skill.name || '(unnamed)'"></div>
+                                    <code class="skill-path" x-text="skill.path"></code>
+                                </div>
+                                <div class="skill-actions">
+                                    <select class="move-select" title="Move to project"
+                                        @change="if($event.target.value) { $store.skillsStore.moveSkill(skill, $event.target.value); $event.target.value=''; }">
+                                        <option value="">Move to...</option>
+                                        <option value="__global__">Global</option>
+                                        <template x-for="p in $store.skillsStore.projects" :key="p.key">
+                                            <option :value="p.key" x-text="p.label"></option>
+                                        </template>
+                                    </select>
+                                    <button type="button" class="button cancel icon-button" title="Delete"
+                                        @click="$confirmClick($event, () => $store.skillsStore.deleteSkill(skill))">
+                                        <span class="icon material-symbols-outlined">delete</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="skill-description" x-text="skill.description || 'No description.'"></div>
+                        </div>
+                    </template>
+                </div>
+
+            </div>
+        </template>
     </div>
-  </body>
+
+    <style>
+        /* Catalog section */
+        .catalog-section {
+            margin-top: 0.5rem;
+        }
+
+        .search-row {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 0.6rem 0.75rem;
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            background: var(--color-bg-primary);
+            color: var(--color-text-primary);
+            font-size: 0.9rem;
+        }
+
+        .search-input:focus {
+            outline: 1px solid rgba(155, 155, 155, 0.5);
+        }
+
+        .catalog-results {
+            margin-top: 0.5rem;
+        }
+
+        .catalog-card {
+            border: 1px solid var(--color-border);
+            border-radius: 4px;
+            padding: 0.75rem;
+            margin-top: 0.75rem;
+            background: var(--color-bg-primary);
+        }
+
+        .catalog-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: nowrap;
+            min-width: 0;
+        }
+
+        .catalog-heading {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            flex: 1 1 auto;
+        }
+
+        .catalog-title {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .catalog-source {
+            margin-top: 0.25rem;
+            font-size: 0.85rem;
+            color: var(--color-text-muted);
+            word-break: break-all;
+        }
+
+        .catalog-description {
+            margin-top: 0.35rem;
+            color: var(--color-text-secondary);
+            font-size: var(--font-size-small);
+        }
+
+        /* Direct install */
+        .direct-install {
+            margin-top: 1.25rem;
+        }
+
+        .section-subtitle {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--color-text-secondary);
+            margin-bottom: 0.4rem;
+        }
+
+        .install-row {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .install-input {
+            flex: 1;
+            padding: 0.6rem 0.75rem;
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            background: var(--color-bg-primary);
+            color: var(--color-text-primary);
+            font-family: "Roboto Mono", monospace;
+            font-size: 0.85rem;
+        }
+
+        .install-input:focus {
+            outline: 1px solid rgba(155, 155, 155, 0.5);
+        }
+
+        /* Toolbar */
+        .skills-toolbar {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            margin-top: 0.5rem;
+        }
+
+        .skills-toolbar-row {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .skills-toolbar-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex: 1 1 18rem;
+            min-width: 12rem;
+            margin: 0;
+        }
+
+        .skills-toolbar-label {
+            font-weight: 600;
+            color: var(--color-text-secondary);
+            white-space: nowrap;
+        }
+
+        .skills-toolbar-item select {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        .skills-toolbar-actions {
+            margin-left: auto;
+            flex: 0 0 auto;
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        @media (max-width: 640px) {
+            .skills-toolbar-row {
+                gap: 0.5rem;
+            }
+
+            .skills-toolbar-item {
+                flex-basis: 100%;
+                min-width: 0;
+            }
+
+            .skills-toolbar-actions {
+                width: 100%;
+                margin-left: 0;
+            }
+
+            .skills-toolbar-actions .button {
+                width: 100%;
+            }
+        }
+
+        /* Installed skills list */
+        .skills-list {
+            margin-top: 1rem;
+        }
+
+        .skill-card {
+            border: 1px solid var(--color-border);
+            border-radius: 4px;
+            padding: 0.75rem;
+            margin-top: 0.75rem;
+            background: var(--color-bg-primary);
+        }
+
+        .skill-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: nowrap;
+            min-width: 0;
+        }
+
+        .skill-heading {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            flex: 1 1 auto;
+        }
+
+        .skill-title {
+            font-weight: 600;
+            font-size: 1rem;
+            min-width: 0;
+            flex: 1 1 auto;
+        }
+
+        .skill-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding-bottom: var(--spacing-sm);
+            flex-wrap: wrap;
+            min-width: 0;
+            flex: 0 1 auto;
+            max-width: 100%;
+            justify-content: flex-end;
+        }
+
+        .skill-description {
+            margin-top: 0.35rem;
+            color: var(--color-text-secondary);
+            font-size: var(--font-size-small);
+        }
+
+        .skill-path {
+            margin-top: 0.35rem;
+            font-size: 0.85rem;
+            color: var(--color-text-muted);
+            min-width: 0;
+            max-width: 100%;
+            white-space: pre-wrap;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+        }
+
+        .move-select {
+            font-size: 0.82rem;
+            padding: 0.3rem 0.4rem;
+            border: 1px solid var(--color-border);
+            border-radius: 4px;
+            background: var(--color-bg-primary);
+            color: var(--color-text-primary);
+            cursor: pointer;
+        }
+
+        /* Empty / loading / error / status */
+        .skills-empty {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            border: 1px dashed var(--color-border);
+            border-radius: 4px;
+            text-align: center;
+            color: var(--color-text-secondary);
+        }
+
+        .loading {
+            width: 100%;
+            text-align: center;
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+            color: var(--color-secondary);
+        }
+
+        .error {
+            color: var(--color-error);
+            margin: 0.5rem 0;
+            padding: 0.5rem;
+            background: var(--color-error-bg);
+            border-radius: 4px;
+        }
+
+        .update-status {
+            margin: 0.5rem 0;
+            padding: 0.5rem 0.75rem;
+            background: var(--color-bg-primary);
+            border: 1px solid var(--color-border);
+            border-radius: 4px;
+            font-size: 0.88rem;
+            color: var(--color-text-secondary);
+            white-space: pre-wrap;
+        }
+    </style>
+</body>
 </html>
