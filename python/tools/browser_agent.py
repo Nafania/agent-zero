@@ -113,18 +113,23 @@ class State:
 
     def kill_task(self):
         if self.task:
-            self.task.kill(terminate_thread=True)
+            self.task.kill(terminate_thread=True, timeout=5.0)
             self.task = None
         if self.browser_session:
             try:
                 import asyncio
 
                 loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                loop.run_until_complete(self.browser_session.close()) if self.browser_session else None
+                loop.run_until_complete(
+                    asyncio.wait_for(self.browser_session.close(), timeout=5.0)
+                ) if self.browser_session else None
                 loop.close()
-            except Exception as e:
-                PrintStyle().error(f"Error closing browser session: {e}")
+            except (asyncio.TimeoutError, Exception) as e:
+                PrintStyle().warning(f"Browser session close timed out or failed: {e}")
+                try:
+                    loop.close()
+                except Exception:
+                    pass
             finally:
                 self.browser_session = None
         self.use_agent = None
@@ -166,7 +171,7 @@ class State:
                 ),
                 controller=controller,
                 enable_memory=False,  # Disable memory to avoid state conflicts
-                llm_timeout=3000, # TODO rem
+                llm_timeout=120,
                 sensitive_data=cast(dict[str, str | dict[str, str]] | None, secrets_dict or {}),  # Pass secrets
             )
         except Exception as e:

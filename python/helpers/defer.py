@@ -40,7 +40,7 @@ class EventLoopThread:
         asyncio.set_event_loop(self.loop)
         self.loop.run_forever()
 
-    def terminate(self):
+    def terminate(self, timeout: float = 5.0):
         loop = getattr(self, "loop", None)
         thread = getattr(self, "thread", None)
 
@@ -53,9 +53,9 @@ class EventLoopThread:
             else:
                 loop.call_soon_threadsafe(loop.stop)
                 if thread:
-                    thread.join()
+                    thread.join(timeout=timeout)
         elif thread and thread.is_alive() and thread is not threading.current_thread():
-            thread.join()
+            thread.join(timeout=timeout)
 
         if not loop.is_closed():
             loop.close()
@@ -144,7 +144,7 @@ class DeferredTask:
 
         return await loop.run_in_executor(None, _get_result)
 
-    def kill(self, terminate_thread: bool = False) -> None:
+    def kill(self, terminate_thread: bool = False, timeout: float = 5.0) -> None:
         """Kill the task and optionally terminate its thread."""
         self.kill_children()
         if self._future and not self._future.done():
@@ -156,11 +156,11 @@ class DeferredTask:
                     cleanup_future = asyncio.run_coroutine_threadsafe(
                         self._drain_event_loop_tasks(), self.event_loop_thread.loop
                     )
-                    cleanup_future.result()
-                except Exception:
+                    cleanup_future.result(timeout=timeout)
+                except (TimeoutError, Exception):
                     pass
 
-            self.event_loop_thread.terminate()
+            self.event_loop_thread.terminate(timeout=timeout)
 
     def kill_children(self) -> None:
         for child in self.children:
