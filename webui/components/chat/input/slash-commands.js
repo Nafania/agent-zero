@@ -63,19 +63,21 @@ const model = {
   selectedIndex: 0,
   _allCommands: [],
 
-  async onInput(value) {
-    if (!value.startsWith("/")) {
+  _slashPrefix: "",
+
+  async onInput(value, cursorPos) {
+    const textUpToCursor = typeof cursorPos === "number"
+      ? value.slice(0, cursorPos)
+      : value;
+
+    const match = textUpToCursor.match(/(?:^|\s)(\/[^\s]*)$/);
+    if (!match) {
       this.hide();
       return;
     }
 
-    const hasSpace = value.includes(" ");
-    const typed = value.split(/\s/)[0].toLowerCase();
-
-    if (hasSpace) {
-      this.hide();
-      return;
-    }
+    const typed = match[1].toLowerCase();
+    this._slashPrefix = match[1];
 
     const skills = await _fetchInstalledSkills();
     this._allCommands = [...BUILTIN_COMMANDS, ...skills];
@@ -119,14 +121,19 @@ const model = {
     if (!input) return;
 
     const store = globalThis.Alpine?.store("chatInput");
+    const prefix = this._slashPrefix || "/";
+    const msg = store ? store.message : input.value;
+    const prefixStart = msg.lastIndexOf(prefix);
+    const before = prefixStart > 0 ? msg.slice(0, prefixStart) : "";
+    const after = msg.slice(prefixStart + prefix.length);
 
     if (cmd.isSkill && store) {
       store.activeSkill = cmd.command.slice(1);
-      store.message = "";
+      store.message = (before + after).trim();
     } else if (store) {
-      store.message = cmd.command + " ";
+      store.message = before + cmd.command + " " + after;
     } else {
-      input.value = cmd.command + " ";
+      input.value = before + cmd.command + " " + after;
     }
 
     this.hide();
