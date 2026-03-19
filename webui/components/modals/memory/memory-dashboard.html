@@ -64,12 +64,12 @@
 
                     <div class="filter-group-inline filter-area">
                         <label for="area-filter">Area</label>
-                        <select id="area-filter" x-model="$store.memoryDashboardStore.areaFilter">
+                        <select id="area-filter" x-model="$store.memoryDashboardStore.areaFilter"
+                            @change="$store.memoryDashboardStore.searchMemories()">
                             <option value="">All Areas</option>
                             <option value="main">Main</option>
                             <option value="fragments">Fragments</option>
                             <option value="solutions">Solutions</option>
-                            <option value="skills">Skills</option>
                         </select>
                     </div>
 
