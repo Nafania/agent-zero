@@ -2,8 +2,20 @@ from python.helpers import dotenv, runtime, settings
 import asyncio
 import string
 import random
+import resource
 from python.helpers.print_style import PrintStyle
 
+
+# Raise the file-descriptor soft limit to avoid "Too many open files" from LanceDB/Cognee
+_FD_TARGET = 65536
+try:
+    soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+    if soft < _FD_TARGET:
+        resource.setrlimit(resource.RLIMIT_NOFILE, (min(_FD_TARGET, hard), hard))
+        new_soft, _ = resource.getrlimit(resource.RLIMIT_NOFILE)
+        PrintStyle.standard(f"Raised file descriptor limit: {soft} -> {new_soft}")
+except Exception as e:
+    PrintStyle.warning(f"Could not raise file descriptor limit: {e}")
 
 PrintStyle.standard("Preparing environment...")
 

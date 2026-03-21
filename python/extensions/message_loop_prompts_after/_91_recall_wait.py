@@ -27,11 +27,20 @@ class RecallWait(Extension):
             try:
                 await task
             except (TimeoutError, asyncio.TimeoutError):
-                PrintStyle.error("Memory recall timed out, continuing without memories")
+                try:
+                    PrintStyle.error("Memory recall timed out, continuing without memories")
+                except OSError:
+                    pass
             except asyncio.CancelledError:
-                PrintStyle.error("Memory recall was cancelled")
+                try:
+                    PrintStyle.error("Memory recall was cancelled")
+                except OSError:
+                    pass
             except Exception as e:
-                PrintStyle.error(f"Memory recall failed: {e}")
+                try:
+                    PrintStyle.error(f"Memory recall failed: {e}")
+                except OSError:
+                    pass
 
         # task = self.agent.get_data(DATA_NAME_TASK_SOLUTIONS)
         # if task and not task.done():

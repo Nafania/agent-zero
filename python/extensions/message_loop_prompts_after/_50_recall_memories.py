@@ -112,8 +112,17 @@ class RecallMemories(Extension):
                     session_id=session_id,
                 ),
             )
+        except OSError as e:
+            try:
+                PrintStyle.error(f"cognee.search OS error (likely too many open files): {e}")
+            except OSError:
+                pass
+            mem_answers, sol_answers = [], []
         except Exception as e:
-            PrintStyle.error(f"cognee.search failed: {e}")
+            try:
+                PrintStyle.error(f"cognee.search failed: {e}")
+            except OSError:
+                pass
             mem_answers, sol_answers = [], []
 
         memories = _to_strings(mem_answers, set["memory_recall_memories_max_result"])

@@ -22,6 +22,7 @@ def _get_runtime():
 class PrintStyle:
     last_endline = True
     log_file_path = None
+    _log_file_handle = None
 
     def __init__(self, bold=False, italic=False, underline=False, font_color="default", background_color="default", padding=False, log_only=False, level="INFO", component="a0"):
         self.bold = bold
@@ -40,8 +41,12 @@ class PrintStyle:
             os.makedirs(logs_dir, exist_ok=True)
             log_filename = datetime.now().strftime("log_%Y%m%d_%H%M%S.html")
             PrintStyle.log_file_path = os.path.join(logs_dir, log_filename)
-            with open(PrintStyle.log_file_path, "w") as f:
-                f.write("<html><body style='background-color:black;font-family: Arial, Helvetica, sans-serif;'><pre>\n")
+            try:
+                PrintStyle._log_file_handle = open(PrintStyle.log_file_path, "w", encoding="utf-8")
+                PrintStyle._log_file_handle.write("<html><body style='background-color:black;font-family: Arial, Helvetica, sans-serif;'><pre>\n")
+                PrintStyle._log_file_handle.flush()
+            except OSError:
+                PrintStyle._log_file_handle = None
 
     def _get_rgb_color_code(self, color, is_background=False):
         try:
@@ -99,14 +104,25 @@ class PrintStyle:
             self.padding_added = True
 
     def _log_html(self, html):
-        with open(PrintStyle.log_file_path, "a", encoding='utf-8') as f: # type: ignore # add encoding='utf-8'
-            f.write(html)
+        try:
+            fh = PrintStyle._log_file_handle
+            if fh and not fh.closed:
+                fh.write(html)
+                fh.flush()
+        except OSError:
+            pass
 
     @staticmethod
     def _close_html_log():
-        if PrintStyle.log_file_path:
-            with open(PrintStyle.log_file_path, "a") as f:
-                f.write("</pre></body></html>")
+        fh = PrintStyle._log_file_handle
+        if fh and not fh.closed:
+            try:
+                fh.write("</pre></body></html>")
+                fh.flush()
+                fh.close()
+            except OSError:
+                pass
+        PrintStyle._log_file_handle = None
 
     @staticmethod
     def _format_args(args, sep):
