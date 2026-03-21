@@ -45,7 +45,7 @@
             </div>
             <textarea id="chat-input" :placeholder="$store.chatInput.activeSkill ? 'Type your message...' : $store.chatInput.inputPlaceholder" rows="1"
                       @keydown="if ($store.chatInput.activeSkill && !$store.chatInput.message && $event.key === 'Backspace') { $store.chatInput.clearSkill(); return; } if ($store.slashCommands.onKeydown($event)) return; if ($event.key === 'Enter' && !$event.shiftKey && !$event.isComposing && $event.keyCode !== 229) { $event.preventDefault(); $store.chatInput.sendMessage(); }"
-                      @input="$store.chatInput.adjustTextareaHeight(); $store.slashCommands.onInput($store.chatInput.message)"
+                      @input="$store.chatInput.adjustTextareaHeight(); $store.slashCommands.onInput($store.chatInput.message, $el.selectionStart)"
                       x-model="$store.chatInput.message"></textarea>
             <button id="expand-button" @click="$store.fullScreenInputModal.openModal()" aria-label="Expand input">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
