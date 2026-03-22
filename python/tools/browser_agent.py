@@ -139,16 +139,7 @@ class State:
             response: str
             page_summary: str
 
-        # Initialize controller
         controller = browser_use.Controller(output_model=DoneResult)
-
-        # Register custom completion action with proper ActionResult fields
-        @controller.registry.action("Complete task", param_model=DoneResult)
-        async def complete_task(params: DoneResult):
-            result = browser_use.ActionResult(
-                is_done=True, success=True, extracted_content=params.model_dump_json()
-            )
-            return result
 
         model = self.agent.get_browser_model()
 
@@ -167,6 +158,7 @@ class State:
                 ),
                 controller=controller,
                 llm_timeout=120,
+                use_judge=False,
                 sensitive_data=cast(dict[str, str | dict[str, str]] | None, secrets_dict or {}),
             )
         except Exception as e:
