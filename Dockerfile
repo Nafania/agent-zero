@@ -33,8 +33,8 @@ RUN bash -c '. /ins/setup_venv.sh && \
     uv pip install -r /tmp/deps/requirements2.txt && \
     rm -rf /tmp/deps'
 
-# --- Playwright (cached with deps layer) ---
-RUN bash /ins/install_playwright.sh
+# --- Chromium for browser-use CDP automation ---
+RUN bash /ins/install_chrome.sh
 
 # --- Node.js 24 LTS (for npx skills CLI) ---
 RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - \

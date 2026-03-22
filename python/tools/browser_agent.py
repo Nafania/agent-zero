@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import time
 from typing import Optional, cast
 from agent import Agent, InterventionException
@@ -8,7 +9,6 @@ from python.helpers.tool import Tool, Response
 from python.helpers import files, defer, persist_chat, strings
 from python.helpers.browser_use import browser_use  # type: ignore[attr-defined]
 from python.helpers.print_style import PrintStyle
-from python.helpers.playwright import ensure_playwright_binary
 from python.helpers.secrets import get_secrets_manager
 from python.extensions.message_loop_start._10_iteration_no import get_iter_no
 from pydantic import BaseModel
@@ -47,9 +47,6 @@ class State:
         if self.browser_session:
             return
 
-        # for some reason we need to provide exact path to headless shell, otherwise it looks for headed browser
-        pw_binary = ensure_playwright_binary()
-                
         self.browser_session = browser_use.BrowserSession(
             browser_profile=browser_use.BrowserProfile(
                 headless=True,
@@ -58,7 +55,6 @@ class State:
                 accept_downloads=True,
                 downloads_path=files.get_abs_path("usr/downloads"),
                 allowed_domains=["*", "http://*", "https://*"],
-                executable_path=pw_binary,
                 keep_alive=True,
                 minimum_wait_page_load_time=1.0,
                 wait_for_network_idle_page_load_time=2.0,
@@ -67,37 +63,37 @@ class State:
                 screen={"width": 1024, "height": 2048},
                 viewport={"width": 1024, "height": 2048},
                 no_viewport=False,
-                args=["--headless=new"],
-                # Use a unique user data directory to avoid conflicts
                 user_data_dir=self.get_user_data_dir(),
                 extra_http_headers=self.agent.config.browser_http_headers or {},
                 )
         )
 
         await self.browser_session.start() if self.browser_session else None
-        # self.override_hooks()
 
-        # --------------------------------------------------------------------------
-        # Patch to enforce vertical viewport size
-        # --------------------------------------------------------------------------
-        # Browser-use auto-configuration overrides viewport settings, causing wrong
-        # aspect ratio. We fix this by directly setting viewport size after startup.
-        # --------------------------------------------------------------------------
-
+        # Enforce vertical viewport size — browser-use auto-configuration may
+        # override viewport settings, causing wrong aspect ratio.
         if self.browser_session:
             try:
                 page = await self.browser_session.get_current_page()
                 if page:
-                    await page.set_viewport_size({"width": 1024, "height": 2048})
+                    await page.set_viewport_size(width=1024, height=2048)
             except Exception as e:
                 PrintStyle().warning(f"Could not force set viewport size: {e}")
 
-        # --------------------------------------------------------------------------    
-        
-        # Add init script to the browser session
-        if self.browser_session and self.browser_session.browser_context:
-            js_override = files.get_abs_path("lib/browser/init_override.js")
-            await self.browser_session.browser_context.add_init_script(path=js_override) if self.browser_session else None
+        # Inject init script via CDP (shadow DOM handling overrides)
+        if self.browser_session:
+            try:
+                js_override_path = files.get_abs_path("lib/browser/init_override.js")
+                with open(js_override_path, "r") as f:
+                    js_code = f.read()
+                page = await self.browser_session.get_current_page()
+                if page:
+                    session_id = await page.session_id
+                    await page._client.send.Page.addScriptToEvaluateOnNewDocument(
+                        {"source": js_code}, session_id=session_id
+                    )
+            except Exception as e:
+                PrintStyle().warning(f"Could not inject init script: {e}")
 
     def start_task(self, task: str):
         if self.task and self.task.is_alive():
@@ -170,9 +166,8 @@ class State:
                     "prompts/browser_agent.system.md"
                 ),
                 controller=controller,
-                enable_memory=False,  # Disable memory to avoid state conflicts
                 llm_timeout=120,
-                sensitive_data=cast(dict[str, str | dict[str, str]] | None, secrets_dict or {}),  # Pass secrets
+                sensitive_data=cast(dict[str, str | dict[str, str]] | None, secrets_dict or {}),
             )
         except Exception as e:
             raise Exception(
@@ -205,12 +200,8 @@ class State:
 
     async def get_selector_map(self):
         """Get the selector map for the current page state."""
-        if self.use_agent:
-            await self.use_agent.browser_session.get_state_summary(cache_clickable_elements_hashes=True) if self.use_agent.browser_session else None
-            return await self.use_agent.browser_session.get_selector_map() if self.use_agent.browser_session else None
-            await self.use_agent.browser_session.get_state_summary(
-                cache_clickable_elements_hashes=True
-            )
+        if self.use_agent and self.use_agent.browser_session:
+            await self.use_agent.browser_session.get_state_summary(cache_clickable_elements_hashes=True)
             return await self.use_agent.browser_session.get_selector_map()
         return {}
 
@@ -356,9 +347,6 @@ class BrowserAgent(Tool):
 
                 async def _get_update():
 
-                    # await agent.wait_if_paused() # no need here
-
-                    # Build short activity log
                     result["log"] = get_use_agent_log(ua)
 
                     path = files.get_abs_path(
@@ -368,7 +356,9 @@ class BrowserAgent(Tool):
                         f"{self.guid}.png",
                     )
                     files.make_dirs(path)
-                    await page.screenshot(path=path, full_page=False, timeout=3000)
+                    screenshot_data = await page.screenshot(format="png")
+                    with open(path, "wb") as f:
+                        f.write(base64.b64decode(screenshot_data))
                     result["screenshot"] = f"img://{path}&t={str(time.time())}"
 
                 if self.state and self.state.task and not self.state.task.is_ready():
