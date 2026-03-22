@@ -6,4 +6,4 @@ set -e
 uv pip install -r /git/agent-zero/requirements.txt
 uv pip install -r /git/agent-zero/requirements2.txt
 
-bash /ins/install_playwright.sh
+bash /ins/install_chrome.sh
