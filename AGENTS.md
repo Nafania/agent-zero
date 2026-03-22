@@ -19,7 +19,7 @@ Agent Zero is a **general-purpose personal AI assistant** that uses the computer
 | Tool | Purpose |
 |------|---------|
 | `code_execution_tool` | Execute Python/bash code in sandboxed environment |
-| `browser_agent` | Browser automation via Playwright/browser-use |
+| `browser_agent` | Browser automation via browser-use (CDP) |
 | `search_engine` | Web search (DuckDuckGo, SearxNG, Perplexity) |
 | `memory_save/load/delete/forget` | Persistent memory operations via Cognee |
 | `document_query` | Query PDFs, CSVs, HTML, text files |

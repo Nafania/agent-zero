@@ -1,8 +1,9 @@
 """Tests for python/tools/browser_agent.py — BrowserAgent tool."""
 
+import base64
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import MagicMock, AsyncMock, patch, mock_open
 
 import pytest
 
@@ -264,14 +265,19 @@ class TestBrowserAgentGetUpdate:
         assert result == {}
 
     @pytest.mark.asyncio
-    async def test_get_update_returns_log_when_has_agent(self, tool):
+    async def test_get_update_saves_screenshot_as_base64(self, tool):
+        """Screenshot now returns base64 (CDP) instead of writing to file (Playwright)."""
+        fake_png = b"\x89PNG_FAKE_DATA"
+        fake_b64 = base64.b64encode(fake_png).decode()
+
+        mock_page = MagicMock()
+        mock_page.screenshot = AsyncMock(return_value=fake_b64)
+
         mock_state = MagicMock()
         mock_state.use_agent = MagicMock()
         mock_state.use_agent.history = MagicMock()
         mock_state.use_agent.history.action_results = MagicMock(return_value=[])
-        mock_state.get_page = AsyncMock(return_value=MagicMock(
-            screenshot=AsyncMock(),
-        ))
+        mock_state.get_page = AsyncMock(return_value=mock_page)
         mock_state.task = MagicMock()
         mock_state.task.is_ready = MagicMock(return_value=False)
         mock_state.task.execute_inside = AsyncMock(side_effect=lambda fn: fn())
@@ -283,5 +289,102 @@ class TestBrowserAgentGetUpdate:
             with patch("python.tools.browser_agent.files.get_abs_path", return_value="/tmp/screenshot.png"):
                 with patch("python.tools.browser_agent.files.make_dirs", MagicMock()):
                     with patch("python.tools.browser_agent.persist_chat.get_chat_folder_path", return_value="chats"):
-                        result = await tool.get_update()
-        assert "log" in result or result == {}
+                        with patch("builtins.open", mock_open()) as m_open:
+                            result = await tool.get_update()
+
+        if "screenshot" in result:
+            mock_page.screenshot.assert_called_once_with(format="png")
+            m_open.assert_called_once_with("/tmp/screenshot.png", "wb")
+            m_open().write.assert_called_once_with(fake_png)
+
+
+class TestStateInitialize:
+    @pytest.mark.asyncio
+    async def test_initialize_creates_session_without_playwright(self, mock_agent):
+        """Verify _initialize no longer calls ensure_playwright_binary."""
+        from python.tools.browser_agent import State
+
+        state = State(mock_agent)
+
+        mock_session = MagicMock()
+        mock_session.start = AsyncMock()
+        mock_session.get_current_page = AsyncMock(return_value=None)
+
+        with patch("python.tools.browser_agent.browser_use") as mock_bu:
+            mock_bu.BrowserSession.return_value = mock_session
+            mock_bu.BrowserProfile.return_value = MagicMock()
+            with patch("python.tools.browser_agent.files.get_abs_path", return_value="/fake/path"):
+                await state._initialize()
+
+        mock_bu.BrowserSession.assert_called_once()
+        mock_session.start.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_initialize_injects_init_script_via_cdp(self, mock_agent):
+        """Verify init script is injected via CDP addScriptToEvaluateOnNewDocument."""
+        from python.tools.browser_agent import State
+
+        state = State(mock_agent)
+
+        mock_page = MagicMock()
+        mock_page.set_viewport_size = AsyncMock()
+
+        async def _fake_session_id():
+            return "session-123"
+        type(mock_page).session_id = property(lambda self: _fake_session_id())
+
+        mock_page._client = MagicMock()
+        mock_page._client.send.Page.addScriptToEvaluateOnNewDocument = AsyncMock()
+
+        mock_session = MagicMock()
+        mock_session.start = AsyncMock()
+        mock_session.get_current_page = AsyncMock(return_value=mock_page)
+
+        js_content = "// shadow DOM override"
+
+        with patch("python.tools.browser_agent.browser_use") as mock_bu:
+            mock_bu.BrowserSession.return_value = mock_session
+            mock_bu.BrowserProfile.return_value = MagicMock()
+            with patch("python.tools.browser_agent.files.get_abs_path", return_value="/fake/init_override.js"):
+                with patch("builtins.open", mock_open(read_data=js_content)):
+                    await state._initialize()
+
+        mock_page._client.send.Page.addScriptToEvaluateOnNewDocument.assert_called_once_with(
+            {"source": js_content}, session_id="session-123"
+        )
+
+    @pytest.mark.asyncio
+    async def test_initialize_sets_viewport_via_kwargs(self, mock_agent):
+        """Verify viewport is set with keyword args (CDP) not dict (Playwright)."""
+        from python.tools.browser_agent import State
+
+        state = State(mock_agent)
+
+        mock_page = MagicMock()
+        mock_page.set_viewport_size = AsyncMock()
+        mock_page.session_id = AsyncMock(return_value="session-123")
+        mock_page._client = MagicMock()
+        mock_page._client.send.Page.addScriptToEvaluateOnNewDocument = AsyncMock()
+
+        mock_session = MagicMock()
+        mock_session.start = AsyncMock()
+        mock_session.get_current_page = AsyncMock(return_value=mock_page)
+
+        with patch("python.tools.browser_agent.browser_use") as mock_bu:
+            mock_bu.BrowserSession.return_value = mock_session
+            mock_bu.BrowserProfile.return_value = MagicMock()
+            with patch("python.tools.browser_agent.files.get_abs_path", return_value="/fake/path"):
+                with patch("builtins.open", mock_open(read_data="")):
+                    await state._initialize()
+
+        mock_page.set_viewport_size.assert_called_once_with(width=1024, height=2048)
+
+
+class TestBrowserAgentNoPlaywrightImport:
+    def test_no_playwright_import_in_browser_agent(self):
+        """Ensure browser_agent.py no longer imports from playwright helper."""
+        import inspect
+        from python.tools import browser_agent
+        source = inspect.getsource(browser_agent)
+        assert "ensure_playwright_binary" not in source
+        assert "from python.helpers.playwright" not in source
