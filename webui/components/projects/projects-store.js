@@ -4,7 +4,6 @@ import * as modals from "/js/modals.js";
 import * as notifications from "/components/notifications/notification-store.js";
 import { store as chatsStore } from "/components/sidebar/chats/chats-store.js";
 import { store as browserStore } from "/components/modals/file-browser/file-browser-store.js";
-import { store as skillsStore } from "/components/settings/skills/skills-store.js";
 import * as shortcuts from "/js/shortcuts.js";
 import { showConfirmDialog } from "/js/confirmDialog.js";
 
@@ -64,26 +63,6 @@ const model = {
       .replace(/^-+|-+$/g, "") // remove any leading and trailing underscores
       .replace(/^_+|_+$/g, "");
     return s;
-  },
-
-  getSelectedProjectSkillsPath() {
-    const projectName = this.selectedProject?.name;
-    if (!projectName) return "";
-    return `usr/projects/${projectName}/.a0proj/skills/`;
-  },
-
-  async openSelectedProjectSkillsImport() {
-    const projectName = this.selectedProject?.name;
-    if (!projectName) return;
-
-    skillsStore.projectFilter = projectName;
-    await modals.openModal("settings/skills/skills-settings.html");
-  },
-
-  async openSelectedProjectSkillsFolder() {
-    const path = this.getSelectedProjectSkillsPath();
-    if (!path) return;
-    await browserStore.open(path);
   },
 
   async openProjectsModal() {
@@ -349,7 +328,6 @@ const model = {
       // prepare data
       const data = {
         ...this.selectedProject,
-        memory: this.selectedProject._ownMemory ? "own" : "global",
       };
       // remove internal fields
       for (const kvp of Object.entries(data))
@@ -401,7 +379,6 @@ const model = {
       _meta: {
         creating: true,
       },
-      _ownMemory: true,
       _cloning: false,
       name: ``,
       title: `Project #${this.projectList.length + 1}`,
@@ -424,7 +401,6 @@ const model = {
         creating: false,
       },
       ...projectData,
-      _ownMemory: projectData.memory == "own",
     };
   },
 
@@ -443,56 +419,6 @@ const model = {
         newData.instruction_files_count;
     } catch (error) {
       //pass
-    }
-  },
-
-  async browseKnowledgeFiles() {
-    await this.browseSelected(".a0proj", "knowledge");
-    // refresh and reindex project
-    try {
-      // progress notification
-      shortcuts.frontendNotification({
-        type: shortcuts.NotificationType.PROGRESS,
-        message: "Loading knowledge...",
-        priority: shortcuts.NotificationPriority.NORMAL,
-        displayTime: 999,
-        group: "knowledge_load",
-        frontendOnly: true,
-      });
-
-      // call reindex knowledge
-      const reindexCall = api.callJsonApi("/knowledge_reindex", {
-        ctxid: shortcuts.getCurrentContextId(),
-      });
-
-      const newData = await this._createEditProjectData(
-        this.selectedProject.name
-      );
-      this.selectedProject.knowledge_files_count =
-        newData.knowledge_files_count;
-
-      // wait for reindex to finish
-      await reindexCall;
-
-      // finished notification
-      shortcuts.frontendNotification({
-        type: shortcuts.NotificationType.SUCCESS,
-        message: "Knowledge loaded successfully",
-        priority: shortcuts.NotificationPriority.NORMAL,
-        displayTime: 2,
-        group: "knowledge_load",
-        frontendOnly: true,
-      });
-    } catch (error) {
-      // error notification
-      shortcuts.frontendNotification({
-        type: shortcuts.NotificationType.ERROR,
-        message: "Error loading knowledge",
-        priority: shortcuts.NotificationPriority.NORMAL,
-        displayTime: 5,
-        group: "knowledge_load",
-        frontendOnly: true,
-      });
     }
   },
 
