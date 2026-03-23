@@ -513,6 +513,57 @@ class TestLiteLLMEmbeddingWrapper:
             assert result == [0.1, 0.2]
 
 
+class TestHttpxFDLeakMitigation:
+    """Verify that the httpx connection-pool patch prevents unbounded FD growth.
+
+    LiteLLM creates a new httpx.AsyncClient per acompletion() call and never
+    closes them. Each holds open TCP sockets as file descriptors. The patch in
+    models.py overrides default connection limits so each leaked client keeps
+    very few idle connections, preventing FD exhaustion.
+    (upstream: BerriAI/litellm#12872, #13220)
+    """
+
+    @staticmethod
+    def _get_pool(client):
+        return client._transport._pool
+
+    def test_async_client_gets_safe_limits(self):
+        import httpx
+        from models import _FD_SAFE_LIMITS
+
+        client = httpx.AsyncClient()
+        pool = self._get_pool(client)
+        assert pool._max_connections == _FD_SAFE_LIMITS.max_connections
+        assert pool._max_keepalive_connections == _FD_SAFE_LIMITS.max_keepalive_connections
+
+    def test_sync_client_gets_safe_limits(self):
+        import httpx
+        from models import _FD_SAFE_LIMITS
+
+        client = httpx.Client()
+        pool = client._transport._pool
+        assert pool._max_connections == _FD_SAFE_LIMITS.max_connections
+        assert pool._max_keepalive_connections == _FD_SAFE_LIMITS.max_keepalive_connections
+
+    def test_explicit_limits_are_not_overridden(self):
+        import httpx
+
+        custom = httpx.Limits(max_connections=999, max_keepalive_connections=99)
+        client = httpx.AsyncClient(limits=custom)
+        pool = self._get_pool(client)
+        assert pool._max_connections == 999
+        assert pool._max_keepalive_connections == 99
+
+    def test_many_clients_have_bounded_keepalive(self):
+        import httpx
+        from models import _FD_SAFE_LIMITS
+
+        clients = [httpx.AsyncClient() for _ in range(50)]
+        for c in clients:
+            pool = self._get_pool(c)
+            assert pool._max_keepalive_connections == _FD_SAFE_LIMITS.max_keepalive_connections
+
+
 class TestLiteLLMChatWrapper:
     def test_llm_type_property(self):
         from models import LiteLLMChatWrapper, ModelConfig, ModelType, get_chat_model
