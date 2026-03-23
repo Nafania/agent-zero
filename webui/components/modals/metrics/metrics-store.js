@@ -24,7 +24,6 @@ const metricsStore = {
   // Aggregations
   byModel: [],
   byUsageType: [],
-  byAgent: [],
   byProject: [],
   timeline: [],
   recentErrors: [],
@@ -66,7 +65,6 @@ const metricsStore = {
       this.avgResponseTps = r.avg_response_tps;
       this.byModel = r.by_model;
       this.byUsageType = r.by_usage_type;
-      this.byAgent = r.by_agent;
       this.byProject = r.by_project;
       this.timeline = r.timeline;
       this.recentErrors = r.recent_errors;
@@ -142,7 +140,9 @@ const metricsStore = {
   fmtTime(ts) {
     if (!ts) return "";
     try {
-      const d = new Date(ts.endsWith("Z") ? ts : ts + "Z");
+      const hasOffset = /[+-]\d{2}:\d{2}$/.test(ts) || ts.endsWith("Z");
+      const d = new Date(hasOffset ? ts : ts + "Z");
+      if (isNaN(d.getTime())) return ts;
       return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
     } catch { return ts; }
   },
