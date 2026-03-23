@@ -19,7 +19,6 @@
                         {id:'overview', icon:'dashboard', label:'Overview'},
                         {id:'performance', icon:'speed', label:'Performance'},
                         {id:'usage_type', icon:'category', label:'Usage Type'},
-                        {id:'agents', icon:'smart_toy', label:'By Agent'},
                         {id:'projects', icon:'snippet_folder', label:'By Project'},
                         {id:'feed', icon:'list_alt', label:'Live Feed'},
                     ]" :key="t.id">
@@ -228,44 +227,6 @@
                     </div>
                 </div>
 
-                <!-- ═══════ BY AGENT ═══════ -->
-                <div x-show="$store.metricsDashboard.activeTab === 'agents' && $store.metricsDashboard.totalCalls > 0" class="m-content">
-                    <div class="agg-table-wrap">
-                        <table class="agg-table">
-                            <thead><tr><th>Agent</th><th>Calls</th><th>OK</th><th>Err</th><th>Tokens In</th><th>Tokens Out</th><th>Avg Latency</th><th>Avg TTFT</th></tr></thead>
-                            <tbody>
-                                <template x-for="r in $store.metricsDashboard.byAgent" :key="r.name">
-                                    <tr>
-                                        <td class="cell-name" x-text="r.name"></td>
-                                        <td x-text="r.calls"></td>
-                                        <td class="cell-ok" x-text="r.success"></td>
-                                        <td class="cell-err" x-text="r.failed"></td>
-                                        <td x-text="$store.metricsDashboard.fmtNum(r.tokens_in)"></td>
-                                        <td x-text="$store.metricsDashboard.fmtNum(r.tokens_out)"></td>
-                                        <td x-text="$store.metricsDashboard.fmtLatency(r.avg_latency_ms)"></td>
-                                        <td x-text="r.avg_ttft_ms ? $store.metricsDashboard.fmtLatency(r.avg_ttft_ms) : '—'"></td>
-                                    </tr>
-                                </template>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div class="m-section" x-show="$store.metricsDashboard.byAgent.length > 0">
-                        <h3>Tokens by Agent</h3>
-                        <div class="bar-rows">
-                            <template x-for="r in $store.metricsDashboard.byAgent" :key="r.name">
-                                <div class="bar-row">
-                                    <span class="bar-name" x-text="r.name"></span>
-                                    <div class="bar-track">
-                                        <div class="bar-fill bar-fill-agent" :style="'width:' + ((r.tokens_in + r.tokens_out) / $store.metricsDashboard.maxOf($store.metricsDashboard.byAgent.map(x=>({v:x.tokens_in+x.tokens_out})), 'v') * 100) + '%'"></div>
-                                    </div>
-                                    <span class="bar-val" x-text="$store.metricsDashboard.fmtNum(r.tokens_in + r.tokens_out)"></span>
-                                </div>
-                            </template>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- ═══════ BY PROJECT ═══════ -->
                 <div x-show="$store.metricsDashboard.activeTab === 'projects' && $store.metricsDashboard.totalCalls > 0" class="m-content">
                     <template x-for="proj in $store.metricsDashboard.byProject" :key="proj.name">
@@ -375,7 +336,6 @@
     .bar-track { flex:1; height:8px; background:var(--color-border,#333); border-radius:4px; overflow:hidden; }
     .bar-fill { height:100%; background:var(--color-accent,#60a5fa); border-radius:4px; transition:width .3s; }
     .bar-fill-ttft { background:#a78bfa; }
-    .bar-fill-agent { background:#34d399; }
     .bar-val { width:55px; font-size:11px; color:var(--color-text-secondary,#888); flex-shrink:0; }
 
     /* Tables */
