@@ -25,7 +25,7 @@ def _set_session(client, **values) -> None:
 
 
 def _set_csrf_cookie(client, token: str) -> None:
-    cookie_name = f"csrf_token_{runtime.get_runtime_id()}"
+    cookie_name = f"csrf_token_{runtime.get_persistent_id()[:16]}"
     client.set_cookie(cookie_name, token)
 
 

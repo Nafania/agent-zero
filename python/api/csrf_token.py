@@ -42,7 +42,7 @@ class GetCsrfToken(ApiHandler):
         return {
             "ok": True,
             "token": session["csrf_token"],
-            "runtime_id": runtime.get_runtime_id(),
+            "runtime_id": runtime.get_persistent_id()[:16],
         }
 
     async def check_allowed_origin(self, request: Request):
