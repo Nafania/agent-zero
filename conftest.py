@@ -28,6 +28,7 @@ _OPTIONAL_MODULES = [
     "cognee.infrastructure.databases.relational",
     "langchain", "langchain.embeddings", "langchain.embeddings.base",
     "langchain.prompts", "langchain.schema", "langchain.text_splitter",
+    "langchain_text_splitters",
     "langchain_community", "langchain_community.document_loaders",
     "langchain_community.document_loaders.parsers",
     "langchain_community.document_loaders.parsers.images",

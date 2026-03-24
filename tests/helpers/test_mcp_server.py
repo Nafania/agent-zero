@@ -385,10 +385,10 @@ class TestMcpServerTools:
         mcp = _import_mcp_server()
         tool = getattr(mcp, "send_message", None)
         assert tool is not None
-        assert hasattr(tool, "fn") and callable(tool.fn)
+        assert callable(tool)
 
     def test_finish_chat_registered(self):
         mcp = _import_mcp_server()
         tool = getattr(mcp, "finish_chat", None)
         assert tool is not None
-        assert hasattr(tool, "fn") and callable(tool.fn)
+        assert callable(tool)
