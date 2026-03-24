@@ -82,6 +82,14 @@ def get_persistent_id() -> str:
     return id
 
 
+def get_persistent_secret_key() -> str:
+    key = dotenv.get_dotenv_value("FLASK_SECRET_KEY")
+    if not key:
+        key = secrets.token_hex(32)
+        dotenv.save_dotenv_value("FLASK_SECRET_KEY", key)
+    return key
+
+
 @overload
 async def call_development_function(
     func: Callable[..., Awaitable[T]], *args, **kwargs
