@@ -51,7 +51,7 @@ _OPTIONAL_MODULES = [
     "soundfile",
     "crontab",
     "simpleeval",
-    "duckduckgo_search",
+    "ddgs",
     "html2text",
     "bs4",
     "httpx",

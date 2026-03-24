@@ -3,7 +3,7 @@ ansio==0.0.2
 browser-use==0.12.2
 bubus>=1.5.6,<2.0.0
 docker==7.1.0
-duckduckgo-search==6.1.12
+ddgs==9.0.0
 fastmcp==2.13.1
 fasta2a==0.6.0
 flask[async]==3.1.3
