@@ -14,10 +14,11 @@ inputimeout==1.0.4
 ipython>=9.11.0
 kokoro>=0.9.4
 simpleeval==1.0.7
-langchain-core==0.3.81
-langchain-community==0.3.19
+langchain-core==1.2.21
+langchain-community==0.4.1
+langchain-text-splitters==1.1.1
 faiss-cpu>=1.13.2
-langchain-unstructured[all-docs]==0.1.6
+langchain-unstructured[all-docs]==1.0.1
 openai-whisper==20250625
 lxml_html_clean==0.4.4
 markdown==3.10.2
