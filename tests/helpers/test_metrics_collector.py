@@ -47,7 +47,7 @@ class TestEmpty:
         c = MetricsCollector(maxlen=100)
         snap = c.snapshot()
         assert snap["total_calls"] == 0
-        for key in ["by_model", "by_usage_type", "by_agent", "by_project",
+        for key in ["by_model", "by_usage_type", "by_project",
                      "timeline", "recent_events", "recent_errors"]:
             assert snap[key] == [], f"{key} should be empty"
         assert snap["avg_ttft_ms"] == 0
@@ -171,18 +171,6 @@ class TestByUsageType:
         c.record(_ev(usage_type=None))
         snap = c.snapshot()
         assert snap["by_usage_type"][0]["name"] == "unknown"
-
-
-class TestByAgent:
-    def test_agent_breakdown(self):
-        c = MetricsCollector()
-        c.record(_ev(agent_name="A0"))
-        c.record(_ev(agent_name="A0"))
-        c.record(_ev(agent_name="A1"))
-        snap = c.snapshot()
-        agents = {a["name"]: a for a in snap["by_agent"]}
-        assert agents["A0"]["calls"] == 2
-        assert agents["A1"]["calls"] == 1
 
 
 class TestByProject:

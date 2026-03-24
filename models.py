@@ -67,6 +67,36 @@ litellm.modify_params = True # helps fix anthropic tool calls by browser-use
 litellm.disable_aiohttp_transport = True  # use httpx instead — aiohttp has event-loop bugs that silently kill streams
 
 
+# --- Mitigate litellm httpx file descriptor leak ---
+# LiteLLM creates new httpx.AsyncClient instances per API call and relies on
+# GC to close them. In long-running async processes GC can't keep up, and the
+# accumulated orphaned TCP sockets exhaust the OS file-descriptor limit.
+# Fix: patch httpx client constructors to always use tight connection-pool
+# limits so each leaked client holds very few idle sockets.
+# (upstream: BerriAI/litellm#12872, #13220)
+import gc as _gc
+import httpx as _httpx
+
+_FD_SAFE_LIMITS = _httpx.Limits(
+    max_connections=50,
+    max_keepalive_connections=10,
+    keepalive_expiry=30,
+)
+
+_orig_async_client_init = _httpx.AsyncClient.__init__
+def _patched_async_client_init(self, **kwargs):
+    kwargs.setdefault("limits", _FD_SAFE_LIMITS)
+    _orig_async_client_init(self, **kwargs)
+_httpx.AsyncClient.__init__ = _patched_async_client_init  # type: ignore[method-assign]
+
+_orig_sync_client_init = _httpx.Client.__init__
+def _patched_sync_client_init(self, **kwargs):
+    kwargs.setdefault("limits", _FD_SAFE_LIMITS)
+    _orig_sync_client_init(self, **kwargs)
+_httpx.Client.__init__ = _patched_sync_client_init  # type: ignore[method-assign]
+# --- end httpx FD leak mitigation ---
+
+
 class _AiohttpLoopFilter(logging.Filter):
     def filter(self, record):
         msg = record.getMessage()
@@ -775,6 +805,7 @@ class LiteLLMChatWrapper(SimpleChatModel):
                         "chat_name": _mctx.get("chat_name"),
                     })
 
+                _gc.collect(0)
                 return result.response, result.reasoning
 
             except Exception as e:
