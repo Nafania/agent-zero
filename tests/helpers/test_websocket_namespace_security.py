@@ -157,7 +157,7 @@ async def test_connect_security_is_computed_per_namespace_and_enforced(monkeypat
             },
         )
         session_cookie_name = webapp.config.get("SESSION_COOKIE_NAME", "session")
-        csrf_cookie_name = f"csrf_token_{runtime.get_runtime_id()}"
+        csrf_cookie_name = f"csrf_token_{runtime.get_persistent_id()[:16]}"
         cookie_header = f"{session_cookie_name}={session_cookie}; {csrf_cookie_name}={csrf_token}"
 
         secure_client_ok = socketio.AsyncClient()
@@ -294,7 +294,7 @@ async def test_secure_namespace_rejects_missing_auth_even_with_valid_csrf(monkey
             },
         )
         session_cookie_name = webapp.config.get("SESSION_COOKIE_NAME", "session")
-        csrf_cookie_name = f"csrf_token_{runtime.get_runtime_id()}"
+        csrf_cookie_name = f"csrf_token_{runtime.get_persistent_id()[:16]}"
         cookie_header = f"{session_cookie_name}={session_cookie}; {csrf_cookie_name}={csrf_token}"
 
         client = socketio.AsyncClient()
@@ -361,7 +361,7 @@ async def test_secure_namespace_rejects_invalid_csrf_cookie(monkeypatch) -> None
             },
         )
         session_cookie_name = webapp.config.get("SESSION_COOKIE_NAME", "session")
-        csrf_cookie_name = f"csrf_token_{runtime.get_runtime_id()}"
+        csrf_cookie_name = f"csrf_token_{runtime.get_persistent_id()[:16]}"
         cookie_header = f"{session_cookie_name}={session_cookie}; {csrf_cookie_name}=csrf-bad"
 
         client = socketio.AsyncClient()
@@ -445,7 +445,7 @@ async def test_csrf_required_without_auth_is_enforced(monkeypatch) -> None:
             },
         )
         session_cookie_name = webapp.config.get("SESSION_COOKIE_NAME", "session")
-        csrf_cookie_name = f"csrf_token_{runtime.get_runtime_id()}"
+        csrf_cookie_name = f"csrf_token_{runtime.get_persistent_id()[:16]}"
         cookie_header = f"{session_cookie_name}={session_cookie}; {csrf_cookie_name}={csrf_token}"
 
         client_ok = socketio.AsyncClient()
