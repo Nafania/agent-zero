@@ -44,9 +44,11 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 if hasattr(time, 'tzset'):
     time.tzset()
 
+dotenv.load_dotenv()
+
 # initialize the internal Flask server
 webapp = Flask("app", static_folder=get_abs_path("./webui"), static_url_path="/")
-webapp.secret_key = os.getenv("FLASK_SECRET_KEY") or secrets.token_hex(32)
+webapp.secret_key = runtime.get_persistent_secret_key()
 
 UPLOAD_LIMIT_BYTES = 5 * 1024 * 1024 * 1024
 
@@ -56,7 +58,7 @@ WerkzeugRequest.max_form_memory_size = UPLOAD_LIMIT_BYTES
 
 webapp.config.update(
     JSON_SORT_KEYS=False,
-    SESSION_COOKIE_NAME="session_" + runtime.get_runtime_id(),  # bind the session cookie name to runtime id to prevent session collision on same host
+    SESSION_COOKIE_NAME="session_" + runtime.get_persistent_id()[:16],  # persistent across restarts; still unique per instance
     SESSION_COOKIE_SAMESITE="Strict",
     SESSION_PERMANENT=True,
     PERMANENT_SESSION_LIFETIME=timedelta(days=1),
@@ -83,9 +85,6 @@ settings_helper.set_runtime_settings_snapshot(_settings)
 websocket_manager.set_server_restart_broadcast(
     _settings.get("websocket_server_restart_enabled", True)
 )
-
-# Set up basic authentication for UI and API but not MCP
-# basic_auth = BasicAuth(webapp)
 
 
 def is_loopback_address(address):
@@ -180,7 +179,7 @@ def csrf_protect(f):
     async def decorated(*args, **kwargs):
         token = session.get("csrf_token")
         header = request.headers.get("X-CSRF-Token")
-        cookie = request.cookies.get("csrf_token_" + runtime.get_runtime_id())
+        cookie = request.cookies.get("csrf_token_" + runtime.get_persistent_id()[:16])
         sent = header or cookie
         if not token or not sent or token != sent:
             return Response("CSRF token missing or invalid", 403)
@@ -230,7 +229,7 @@ async def serve_index():
         _content=index,
         version_no=gitinfo["version"],
         version_time=gitinfo["commit_time"],
-        runtime_id=runtime.get_runtime_id(),
+        runtime_id=runtime.get_persistent_id()[:16],
         runtime_is_development=("true" if runtime.is_development() else "false"),
         logged_in=("true" if login.get_credentials_hash() else "false"),
     )
@@ -366,7 +365,7 @@ def configure_websocket_namespaces(
                         )
                         return False
 
-                    cookie_name = f"csrf_token_{runtime.get_runtime_id()}"
+                    cookie_name = f"csrf_token_{runtime.get_persistent_id()[:16]}"
                     cookie_token = request.cookies.get(cookie_name)
                     if cookie_token != expected_token:
                         PrintStyle.warning(
@@ -557,5 +556,4 @@ def init_a0():
 # run the internal server
 if __name__ == "__main__":
     runtime.initialize()
-    dotenv.load_dotenv()
     run()

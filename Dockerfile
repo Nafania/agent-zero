@@ -28,9 +28,13 @@ RUN bash /ins/pre_install.sh
 
 # --- Python deps (cached unless requirements*.txt change) ---
 COPY requirements.txt requirements2.txt /tmp/deps/
+# HACK: litellm was pulled from PyPI due to supply-chain attack (2026-03-24).
+# vendor/ contains a safe pre-attack wheel (1.82.6). Remove --find-links and
+# vendor/ once litellm is restored on PyPI.
+COPY vendor/ /tmp/deps/vendor/
 RUN bash -c '. /ins/setup_venv.sh && \
-    uv pip install -r /tmp/deps/requirements.txt && \
-    uv pip install -r /tmp/deps/requirements2.txt && \
+    uv pip install -r /tmp/deps/requirements.txt --find-links /tmp/deps/vendor/ && \
+    uv pip install -r /tmp/deps/requirements2.txt --find-links /tmp/deps/vendor/ && \
     rm -rf /tmp/deps'
 
 # --- Chromium for browser-use CDP automation ---
