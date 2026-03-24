@@ -84,9 +84,6 @@ websocket_manager.set_server_restart_broadcast(
     _settings.get("websocket_server_restart_enabled", True)
 )
 
-# Set up basic authentication for UI and API but not MCP
-# basic_auth = BasicAuth(webapp)
-
 
 def is_loopback_address(address):
     loopback_checker = {

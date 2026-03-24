@@ -12,7 +12,7 @@
 #     result = api.run(query)
 #     return result
 
-from duckduckgo_search import DDGS
+from ddgs import DDGS
 
 def search(query: str, results = 5, region = "wt-wt", time="y") -> list[str]:
 
