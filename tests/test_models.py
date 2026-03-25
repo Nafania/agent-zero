@@ -513,55 +513,35 @@ class TestLiteLLMEmbeddingWrapper:
             assert result == [0.1, 0.2]
 
 
-class TestHttpxFDLeakMitigation:
-    """Verify that the httpx connection-pool patch prevents unbounded FD growth.
-
-    LiteLLM creates a new httpx.AsyncClient per acompletion() call and never
-    closes them. Each holds open TCP sockets as file descriptors. The patch in
-    models.py overrides default connection limits so each leaked client keeps
-    very few idle connections, preventing FD exhaustion.
-    (upstream: BerriAI/litellm#12872, #13220)
-    """
-
-    @staticmethod
-    def _get_pool(client):
-        return client._transport._pool
-
-    def test_async_client_gets_safe_limits(self):
+class TestLiteLLMClientLifecycle:
+    def test_shared_litellm_sessions_initialized(self):
+        import litellm
         import httpx
-        from models import _FD_SAFE_LIMITS
+        import models  # noqa: F401 - ensure module-level initialization ran
 
-        client = httpx.AsyncClient()
-        pool = self._get_pool(client)
-        assert pool._max_connections == _FD_SAFE_LIMITS.max_connections
-        assert pool._max_keepalive_connections == _FD_SAFE_LIMITS.max_keepalive_connections
+        assert isinstance(litellm.client_session, httpx.Client)
+        assert isinstance(litellm.aclient_session, httpx.AsyncClient)
+        assert litellm.module_level_client.client is litellm.client_session
+        assert litellm.module_level_aclient.client is litellm.aclient_session
 
-    def test_sync_client_gets_safe_limits(self):
-        import httpx
-        from models import _FD_SAFE_LIMITS
-
-        client = httpx.Client()
-        pool = client._transport._pool
-        assert pool._max_connections == _FD_SAFE_LIMITS.max_connections
-        assert pool._max_keepalive_connections == _FD_SAFE_LIMITS.max_keepalive_connections
-
-    def test_explicit_limits_are_not_overridden(self):
+    def test_cache_eviction_closes_sync_client(self):
+        import litellm
         import httpx
 
-        custom = httpx.Limits(max_connections=999, max_keepalive_connections=99)
-        client = httpx.AsyncClient(limits=custom)
-        pool = self._get_pool(client)
-        assert pool._max_connections == 999
-        assert pool._max_keepalive_connections == 99
+        class _Handler:
+            def __init__(self):
+                self.client = httpx.Client()
 
-    def test_many_clients_have_bounded_keepalive(self):
-        import httpx
-        from models import _FD_SAFE_LIMITS
+        key = "a0-test-close-key"
+        handler = _Handler()
+        cache = litellm.in_memory_llm_clients_cache
+        cache.cache_dict[key] = handler
+        cache.ttl_dict[key] = 0
 
-        clients = [httpx.AsyncClient() for _ in range(50)]
-        for c in clients:
-            pool = self._get_pool(c)
-            assert pool._max_keepalive_connections == _FD_SAFE_LIMITS.max_keepalive_connections
+        cache._remove_key(key)
+
+        assert handler.client.is_closed
+        assert key not in cache.cache_dict
 
 
 class TestLiteLLMChatWrapper:

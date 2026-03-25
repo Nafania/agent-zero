@@ -1,4 +1,5 @@
 from python.helpers import dotenv, runtime, settings
+from python.helpers import fd_probe
 import asyncio
 import string
 import random
@@ -18,6 +19,9 @@ except Exception as e:
     PrintStyle.warning(f"Could not raise file descriptor limit: {e}")
 
 PrintStyle.standard("Preparing environment...")
+if fd_probe.enabled():
+    PrintStyle.standard("FD probe enabled (A0_FD_PROBE=1)")
+    fd_probe.snapshot("startup", "prepare")
 
 try:
 

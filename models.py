@@ -30,6 +30,8 @@ from python.helpers.providers import ModelType as ProviderModelType, get_provide
 from python.helpers.rate_limiter import RateLimiter
 from python.helpers.tokens import approximate_tokens
 from python.helpers import dirty_json, browser_use_monkeypatch
+from python.helpers import fd_probe
+from python.helpers.litellm_lifecycle import initialize as initialize_litellm_lifecycle
 
 from langchain_core.language_models.chat_models import SimpleChatModel
 from langchain_core.outputs.chat_generation import ChatGenerationChunk
@@ -65,36 +67,7 @@ browser_use_monkeypatch.apply()
 
 litellm.modify_params = True # helps fix anthropic tool calls by browser-use
 litellm.disable_aiohttp_transport = True  # use httpx instead — aiohttp has event-loop bugs that silently kill streams
-
-
-# --- Mitigate litellm httpx file descriptor leak ---
-# LiteLLM creates new httpx.AsyncClient instances per API call and relies on
-# GC to close them. In long-running async processes GC can't keep up, and the
-# accumulated orphaned TCP sockets exhaust the OS file-descriptor limit.
-# Fix: patch httpx client constructors to always use tight connection-pool
-# limits so each leaked client holds very few idle sockets.
-# (upstream: BerriAI/litellm#12872, #13220)
-import gc as _gc
-import httpx as _httpx
-
-_FD_SAFE_LIMITS = _httpx.Limits(
-    max_connections=50,
-    max_keepalive_connections=10,
-    keepalive_expiry=30,
-)
-
-_orig_async_client_init = _httpx.AsyncClient.__init__
-def _patched_async_client_init(self, **kwargs):
-    kwargs.setdefault("limits", _FD_SAFE_LIMITS)
-    _orig_async_client_init(self, **kwargs)
-_httpx.AsyncClient.__init__ = _patched_async_client_init  # type: ignore[method-assign]
-
-_orig_sync_client_init = _httpx.Client.__init__
-def _patched_sync_client_init(self, **kwargs):
-    kwargs.setdefault("limits", _FD_SAFE_LIMITS)
-    _orig_sync_client_init(self, **kwargs)
-_httpx.Client.__init__ = _patched_sync_client_init  # type: ignore[method-assign]
-# --- end httpx FD leak mitigation ---
+initialize_litellm_lifecycle()
 
 
 class _AiohttpLoopFilter(logging.Filter):
@@ -629,6 +602,7 @@ class LiteLLMChatWrapper(SimpleChatModel):
     ) -> Tuple[str, str]:
 
         turn_off_logging()
+        fd_probe.snapshot("before", "llm_call", model=self.model_name)
 
         if not messages:
             messages = []
@@ -805,7 +779,7 @@ class LiteLLMChatWrapper(SimpleChatModel):
                         "chat_name": _mctx.get("chat_name"),
                     })
 
-                _gc.collect(0)
+                fd_probe.snapshot("after", "llm_call", model=self.model_name, ok=True)
                 return result.response, result.reasoning
 
             except Exception as e:
@@ -813,6 +787,13 @@ class LiteLLMChatWrapper(SimpleChatModel):
 
                 is_stream_stall = isinstance(e, (TimeoutError, asyncio.TimeoutError))
                 if (got_any_chunk and not is_stream_stall) or not _is_transient_litellm_error(e) or attempt >= max_retries:
+                    fd_probe.snapshot(
+                        "after",
+                        "llm_call",
+                        model=self.model_name,
+                        ok=False,
+                        error=f"{type(e).__name__}: {e}",
+                    )
                     if _llm_usage_callbacks:
                         _emit_usage_event({
                             "event_type": "llm_call",

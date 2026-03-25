@@ -1,4 +1,5 @@
 import asyncio, os, sys, platform, errno
+from python.helpers import fd_probe
 
 _IS_WIN = platform.system() == "Windows"
 if _IS_WIN:
@@ -37,6 +38,7 @@ class TTYSession:
 
     # ── user-facing coroutines ────────────────────────────────────────
     async def start(self):
+        fd_probe.snapshot("before", "tty_start", cmd=self.cmd)
         self._buf = asyncio.Queue()
         if _IS_WIN:
             self._proc = await _spawn_winpty(
@@ -47,8 +49,10 @@ class TTYSession:
                 self.cmd, self.cwd, self.env, self.echo
             )  # ← pass echo
         self._pump_task = asyncio.create_task(self._pump_stdout())
+        fd_probe.snapshot("after", "tty_start", cmd=self.cmd, ok=True)
 
     async def close(self):
+        fd_probe.snapshot("before", "tty_close", cmd=self.cmd)
         # Cancel the pump task if it exists
         if hasattr(self, "_pump_task") and self._pump_task:
             self._pump_task.cancel()
@@ -56,12 +60,27 @@ class TTYSession:
                 await self._pump_task
             except asyncio.CancelledError:
                 pass
+        # Close the PTY master FD and remove its event-loop reader.
+        # _spawn_posix_pty stores master on the proc object; without this
+        # every TTYSession leaks a file descriptor.
+        if self._proc and hasattr(self._proc, "_pty_master_fd"):
+            fd = self._proc._pty_master_fd
+            try:
+                asyncio.get_running_loop().remove_reader(fd)
+            except Exception:
+                pass
+            try:
+                os.close(fd)
+            except OSError:
+                pass
+            self._proc._pty_master_fd = None
         # Terminate the process if it exists
         if self._proc:
             self._proc.terminate()
             await self._proc.wait()
         self._proc = None
         self._pump_task = None
+        fd_probe.snapshot("after", "tty_close", cmd=self.cmd, ok=True)
 
     async def send(self, data: str | bytes):
         if self._proc is None:
@@ -198,6 +217,7 @@ async def _spawn_posix_pty(cmd, cwd, env, echo):
 
     proc.stdin = _Stdin()  # type: ignore
     proc.stdout = reader
+    proc._pty_master_fd = master  # kept so TTYSession.close() can release it
     return proc
 
 

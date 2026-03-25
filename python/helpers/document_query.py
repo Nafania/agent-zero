@@ -22,7 +22,7 @@ from langchain_core.documents import Document
 from langchain_core.messages import SystemMessage, HumanMessage
 
 from python.helpers.print_style import PrintStyle
-from python.helpers import files, errors
+from python.helpers import files, errors, fd_probe
 from agent import Agent
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -110,6 +110,7 @@ class DocumentQueryStore:
         Returns:
             True if successful, False otherwise
         """
+        fd_probe.snapshot("before", "document_add", uri=document_uri)
         # Normalize the URI
         document_uri = self.normalize_uri(document_uri)
 
@@ -148,10 +149,12 @@ class DocumentQueryStore:
             PrintStyle.standard(
                 f"Added document '{document_uri}' with {len(docs)} chunks"
             )
+            fd_probe.snapshot("after", "document_add", uri=document_uri, ok=True, chunks=len(docs))
             return True, ids
         except Exception as e:
             err_text = errors.format_error(e)
             PrintStyle.error(f"Error adding document '{document_uri}': {err_text}")
+            fd_probe.snapshot("after", "document_add", uri=document_uri, ok=False, error=err_text)
             return False, []
 
     async def get_document(self, document_uri: str) -> Optional[Document]:
@@ -443,6 +446,7 @@ class DocumentQueryHelper:
     async def document_get_content(
         self, document_uri: str, add_to_db: bool = False
     ) -> str:
+        fd_probe.snapshot("before", "document_get_content", uri=document_uri, add_to_db=add_to_db)
         self.progress_callback(f"Fetching document content")
         await self.agent.handle_intervention()
         url = urlparse(document_uri)
@@ -547,6 +551,14 @@ class DocumentQueryHelper:
                 raise ValueError(
                     f"DocumentQueryHelper::document_get_content: Document not found: {document_uri_norm}"
                 )
+        fd_probe.snapshot(
+            "after",
+            "document_get_content",
+            uri=document_uri,
+            add_to_db=add_to_db,
+            ok=True,
+            content_len=len(document_content),
+        )
         return document_content
 
     def handle_image_document(self, document: str, scheme: str) -> str:

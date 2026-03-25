@@ -1,6 +1,7 @@
 """Tests for python/helpers/tty_session.py."""
 
 import asyncio
+import os
 import sys
 import platform
 from pathlib import Path
@@ -97,6 +98,35 @@ class TestTTYSessionClose:
 
             mock_proc.terminate.assert_called_once()
             mock_proc.wait.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_close_releases_master_fd(self):
+        """close() closes stored PTY master fd when present."""
+        with patch("python.helpers.tty_session.sys"):
+            from python.helpers.tty_session import TTYSession
+
+            class _Proc:
+                def __init__(self, fd: int):
+                    self._pty_master_fd = fd
+                    self.returncode = None
+
+                def terminate(self):
+                    self.returncode = 0
+
+                async def wait(self):
+                    return 0
+
+            read_fd, write_fd = os.pipe()
+            os.close(write_fd)
+            session = TTYSession("/bin/bash")
+            session._proc = _Proc(read_fd)
+            session._pump_task = None
+
+            await session.close()
+
+            assert session._proc is None
+            with pytest.raises(OSError):
+                os.fstat(read_fd)
 
 
 class TestTTYSessionSend:
