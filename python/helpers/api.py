@@ -81,6 +81,16 @@ class ApiHandler:
             PrintStyle.error(f"API error: {error}")
             return Response(response=error, status=500, mimetype="text/plain")
 
+    def handle_request_sync(self, request: Request) -> Response:
+        """
+        Run async API handlers through an explicit event loop per request.
+        This avoids relying on Flask's implicit async bridge under WSGI,
+        which can retain event-loop descriptors under heavy traffic.
+        """
+        import asyncio
+
+        return asyncio.run(self.handle_request(request))
+
     # get context to run agent zero in
     def use_context(self, ctxid: str, create_if_not_exists: bool = True):
         with self.thread_lock:
