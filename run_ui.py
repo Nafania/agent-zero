@@ -5,6 +5,7 @@ import time
 import socket
 import struct
 from functools import wraps
+import inspect
 import threading
 import asyncio
 
@@ -122,9 +123,27 @@ def is_loopback_address(address):
 
 
 def requires_api_key(f):
+    if inspect.iscoroutinefunction(f):
+        @wraps(f)
+        async def decorated_async(*args, **kwargs):
+            from python.helpers.settings import get_settings
+            valid_api_key = get_settings()["mcp_server_token"]
+
+            if api_key := request.headers.get("X-API-KEY"):
+                if api_key != valid_api_key:
+                    return Response("Invalid API key", 401)
+            elif request.json and request.json.get("api_key"):
+                api_key = request.json.get("api_key")
+                if api_key != valid_api_key:
+                    return Response("Invalid API key", 401)
+            else:
+                return Response("API key required", 401)
+            return await f(*args, **kwargs)
+
+        return decorated_async
+
     @wraps(f)
-    async def decorated(*args, **kwargs):
-        # Use the auth token from settings (same as MCP server)
+    def decorated_sync(*args, **kwargs):
         from python.helpers.settings import get_settings
         valid_api_key = get_settings()["mcp_server_token"]
 
@@ -137,55 +156,90 @@ def requires_api_key(f):
                 return Response("Invalid API key", 401)
         else:
             return Response("API key required", 401)
-        return await f(*args, **kwargs)
+        return f(*args, **kwargs)
 
-    return decorated
+    return decorated_sync
 
 
 # allow only loopback addresses
 def requires_loopback(f):
+    if inspect.iscoroutinefunction(f):
+        @wraps(f)
+        async def decorated_async(*args, **kwargs):
+            if not is_loopback_address(request.remote_addr):
+                return Response(
+                    "Access denied.",
+                    403,
+                    {},
+                )
+            return await f(*args, **kwargs)
+
+        return decorated_async
+
     @wraps(f)
-    async def decorated(*args, **kwargs):
+    def decorated_sync(*args, **kwargs):
         if not is_loopback_address(request.remote_addr):
             return Response(
                 "Access denied.",
                 403,
                 {},
             )
-        return await f(*args, **kwargs)
+        return f(*args, **kwargs)
 
-    return decorated
+    return decorated_sync
 
 
 # require authentication for handlers
 def requires_auth(f):
-    @wraps(f)
-    async def decorated(*args, **kwargs):
-        user_pass_hash = login.get_credentials_hash()
-        # If no auth is configured, just proceed
-        if not user_pass_hash:
+    if inspect.iscoroutinefunction(f):
+        @wraps(f)
+        async def decorated_async(*args, **kwargs):
+            user_pass_hash = login.get_credentials_hash()
+            if not user_pass_hash:
+                return await f(*args, **kwargs)
+            if session.get('authentication') != user_pass_hash:
+                return redirect(url_for('login_handler'))
             return await f(*args, **kwargs)
 
+        return decorated_async
+
+    @wraps(f)
+    def decorated_sync(*args, **kwargs):
+        user_pass_hash = login.get_credentials_hash()
+        if not user_pass_hash:
+            return f(*args, **kwargs)
         if session.get('authentication') != user_pass_hash:
             return redirect(url_for('login_handler'))
+        return f(*args, **kwargs)
 
-        return await f(*args, **kwargs)
-
-    return decorated
+    return decorated_sync
 
 
 def csrf_protect(f):
+    if inspect.iscoroutinefunction(f):
+        @wraps(f)
+        async def decorated_async(*args, **kwargs):
+            token = session.get("csrf_token")
+            header = request.headers.get("X-CSRF-Token")
+            cookie = request.cookies.get("csrf_token_" + runtime.get_persistent_id()[:16])
+            sent = header or cookie
+            if not token or not sent or token != sent:
+                return Response("CSRF token missing or invalid", 403)
+            return await f(*args, **kwargs)
+
+        return decorated_async
+
     @wraps(f)
-    async def decorated(*args, **kwargs):
+    def decorated_sync(*args, **kwargs):
         token = session.get("csrf_token")
         header = request.headers.get("X-CSRF-Token")
         cookie = request.cookies.get("csrf_token_" + runtime.get_persistent_id()[:16])
         sent = header or cookie
         if not token or not sent or token != sent:
             return Response("CSRF token missing or invalid", 403)
-        return await f(*args, **kwargs)
+        return f(*args, **kwargs)
 
-    return decorated
+    return decorated_sync
 
 
 @webapp.route("/login", methods=["GET", "POST"])
@@ -436,8 +490,8 @@ def run():
         name = handler.__module__.split(".")[-1]
         instance = handler(app, lock)
 
-        async def handler_wrap() -> BaseResponse:
-            return await instance.handle_request(request=request)
+        def handler_wrap() -> BaseResponse:
+            return instance.handle_request_sync(request=request)
 
         if handler.requires_loopback():
             handler_wrap = requires_loopback(handler_wrap)

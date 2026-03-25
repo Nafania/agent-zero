@@ -122,3 +122,22 @@ def test_http_csrf_accepts_valid_cookie(monkeypatch) -> None:
     _set_csrf_cookie(client, "csrf-4")
     response = client.get("/secure")
     assert response.status_code == 200
+
+
+def test_http_decorators_work_for_sync_handlers(monkeypatch) -> None:
+    from run_ui import csrf_protect, requires_auth
+
+    monkeypatch.setattr("python.helpers.login.get_credentials_hash", lambda: "hash")
+
+    app = _make_app()
+
+    @app.get("/secure-sync")
+    @requires_auth
+    @csrf_protect
+    def secure_sync():
+        return Response("ok", status=200)
+
+    client = app.test_client()
+    _set_session(client, authentication="hash", csrf_token="csrf-sync")
+    response = client.get("/secure-sync", headers={"X-CSRF-Token": "csrf-sync"})
+    assert response.status_code == 200
