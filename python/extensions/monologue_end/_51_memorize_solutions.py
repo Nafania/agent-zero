@@ -89,10 +89,11 @@ class MemorizeSolutions(Extension):
                 else:
                     txt = f"# Solution\n {str(solution)}"
 
-                if set["memory_memorize_replace_threshold"] > 0:
+                replace_threshold = set.get("memory_memorize_replace_threshold", 0)
+                if replace_threshold > 0:
                     rem += await db.delete_documents_by_query(
                         query=txt,
-                        threshold=set["memory_memorize_replace_threshold"],
+                        threshold=replace_threshold,
                         filter=f"area=='{Memory.Area.SOLUTIONS.value}'",
                     )
                     if rem:

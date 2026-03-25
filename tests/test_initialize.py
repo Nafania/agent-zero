@@ -41,7 +41,6 @@ def _minimal_settings():
         "browser_model_vision": False,
         "browser_model_kwargs": {},
         "agent_profile": "",
-        "agent_memory_subdir": "",
         "agent_knowledge_subdir": "default",
         "mcp_servers": "",
         "browser_http_headers": {},

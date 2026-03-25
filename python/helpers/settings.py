@@ -92,7 +92,6 @@ class Settings(TypedDict):
     browser_http_headers: dict[str, Any]
 
     agent_profile: str
-    agent_memory_subdir: str
     agent_knowledge_subdir: str
 
     workdir_path: str
@@ -111,12 +110,7 @@ class Settings(TypedDict):
     memory_recall_solutions_max_search: int
     memory_recall_memories_max_result: int
     memory_recall_solutions_max_result: int
-    memory_recall_similarity_threshold: float
-    memory_recall_query_prep: bool
-    memory_recall_post_filter: bool
     memory_memorize_enabled: bool
-    memory_memorize_consolidation: bool
-    memory_memorize_replace_threshold: float
 
     cognee_search_type: str
     cognee_cognify_interval: int
@@ -250,8 +244,15 @@ def _ensure_option_present(options: list[OptionT] | None, current_value: str | N
     return opts
 
 def convert_out(settings: Settings) -> SettingsOutput:
+    default = get_default_settings()
+    allowed_keys = default.keys()
+    out_settings: dict[str, Any] = {k: settings[k] for k in allowed_keys if k in settings}
+    for k in allowed_keys:
+        if k not in out_settings:
+            out_settings[k] = default[k]
+
     out = SettingsOutput(
-        settings = settings.copy(),
+        settings = out_settings,
         additional = SettingsOutputAdditional(
             chat_providers=get_providers("chat"),
             embedding_providers=get_providers("embedding"),
@@ -278,13 +279,12 @@ def convert_out(settings: Settings) -> SettingsOutput:
     additional = out["additional"]
     current = out["settings"]
 
-    default_settings = get_default_settings()
     runtime_settings = _runtime_settings_snapshot or settings
     additional["runtime_settings"] = {
         "uvicorn_access_logs_enabled": bool(
             runtime_settings.get(
                 "uvicorn_access_logs_enabled",
-                default_settings["uvicorn_access_logs_enabled"],
+                default["uvicorn_access_logs_enabled"],
             )
         ),
     }
@@ -302,8 +302,8 @@ def convert_out(settings: Settings) -> SettingsOutput:
     providers = get_providers("chat") + get_providers("embedding")
     for provider in providers:
         provider_name = provider["value"]
-        api_key = settings["api_keys"].get(provider_name, models.get_api_key(provider_name))
-        settings["api_keys"][provider_name] = API_KEY_PLACEHOLDER if api_key and api_key != "None" else ""
+        api_key = out_settings["api_keys"].get(provider_name, models.get_api_key(provider_name))
+        out_settings["api_keys"][provider_name] = API_KEY_PLACEHOLDER if api_key and api_key != "None" else ""
 
     # load auth from dotenv
     out["settings"]["auth_login"] = dotenv.get_dotenv_value(dotenv.KEY_AUTH_LOGIN) or ""
@@ -350,8 +350,11 @@ def _get_api_key_field(settings: Settings, provider: str, title: str) -> Setting
 
 def convert_in(settings: Settings) -> Settings:
     current = get_settings()
+    allowed = get_default_settings().keys()
 
     for key, value in settings.items():
+        if key not in allowed:
+            continue
         # Special handling for browser_http_headers and *_kwargs (stored as .env text)
         if (key == "browser_http_headers" or key.endswith("_kwargs")) and isinstance(value, str):
             current[key] = _env_to_dict(value)
@@ -564,12 +567,7 @@ def get_default_settings() -> Settings:
         memory_recall_solutions_max_search=get_default_value("memory_recall_solutions_max_search", 8),
         memory_recall_memories_max_result=get_default_value("memory_recall_memories_max_result", 5),
         memory_recall_solutions_max_result=get_default_value("memory_recall_solutions_max_result", 3),
-        memory_recall_similarity_threshold=get_default_value("memory_recall_similarity_threshold", 0.7),
-        memory_recall_query_prep=get_default_value("memory_recall_query_prep", False),
-        memory_recall_post_filter=get_default_value("memory_recall_post_filter", False),
         memory_memorize_enabled=get_default_value("memory_memorize_enabled", True),
-        memory_memorize_consolidation=get_default_value("memory_memorize_consolidation", True),
-        memory_memorize_replace_threshold=get_default_value("memory_memorize_replace_threshold", 0.9),
         cognee_search_type=get_default_value("cognee_search_type", "GRAPH_COMPLETION"),
         cognee_cognify_interval=get_default_value("cognee_cognify_interval", 5),
         cognee_cognify_after_n_inserts=get_default_value("cognee_cognify_after_n_inserts", 10),
@@ -583,7 +581,6 @@ def get_default_settings() -> Settings:
         auth_password="",
         root_password="",
         agent_profile=get_default_value("agent_profile", "agent0"),
-        agent_memory_subdir=get_default_value("agent_memory_subdir", "default"),
         agent_knowledge_subdir=get_default_value("agent_knowledge_subdir", "custom"),
         workdir_path=get_default_value("workdir_path", files.get_abs_path_dockerized("usr/workdir")),
         workdir_show=get_default_value("workdir_show", True),

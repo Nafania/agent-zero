@@ -51,7 +51,7 @@ class RecallMemories(Extension):
         )
         history = self.agent.history.output_text()[-set["memory_recall_history_len"]:]
 
-        if set["memory_recall_query_prep"]:
+        if set.get("memory_recall_query_prep", False):
             system = self.agent.read_prompt("memory.memories_query.sys.md")
             message = self.agent.read_prompt(
                 "memory.memories_query.msg.md", history=history, message=user_instruction
@@ -128,7 +128,7 @@ class RecallMemories(Extension):
         memories = _to_strings(mem_answers, set["memory_recall_memories_max_result"])
         solutions = _to_strings(sol_answers, set["memory_recall_solutions_max_result"])
 
-        if set["memory_recall_post_filter"] and (memories or solutions):
+        if set.get("memory_recall_post_filter", False) and (memories or solutions):
             memories, solutions = await self._post_filter(
                 memories, solutions, history, user_instruction,
             )
