@@ -76,8 +76,14 @@ class TTYSession:
             self._proc._pty_master_fd = None
         # Terminate the process if it exists
         if self._proc:
-            self._proc.terminate()
-            await self._proc.wait()
+            try:
+                self._proc.terminate()
+            except ProcessLookupError:
+                pass
+            try:
+                await self._proc.wait()
+            except ProcessLookupError:
+                pass
         self._proc = None
         self._pump_task = None
         fd_probe.snapshot("after", "tty_close", cmd=self.cmd, ok=True)

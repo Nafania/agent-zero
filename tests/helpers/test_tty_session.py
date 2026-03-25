@@ -128,6 +128,29 @@ class TestTTYSessionClose:
             with pytest.raises(OSError):
                 os.fstat(read_fd)
 
+    @pytest.mark.asyncio
+    async def test_close_ignores_process_lookup_error(self):
+        """close() handles already-exited child without failing cleanup."""
+        with patch("python.helpers.tty_session.sys"):
+            from python.helpers.tty_session import TTYSession
+
+            class _Proc:
+                def __init__(self):
+                    self.returncode = None
+
+                def terminate(self):
+                    raise ProcessLookupError
+
+                async def wait(self):
+                    raise ProcessLookupError
+
+            session = TTYSession("/bin/bash")
+            session._proc = _Proc()
+            session._pump_task = None
+
+            await session.close()
+            assert session._proc is None
+
 
 class TestTTYSessionSend:
     """Tests for TTYSession.send and sendline."""
