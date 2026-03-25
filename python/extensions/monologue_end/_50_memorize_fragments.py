@@ -1,11 +1,9 @@
-import asyncio
 from python.helpers import settings, errors
 from python.helpers.extension import Extension
 from python.helpers.memory import Memory
 from python.helpers.dirty_json import DirtyJson
 from agent import LoopData
 from python.helpers.log import LogItem
-from python.tools.memory_load import DEFAULT_THRESHOLD as DEFAULT_MEMORY_THRESHOLD
 from python.helpers.defer import DeferredTask, THREAD_BACKGROUND
 
 
@@ -30,8 +28,6 @@ class MemorizeMemories(Extension):
 
     async def memorize(self, loop_data: LoopData, log_item: LogItem, db: Memory, **kwargs):
         try:
-            set = settings.get_settings()
-
             system = self.agent.read_prompt("memory.memories_sum.sys.md")
             msgs_text = self.agent.concat_messages(self.agent.history)
 
@@ -77,30 +73,14 @@ class MemorizeMemories(Extension):
                 memories_txt = "\n\n".join([str(memory) for memory in memories]).strip()
                 log_item.update(heading=f"{len(memories)} entries to memorize.", memories=memories_txt)
 
-            rem = []
-
             for memory in memories:
                 txt = f"{memory}"
-
-                replace_threshold = set.get("memory_memorize_replace_threshold", 0)
-                if replace_threshold > 0:
-                    rem += await db.delete_documents_by_query(
-                        query=txt,
-                        threshold=replace_threshold,
-                        filter=f"area=='{Memory.Area.FRAGMENTS.value}'",
-                    )
-                    if rem:
-                        rem_txt = "\n\n".join(Memory.format_docs_plain(rem))
-                        log_item.update(replaced=rem_txt)
-
                 await db.insert_text(text=txt, metadata={"area": Memory.Area.FRAGMENTS.value})
 
             log_item.update(
                 result=f"{len(memories)} entries memorized.",
                 heading=f"{len(memories)} entries memorized.",
             )
-            if rem:
-                log_item.stream(result=f"\nReplaced {len(rem)} previous memories.")
 
         except Exception as e:
             err = errors.format_error(e)
