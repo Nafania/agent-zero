@@ -5,6 +5,7 @@ from python.helpers import guids
 import os
 import json
 import asyncio
+import hashlib
 
 
 from python.helpers.print_style import PrintStyle
@@ -22,6 +23,15 @@ from python.helpers.cognee_init import get_cognee_setting
 def _get_cognee():
     from python.helpers.cognee_init import get_cognee
     return get_cognee()
+
+
+def stable_memory_id_fallback(content: str, dataset_name: str = "") -> str:
+    """Deterministic id when Cognee/chunk metadata has no id (feedback correlation)."""
+    h = hashlib.sha256()
+    h.update(str(dataset_name).encode("utf-8", errors="replace"))
+    h.update(b"\0")
+    h.update(content[:8000].encode("utf-8", errors="replace"))
+    return "syn_" + h.hexdigest()[:32]
 
 
 class Memory:
@@ -397,7 +407,8 @@ def _results_to_documents(results: Any, limit: int) -> list[Document]:
             metadata.setdefault("dataset", result.dataset_name)
 
         if not metadata.get("id"):
-            metadata["id"] = guids.generate_id(10)
+            ds = str(metadata.get("dataset") or "")
+            metadata["id"] = stable_memory_id_fallback(content, ds)
         if not metadata.get("area"):
             metadata["area"] = Memory.Area.MAIN.value
         if not metadata.get("timestamp"):
