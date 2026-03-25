@@ -48,8 +48,15 @@ class TestDiscoverFeedbackSurface:
         cognee = MagicMock(spec=[])  # no session
         assert cf.discover_cognee_feedback_callable(cognee) is None
 
-    def test_returns_none_when_add_feedback_missing(self):
+    def test_falls_back_to_module_add_feedback_when_session_lacks_it(self):
         cognee = MagicMock()
+        cognee.session = MagicMock(spec=["get_session"])
+        cognee.add_feedback = MagicMock()
+        fn = cf.discover_cognee_feedback_callable(cognee)
+        assert fn is cognee.add_feedback
+
+    def test_returns_none_when_no_add_feedback_on_session_or_module(self):
+        cognee = MagicMock(spec=["session"])
         cognee.session = MagicMock(spec=["get_session"])
         assert cf.discover_cognee_feedback_callable(cognee) is None
 
@@ -85,6 +92,26 @@ class TestSubmitMemoryFeedback:
         assert call_kw["feedback_score"] == 5
 
     @pytest.mark.asyncio
+    async def test_forwarded_when_cognee_returns_none(self, feedback_payload, tmp_path):
+        cognee = MagicMock()
+        cognee.session.add_feedback = AsyncMock(return_value=None)
+        with patch("python.helpers.cognee_feedback.files.get_abs_path", side_effect=_abs_path_mock(tmp_path)), \
+             patch("python.helpers.cognee_feedback.get_settings", return_value=MagicMock(cognee_feedback_enabled=True)):
+            result = await cf.submit_memory_feedback(feedback_payload, cognee_module=cognee)
+        assert result["status"] == "forwarded"
+
+    @pytest.mark.asyncio
+    async def test_forwarded_via_module_add_feedback_when_session_has_none(self, feedback_payload, tmp_path):
+        cognee = MagicMock()
+        cognee.session = MagicMock(spec=["get_session"])
+        cognee.add_feedback = AsyncMock(return_value=None)
+        with patch("python.helpers.cognee_feedback.files.get_abs_path", side_effect=_abs_path_mock(tmp_path)), \
+             patch("python.helpers.cognee_feedback.get_settings", return_value=MagicMock(cognee_feedback_enabled=True)):
+            result = await cf.submit_memory_feedback(feedback_payload, cognee_module=cognee)
+        assert result["status"] == "forwarded"
+        cognee.add_feedback.assert_awaited_once()
+
+    @pytest.mark.asyncio
     async def test_negative_maps_to_low_score(self, feedback_payload, tmp_path):
         feedback_payload["feedback"] = "negative"
         cognee = MagicMock()
@@ -99,6 +126,17 @@ class TestSubmitMemoryFeedback:
     async def test_queued_when_cognee_returns_false(self, feedback_payload, tmp_path):
         cognee = MagicMock()
         cognee.session.add_feedback = AsyncMock(return_value=False)
+        pending = _tmp_usr_queue(tmp_path)
+        with patch("python.helpers.cognee_feedback.files.get_abs_path", side_effect=_abs_path_mock(tmp_path)), \
+             patch("python.helpers.cognee_feedback.get_settings", return_value=MagicMock(cognee_feedback_enabled=True)):
+            result = await cf.submit_memory_feedback(feedback_payload, cognee_module=cognee)
+        assert result["status"] == "queued"
+        assert list(pending.glob("*.json"))
+
+    @pytest.mark.asyncio
+    async def test_queued_when_cognee_returns_empty_string(self, feedback_payload, tmp_path):
+        cognee = MagicMock()
+        cognee.session.add_feedback = AsyncMock(return_value="")
         pending = _tmp_usr_queue(tmp_path)
         with patch("python.helpers.cognee_feedback.files.get_abs_path", side_effect=_abs_path_mock(tmp_path)), \
              patch("python.helpers.cognee_feedback.get_settings", return_value=MagicMock(cognee_feedback_enabled=True)):
@@ -155,6 +193,41 @@ class TestDrainFeedbackQueue:
             n = await cf.drain_feedback_queue(cognee_module=cognee, limit=10)
         assert n == 0
         assert list(pending.glob("*.json"))
+
+    @pytest.mark.asyncio
+    async def test_drain_quarantines_invalid_json(self, tmp_path):
+        pending = _tmp_usr_queue(tmp_path)
+        (pending / "bad.json").write_text("not json {{{")
+        failed = tmp_path / "usr" / "cognee_feedback_queue" / "failed"
+        with patch("python.helpers.cognee_feedback.files.get_abs_path", side_effect=_abs_path_mock(tmp_path)):
+            n = await cf.drain_feedback_queue(cognee_module=None, limit=10)
+        assert n == 0
+        assert not list(pending.glob("*.json"))
+        assert list(failed.glob("*.json"))
+
+    @pytest.mark.asyncio
+    async def test_drain_quarantines_invalid_payload(self, feedback_payload, tmp_path):
+        pending = _tmp_usr_queue(tmp_path)
+        bad = dict(feedback_payload)
+        bad["feedback"] = "nope"
+        (pending / "bad.json").write_text(json.dumps(bad))
+        failed = tmp_path / "usr" / "cognee_feedback_queue" / "failed"
+        with patch("python.helpers.cognee_feedback.files.get_abs_path", side_effect=_abs_path_mock(tmp_path)):
+            n = await cf.drain_feedback_queue(cognee_module=None, limit=10)
+        assert n == 0
+        assert not list(pending.glob("*.json"))
+        assert list(failed.glob("*.json"))
+
+    @pytest.mark.asyncio
+    async def test_drain_counts_none_return_as_success(self, feedback_payload, tmp_path):
+        pending = _tmp_usr_queue(tmp_path)
+        (pending / "ok.json").write_text(json.dumps(feedback_payload))
+        cognee = MagicMock()
+        cognee.session.add_feedback = AsyncMock(return_value=None)
+        with patch("python.helpers.cognee_feedback.files.get_abs_path", side_effect=_abs_path_mock(tmp_path)):
+            n = await cf.drain_feedback_queue(cognee_module=cognee, limit=10)
+        assert n == 1
+        assert not list(pending.glob("*.json"))
 
 
 class TestValidatePayload:

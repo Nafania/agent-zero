@@ -129,3 +129,15 @@ class TestMemoryFeedbackHandler:
         assert out.status_code == 503
         body = _out_json(out)
         assert body["status"] == "failed"
+
+
+def test_memory_feedback_discovered_like_run_ui():
+    """Same discovery mechanism as run_ui (load_classes_from_folder on python/api)."""
+    from python.helpers.api import ApiHandler
+    from python.helpers.extract_tools import load_classes_from_file
+    from python.helpers.files import get_abs_path
+
+    path = get_abs_path("python", "api", "memory_feedback.py")
+    classes = load_classes_from_file(path, ApiHandler)
+    names = {c.__name__ for c in classes}
+    assert "MemoryFeedback" in names

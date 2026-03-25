@@ -1,7 +1,8 @@
 """
 Cognee memory feedback: discover session.add_feedback, forward scores, durable disk queue.
 
-Queue directory: usr/cognee_feedback_queue/pending/*.json (at-least-once retries via drain).
+Queue: usr/cognee_feedback_queue/pending/*.json (at-least-once retries via drain).
+Invalid payloads are moved to usr/cognee_feedback_queue/failed/ (or removed if quarantine fails).
 """
 
 from __future__ import annotations
@@ -46,7 +47,6 @@ def discover_cognee_feedback_callable(cognee_module: Any) -> Callable[..., Any] 
         fn = getattr(session, "add_feedback", None)
         if callable(fn):
             return fn
-        return None
     fn = getattr(cognee_module, "add_feedback", None)
     if callable(fn):
         return fn
@@ -55,6 +55,36 @@ def discover_cognee_feedback_callable(cognee_module: Any) -> Callable[..., Any] 
 
 def _pending_dir() -> str:
     return files.get_abs_path("usr", "cognee_feedback_queue", "pending")
+
+
+def _failed_dir() -> str:
+    return files.get_abs_path("usr", "cognee_feedback_queue", "failed")
+
+
+def _quarantine_invalid_queue_file(path: str, reason: str) -> None:
+    try:
+        os.makedirs(_failed_dir(), exist_ok=True)
+        base = os.path.basename(path)
+        dest = os.path.join(_failed_dir(), base)
+        if os.path.exists(dest):
+            dest = os.path.join(_failed_dir(), f"{uuid.uuid4().hex}_{base}")
+        os.replace(path, dest)
+        _log.warning(
+            "cognee_feedback quarantined invalid queue file path=%s reason=%s dest=%s",
+            path,
+            reason,
+            dest,
+        )
+    except OSError as e:
+        _log.error(
+            "cognee_feedback could not quarantine path=%s err=%s; deleting to stop retry loop",
+            path,
+            e,
+        )
+        try:
+            os.remove(path)
+        except OSError as e2:
+            _log.error("cognee_feedback could not remove poison file path=%s err=%s", path, e2)
 
 
 def _feedback_score(feedback: str) -> int:
@@ -130,7 +160,15 @@ async def _try_forward(
             feedback_text=text,
             feedback_score=score,
         )
-        if ok is True:
+        # Cognee may return None on success; only bool False is treated as explicit rejection.
+        if ok is False:
+            _log.warning(
+                "cognee_feedback not applied (explicit False) session_id=%s qa_id=%s",
+                payload["context_id"],
+                payload["memory_id"],
+            )
+            return False
+        if ok is None or ok is True:
             _log.info(
                 "cognee_feedback forwarded session_id=%s qa_id=%s score=%s",
                 payload["context_id"],
@@ -138,8 +176,17 @@ async def _try_forward(
                 score,
             )
             return True
+        if ok:
+            _log.info(
+                "cognee_feedback forwarded session_id=%s qa_id=%s score=%s result=%r",
+                payload["context_id"],
+                payload["memory_id"],
+                score,
+                ok,
+            )
+            return True
         _log.warning(
-            "cognee_feedback not applied (returned falsy) session_id=%s qa_id=%s",
+            "cognee_feedback not applied (falsy result) session_id=%s qa_id=%s",
             payload["context_id"],
             payload["memory_id"],
         )
@@ -182,7 +229,8 @@ async def drain_feedback_queue(
                 record = json.load(f)
             validate_feedback_payload(record)
         except Exception as e:
-            _log.warning("cognee_feedback skip corrupt queue file=%s err=%s", path, e)
+            _log.warning("cognee_feedback invalid queue file=%s err=%s", path, e)
+            _quarantine_invalid_queue_file(path, str(e))
             continue
         ok = await _try_forward(cognee_module, record)
         if ok is True:
@@ -223,7 +271,7 @@ async def submit_memory_feedback(
     add_fn = discover_cognee_feedback_callable(cognee_module)
     if add_fn is None:
         _log.warning(
-            "Cognee feedback API unavailable; queue-only mode (no session.add_feedback)"
+            "Cognee feedback API unavailable; queue-only mode (no add_feedback callable)"
         )
         try:
             _enqueue_record(payload)
