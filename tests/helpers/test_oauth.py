@@ -1,6 +1,14 @@
+import secrets
+
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
-from python.helpers.oauth import GoogleOAuth, OAuthTokens
+from python.helpers.oauth import (
+    AnthropicOAuth,
+    GoogleOAuth,
+    OAUTH_STRATEGIES,
+    OpenAIOAuth,
+    get_oauth_provider,
+)
 
 
 class TestGoogleOAuth:
@@ -112,3 +120,109 @@ class TestGoogleOAuth:
         assert len(models) == 1
         assert models[0].id == "gemini-2.5-pro"
         assert models[0].supports_vision is True
+
+
+class TestOpenAIOAuth:
+    def setup_method(self):
+        self.provider = OpenAIOAuth()
+
+    def test_provider_id(self):
+        assert self.provider.provider_id == "openai"
+
+    def test_authorization_url_params(self):
+        url = self.provider.get_authorization_url(
+            client_id="openai-cid", redirect_uri="http://localhost/cb", state="s1"
+        )
+        assert "client_id=openai-cid" in url
+        assert "state=s1" in url
+        assert "response_type=code" in url
+
+    @pytest.mark.asyncio
+    async def test_exchange_code_success(self):
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "access_token": "sk-oat-test",
+            "refresh_token": "rt-test",
+            "expires_in": 3600,
+            "token_type": "Bearer",
+            "scope": "model.read model.request",
+        }
+        with patch("httpx.AsyncClient.post", new_callable=AsyncMock, return_value=mock_response):
+            tokens = await self.provider.exchange_code(
+                code="oai-code", client_id="cid", client_secret="cs",
+                redirect_uri="http://localhost/cb",
+            )
+        assert tokens.access_token == "sk-oat-test"
+
+    @pytest.mark.asyncio
+    async def test_list_models_filters_chat(self):
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "data": [
+                {"id": "gpt-4o", "owned_by": "openai"},
+                {"id": "o3-mini", "owned_by": "openai"},
+                {"id": "text-embedding-3-large", "owned_by": "openai"},
+                {"id": "dall-e-3", "owned_by": "openai"},
+            ]
+        }
+        with patch("httpx.AsyncClient.get", new_callable=AsyncMock, return_value=mock_response):
+            models = await self.provider.list_models(access_token="sk-test")
+        model_ids = [m.id for m in models]
+        assert "gpt-4o" in model_ids
+        assert "o3-mini" in model_ids
+        assert "text-embedding-3-large" not in model_ids
+        assert "dall-e-3" not in model_ids
+
+
+class TestAnthropicOAuth:
+    def setup_method(self):
+        self.provider = AnthropicOAuth()
+
+    def test_provider_id(self):
+        assert self.provider.provider_id == "anthropic"
+
+    def test_supports_pkce(self):
+        assert self.provider.supports_pkce is True
+
+    def test_authorization_url_has_pkce_challenge(self):
+        verifier = secrets.token_urlsafe(43)
+        url = self.provider.get_authorization_url(
+            client_id="ant-cid", redirect_uri="http://localhost/cb",
+            state="s2", code_verifier=verifier,
+        )
+        assert "code_challenge=" in url
+        assert "code_challenge_method=S256" in url
+
+    @pytest.mark.asyncio
+    async def test_exchange_code_includes_verifier(self):
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "access_token": "ant-token",
+            "refresh_token": "ant-refresh",
+            "expires_in": 3600,
+            "token_type": "Bearer",
+            "scope": "user:inference",
+        }
+        with patch("httpx.AsyncClient.post", new_callable=AsyncMock, return_value=mock_response) as mock_post:
+            await self.provider.exchange_code(
+                code="ant-code", client_id="cid", client_secret="cs",
+                redirect_uri="http://localhost/cb", code_verifier="test-verifier",
+            )
+            call_kwargs = mock_post.call_args
+            assert call_kwargs.kwargs["data"]["code_verifier"] == "test-verifier"
+
+
+def test_oauth_strategies_contains_all_providers():
+    assert set(OAUTH_STRATEGIES.keys()) == {"google", "openai", "anthropic"}
+
+
+def test_get_oauth_provider_returns_correct_type():
+    provider = get_oauth_provider("openai")
+    assert isinstance(provider, OpenAIOAuth)
+
+
+def test_get_oauth_provider_returns_none_for_unknown():
+    assert get_oauth_provider("unknown") is None
