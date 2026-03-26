@@ -66,7 +66,7 @@ class TestSubmitMemoryFeedback:
     async def test_queue_only_when_callable_missing(self, feedback_payload, tmp_path, caplog):
         pending = _tmp_usr_queue(tmp_path)
         with patch("python.helpers.cognee_feedback.files.get_abs_path", side_effect=_abs_path_mock(tmp_path)), \
-             patch("python.helpers.cognee_feedback.get_settings", return_value=MagicMock(cognee_feedback_enabled=True)):
+             patch("python.helpers.cognee_feedback.get_settings", return_value={"cognee_feedback_enabled": True}):
             caplog.set_level("WARNING")
             result = await cf.submit_memory_feedback(feedback_payload, cognee_module=None)
         assert result["status"] == "queued"
@@ -82,7 +82,7 @@ class TestSubmitMemoryFeedback:
         cognee = MagicMock()
         cognee.session.add_feedback = AsyncMock(return_value=True)
         with patch("python.helpers.cognee_feedback.files.get_abs_path", side_effect=_abs_path_mock(tmp_path)), \
-             patch("python.helpers.cognee_feedback.get_settings", return_value=MagicMock(cognee_feedback_enabled=True)):
+             patch("python.helpers.cognee_feedback.get_settings", return_value={"cognee_feedback_enabled": True}):
             result = await cf.submit_memory_feedback(feedback_payload, cognee_module=cognee)
         assert result["status"] == "forwarded"
         cognee.session.add_feedback.assert_awaited_once()
@@ -96,7 +96,7 @@ class TestSubmitMemoryFeedback:
         cognee = MagicMock()
         cognee.session.add_feedback = AsyncMock(return_value=None)
         with patch("python.helpers.cognee_feedback.files.get_abs_path", side_effect=_abs_path_mock(tmp_path)), \
-             patch("python.helpers.cognee_feedback.get_settings", return_value=MagicMock(cognee_feedback_enabled=True)):
+             patch("python.helpers.cognee_feedback.get_settings", return_value={"cognee_feedback_enabled": True}):
             result = await cf.submit_memory_feedback(feedback_payload, cognee_module=cognee)
         assert result["status"] == "forwarded"
 
@@ -106,7 +106,7 @@ class TestSubmitMemoryFeedback:
         cognee.session = MagicMock(spec=["get_session"])
         cognee.add_feedback = AsyncMock(return_value=None)
         with patch("python.helpers.cognee_feedback.files.get_abs_path", side_effect=_abs_path_mock(tmp_path)), \
-             patch("python.helpers.cognee_feedback.get_settings", return_value=MagicMock(cognee_feedback_enabled=True)):
+             patch("python.helpers.cognee_feedback.get_settings", return_value={"cognee_feedback_enabled": True}):
             result = await cf.submit_memory_feedback(feedback_payload, cognee_module=cognee)
         assert result["status"] == "forwarded"
         cognee.add_feedback.assert_awaited_once()
@@ -117,7 +117,7 @@ class TestSubmitMemoryFeedback:
         cognee = MagicMock()
         cognee.session.add_feedback = AsyncMock(return_value=True)
         with patch("python.helpers.cognee_feedback.files.get_abs_path", side_effect=_abs_path_mock(tmp_path)), \
-             patch("python.helpers.cognee_feedback.get_settings", return_value=MagicMock(cognee_feedback_enabled=True)):
+             patch("python.helpers.cognee_feedback.get_settings", return_value={"cognee_feedback_enabled": True}):
             result = await cf.submit_memory_feedback(feedback_payload, cognee_module=cognee)
         assert result["status"] == "forwarded"
         assert cognee.session.add_feedback.await_args.kwargs["feedback_score"] == 1
@@ -128,7 +128,7 @@ class TestSubmitMemoryFeedback:
         cognee.session.add_feedback = AsyncMock(return_value=False)
         pending = _tmp_usr_queue(tmp_path)
         with patch("python.helpers.cognee_feedback.files.get_abs_path", side_effect=_abs_path_mock(tmp_path)), \
-             patch("python.helpers.cognee_feedback.get_settings", return_value=MagicMock(cognee_feedback_enabled=True)):
+             patch("python.helpers.cognee_feedback.get_settings", return_value={"cognee_feedback_enabled": True}):
             result = await cf.submit_memory_feedback(feedback_payload, cognee_module=cognee)
         assert result["status"] == "queued"
         assert list(pending.glob("*.json"))
@@ -139,7 +139,7 @@ class TestSubmitMemoryFeedback:
         cognee.session.add_feedback = AsyncMock(return_value="")
         pending = _tmp_usr_queue(tmp_path)
         with patch("python.helpers.cognee_feedback.files.get_abs_path", side_effect=_abs_path_mock(tmp_path)), \
-             patch("python.helpers.cognee_feedback.get_settings", return_value=MagicMock(cognee_feedback_enabled=True)):
+             patch("python.helpers.cognee_feedback.get_settings", return_value={"cognee_feedback_enabled": True}):
             result = await cf.submit_memory_feedback(feedback_payload, cognee_module=cognee)
         assert result["status"] == "queued"
         assert list(pending.glob("*.json"))
@@ -150,7 +150,7 @@ class TestSubmitMemoryFeedback:
         cognee = MagicMock()
         cognee.session.add_feedback = AsyncMock(return_value=True)
         with patch("python.helpers.cognee_feedback.files.get_abs_path", side_effect=_abs_path_mock(tmp_path)), \
-             patch("python.helpers.cognee_feedback.get_settings", return_value=MagicMock(cognee_feedback_enabled=False)):
+             patch("python.helpers.cognee_feedback.get_settings", return_value={"cognee_feedback_enabled": False}):
             result = await cf.submit_memory_feedback(feedback_payload, cognee_module=cognee)
         assert result["status"] == "queued"
         cognee.session.add_feedback.assert_not_called()
@@ -165,7 +165,7 @@ class TestSubmitMemoryFeedback:
 
         with patch("python.helpers.cognee_feedback.drain_feedback_queue", new=AsyncMock()), \
              patch("python.helpers.cognee_feedback.files.get_abs_path", side_effect=bad_abs), \
-             patch("python.helpers.cognee_feedback.get_settings", return_value=MagicMock(cognee_feedback_enabled=True)):
+             patch("python.helpers.cognee_feedback.get_settings", return_value={"cognee_feedback_enabled": True}):
             result = await cf.submit_memory_feedback(feedback_payload, cognee_module=cognee)
         assert result["status"] == "failed"
 

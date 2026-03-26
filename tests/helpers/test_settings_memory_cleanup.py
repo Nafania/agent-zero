@@ -89,20 +89,27 @@ class TestConvertOutDoesNotReEmitRemovedKeys:
         for key in REMOVED_MEMORY_KEYS:
             s[key] = "x"
 
-        with patch("python.helpers.settings.get_providers") as mock_prov:
-            mock_prov.side_effect = lambda t: [{"value": "openrouter", "label": "OpenRouter"}] if t == "chat" else [{"value": "huggingface", "label": "HuggingFace"}]
-        with patch("python.helpers.settings.files") as mock_files:
-            mock_files.get_subdirectories.side_effect = lambda p, **kw: ["agent0"] if p == "agents" else ["custom"]
-        with patch("python.helpers.settings.runtime") as mock_runtime:
+        with (
+            patch("python.helpers.settings.get_providers") as mock_prov,
+            patch("python.helpers.settings.files") as mock_files,
+            patch("python.helpers.settings.runtime") as mock_runtime,
+            patch("python.helpers.settings.dotenv") as mock_dotenv,
+            patch("python.helpers.settings.get_default_secrets_manager") as mock_sec,
+            patch("python.helpers.settings.models") as mock_models,
+        ):
+            mock_prov.side_effect = (
+                lambda t: [{"value": "openrouter", "label": "OpenRouter"}]
+                if t == "chat"
+                else [{"value": "huggingface", "label": "HuggingFace"}]
+            )
+            mock_files.get_subdirectories.side_effect = (
+                lambda p, **kw: ["agent0"] if p == "agents" else ["custom"]
+            )
             mock_runtime.is_dockerized.return_value = False
-        with patch("python.helpers.settings.dotenv") as mock_dotenv:
             mock_dotenv.get_dotenv_value.return_value = ""
-        with patch("python.helpers.settings.get_default_secrets_manager") as mock_sec:
             mock_sec.return_value.get_masked_secrets.return_value = ""
-        with patch("python.helpers.settings.models") as mock_models:
             mock_models.get_api_key.return_value = ""
-
-        out = settings_module.convert_out(s)
+            out = settings_module.convert_out(s)
         for key in REMOVED_MEMORY_KEYS:
             assert key not in out["settings"]
 

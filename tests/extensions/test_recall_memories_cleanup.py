@@ -109,7 +109,7 @@ async def test_recall_search_ignores_legacy_memory_recall_query_prep(_fake_cogne
     with (
         patch("python.helpers.settings.get_settings", return_value=settings),
         patch("python.helpers.memory.Memory.get", new_callable=AsyncMock, return_value=db),
-        patch("python.helpers.memory._get_cognee", return_value=(mock_cognee, MagicMock())),
+        patch("python.helpers.cognee_init.get_cognee", return_value=(mock_cognee, MagicMock())),
     ):
         await ext.search_memories(log_item=log_item, loop_data=loop_data)
 
@@ -138,7 +138,7 @@ async def test_recall_search_ignores_legacy_memory_recall_post_filter(_fake_cogn
     with (
         patch("python.helpers.settings.get_settings", return_value=settings),
         patch("python.helpers.memory.Memory.get", new_callable=AsyncMock, return_value=db),
-        patch("python.helpers.memory._get_cognee", return_value=(mock_cognee, MagicMock())),
+        patch("python.helpers.cognee_init.get_cognee", return_value=(mock_cognee, MagicMock())),
     ):
         await ext.search_memories(log_item=log_item, loop_data=loop_data)
 
@@ -168,7 +168,7 @@ async def test_recall_search_ignores_legacy_memory_recall_similarity_threshold(
     with (
         patch("python.helpers.settings.get_settings", return_value=settings),
         patch("python.helpers.memory.Memory.get", new_callable=AsyncMock, return_value=db),
-        patch("python.helpers.memory._get_cognee", return_value=(mock_cognee, MagicMock())),
+        patch("python.helpers.cognee_init.get_cognee", return_value=(mock_cognee, MagicMock())),
     ):
         await ext.search_memories(log_item=log_item, loop_data=loop_data)
 

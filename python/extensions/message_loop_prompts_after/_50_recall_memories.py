@@ -58,8 +58,8 @@ class RecallMemories(Extension):
             )
             return
 
-        from python.helpers.memory import _get_cognee
-        cognee, _ = _get_cognee()
+        from python.helpers.cognee_init import get_cognee
+        cognee, _ = get_cognee()
         from cognee.modules.engine.models.node_set import NodeSet
 
         db = await Memory.get(self.agent)

@@ -251,7 +251,7 @@ async def submit_memory_feedback(
     await drain_feedback_queue(cognee_module=cognee_module, limit=20)
 
     settings = get_settings()
-    if not getattr(settings, "cognee_feedback_enabled", True):
+    if not settings.get("cognee_feedback_enabled", True):
         try:
             _enqueue_record(payload)
         except OSError as e:
