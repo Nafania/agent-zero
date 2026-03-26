@@ -116,6 +116,7 @@ def remove_msg_files(ctxid):
 
 
 def _serialize_context(context: AgentContext):
+    context._ensure_hydrated()
     # serialize agents
     agents = []
     agent = context.agent0
@@ -182,13 +183,15 @@ def _deserialize_context(data):
     config = initialize_agent()
     log = _deserialize_log(data.get("log", None))
 
+    raw_agents = data.get("agents", [])
+    streaming_agent_no = data.get("streaming_agent", 0)
+
     context = AgentContext(
         config=config,
-        id=data.get("id", None),  # get new id
+        id=data.get("id", None),
         name=data.get("name", None),
         created_at=(
             datetime.fromisoformat(
-                # older chats may not have created_at - backcompat
                 data.get("created_at", datetime.fromtimestamp(0).isoformat())
             )
         ),
@@ -202,20 +205,34 @@ def _deserialize_context(data):
         paused=False,
         data=data.get("data", {}),
         output_data=data.get("output_data", {}),
-        # agent0=agent0,
-        # streaming_agent=straming_agent,
     )
 
-    agents = data.get("agents", [])
-    agent0 = _deserialize_agents(agents, config, context)
+    # Store raw data for lazy hydration instead of deserializing immediately
+    context._raw_agents = raw_agents
+    context._raw_streaming_agent_no = streaming_agent_no
+
+    return context
+
+
+def hydrate_context_agents(context: AgentContext):
+    """Hydrate a lazily-loaded context by deserializing its agents and history."""
+    raw_agents = getattr(context, '_raw_agents', None)
+    if raw_agents is None:
+        return  # Already hydrated
+
+    streaming_agent_no = getattr(context, '_raw_streaming_agent_no', 0)
+
+    agent0 = _deserialize_agents(raw_agents, context.config, context)
     streaming_agent = agent0
-    while streaming_agent and streaming_agent.number != data.get("streaming_agent", 0):
+    while streaming_agent and streaming_agent.number != streaming_agent_no:
         streaming_agent = streaming_agent.data.get(Agent.DATA_NAME_SUBORDINATE, None)
 
     context.agent0 = agent0
     context.streaming_agent = streaming_agent
 
-    return context
+    # Clear raw data to free memory
+    context._raw_agents = None
+    context._raw_streaming_agent_no = 0
 
 
 def _deserialize_agents(

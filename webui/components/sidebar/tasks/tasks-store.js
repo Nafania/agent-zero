@@ -13,6 +13,7 @@ const model = {
 
   // Apply tasks coming from poll() and keep them sorted (newest first)
   applyTasks(tasksList) {
+    if (tasksList === null || tasksList === undefined) return;
     try {
       const tasks = Array.isArray(tasksList) ? tasksList : [];
       const sorted = [...tasks].sort((a, b) => (b?.created_at || 0) - (a?.created_at || 0));

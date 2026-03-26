@@ -94,6 +94,11 @@ class AgentContext:
         self.no = AgentContext._counter
         self.last_message = last_message or datetime.now(timezone.utc)
 
+        # Lazy deserialization support: these are set by persist_chat._deserialize_context
+        # when loading from disk to defer the expensive agent/history deserialization.
+        self._raw_agents: list | None = None
+        self._raw_streaming_agent_no: int = 0
+
         # initialize agent at last (context is complete now)
         self.agent0 = agent0 or Agent(0, self.config, self)
 
@@ -232,12 +237,20 @@ class AgentContext:
         self.paused = False
 
     def nudge(self):
+        self._ensure_hydrated()
         self.kill_process()
         self.paused = False
         self.task = self.communicate(UserMessage(self.agent0.read_prompt("fw.msg_nudge.md")))
         return self.task
 
+    def _ensure_hydrated(self):
+        """Ensure agents and history are fully deserialized (lazy hydration)."""
+        if self._raw_agents is not None:
+            from python.helpers.persist_chat import hydrate_context_agents
+            hydrate_context_agents(self)
+
     def get_agent(self):
+        self._ensure_hydrated()
         return self.streaming_agent or self.agent0
 
     def is_running(self) -> bool:

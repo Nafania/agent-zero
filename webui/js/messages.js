@@ -89,14 +89,37 @@ export function setMessages(messages) {
   });
 
   const results = [];
+  const BATCH_SIZE = 20;
 
-  // process messages
-  for (let i = 0; i < messages.length; i++) {
-    _massRender = historyEmpty || (isLargeAppend && i < cutoff);
-    results.push(setMessage(messages[i]) || {});
+  if (massRender && messages.length > BATCH_SIZE) {
+    for (let i = 0; i < Math.min(BATCH_SIZE, messages.length); i++) {
+      _massRender = true;
+      results.push(setMessage(messages[i]) || {});
+    }
+    _massRender = false;
+
+    let batchStart = BATCH_SIZE;
+    const renderNextBatch = () => {
+      if (batchStart >= messages.length) return;
+      const batchEnd = Math.min(batchStart + BATCH_SIZE, messages.length);
+      _massRender = true;
+      for (let i = batchStart; i < batchEnd; i++) {
+        setMessage(messages[i]);
+      }
+      _massRender = false;
+      batchStart = batchEnd;
+      if (batchStart < messages.length) {
+        requestAnimationFrame(renderNextBatch);
+      }
+    };
+    requestAnimationFrame(renderNextBatch);
+  } else {
+    for (let i = 0; i < messages.length; i++) {
+      _massRender = historyEmpty || (isLargeAppend && i < cutoff);
+      results.push(setMessage(messages[i]) || {});
+    }
   }
 
-  // reset _massRender flag
   _massRender = false;
 
   const shouldScroll = historyEmpty || !results[results.length - 1]?.dontScroll;
@@ -108,6 +131,27 @@ export function setMessages(messages) {
       mainScroller.scrollToBottom();
       _scrollOnNextProcessGroup = null;
     });
+  }
+}
+
+export function prependMessages(messages) {
+  if (!messages || messages.length === 0) return;
+
+  const history = getChatHistoryEl();
+  if (!history) return;
+
+  const existingNodes = Array.from(history.children);
+
+  history.innerHTML = "";
+
+  _massRender = true;
+  for (const msg of messages) {
+    setMessage(msg);
+  }
+  _massRender = false;
+
+  for (const node of existingNodes) {
+    history.appendChild(node);
   }
 }
 

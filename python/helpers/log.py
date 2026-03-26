@@ -347,10 +347,7 @@ class Log:
         ctx = self.context
         if not ctx:
             return
-        # Logs update both the active chat stream (sid-bound) and the global chats list
-        # (context metadata like last_message/log_version). Broadcast so all tabs refresh
-        # their chat/task lists without leaking logs (logs are still scoped per-sid).
-        _lazy_mark_dirty_all(reason="log.Log._notify_state_monitor")
+        _lazy_mark_dirty_for_context(ctx.id, reason="log.Log._notify_state_monitor")
 
     def _notify_state_monitor_for_context_update(self) -> None:
         ctx = self.context
@@ -385,7 +382,7 @@ class Log:
     def set_initial_progress(self):
         self.set_progress("Waiting for input", 0, False)
 
-    def output(self, start=None, end=None):
+    def output(self, start=None, end=None, tail=None):
         with self._lock:
             if start is None:
                 start = 0
@@ -394,12 +391,22 @@ class Log:
             updates = self.updates[start:end]
             logs = list(self.logs)
 
-        out = []
+        unique = []
         seen = set()
         for update in updates:
             if update not in seen and update < len(logs):
-                out.append(logs[update].output())
+                unique.append(update)
                 seen.add(update)
+
+        has_earlier = False
+        if tail is not None and start == 0 and len(unique) > tail:
+            has_earlier = True
+            unique = unique[-tail:]
+
+        out = [logs[u].output() for u in unique]
+
+        if tail is not None:
+            return out, has_earlier
         return out
 
     def reset(self):

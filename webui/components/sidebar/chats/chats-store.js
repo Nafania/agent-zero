@@ -41,6 +41,7 @@ const model = {
 
   // Update contexts from polling
   applyContexts(contextsList) {
+    if (contextsList === null || contextsList === undefined) return;
     // Sort by created_at time (newer first)
     this.contexts = contextsList.sort(
       (a, b) => (b.created_at || 0) - (a.created_at || 0)

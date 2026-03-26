@@ -27,7 +27,9 @@ class CreateChat(ApiHandler):
             #     new_context.set_output_data(projects.CONTEXT_DATA_KEY_PROJECT, current_data_2)
 
         # New context should appear in other tabs' chat lists via state_push.
+        from python.helpers.state_snapshot import touch_chat_list
         from python.helpers.state_monitor_integration import mark_dirty_all
+        touch_chat_list()
         mark_dirty_all(reason="api.chat_create.CreateChat")
 
         return {
