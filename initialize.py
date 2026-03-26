@@ -51,7 +51,7 @@ def initialize_agent(override_settings: dict | None = None, chat_id: str | None 
             if pool.is_connected(chat_override["provider"]):
                 from python.helpers.providers import get_provider_config
                 provider_cfg = get_provider_config("chat", chat_override["provider"]) or {}
-                api_base = provider_cfg.get("api_base", "") or ""
+                api_base = (provider_cfg.get("kwargs") or {}).get("api_base", "") or ""
                 chat_llm = models.ModelConfig(
                     type=models.ModelType.CHAT,
                     provider=chat_override["provider"],

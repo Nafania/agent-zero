@@ -92,10 +92,31 @@ class TestInitializeAgent:
             patch("initialize.runtime.args", {}),
             patch("python.api.chat_model_override._load_override", return_value={"provider": "google", "model": "gemini-2.5-pro"}),
             patch("python.helpers.connected_providers.ProviderPool.get_instance", return_value=mock_pool),
+            patch("python.helpers.providers.get_provider_config", return_value={"name": "Google", "litellm_provider": "gemini"}),
         ):
             config = initialize_agent(chat_id="test-chat-123")
             assert config.chat_model.provider == "google"
             assert config.chat_model.name == "gemini-2.5-pro"
+
+    def test_initialize_agent_chat_override_uses_api_base_from_kwargs(self):
+        from initialize import initialize_agent
+
+        base = _minimal_settings()
+        mock_pool = MagicMock()
+        mock_pool.is_connected.return_value = True
+        provider_cfg = {"name": "Venice.ai", "litellm_provider": "openai", "kwargs": {"api_base": "https://api.venice.ai/api/v1"}}
+
+        with (
+            patch("initialize.settings.get_settings", return_value=base.copy()),
+            patch("initialize.settings.get_runtime_config", return_value={}),
+            patch("initialize.runtime.args", {}),
+            patch("python.api.chat_model_override._load_override", return_value={"provider": "a0_venice", "model": "venice-model"}),
+            patch("python.helpers.connected_providers.ProviderPool.get_instance", return_value=mock_pool),
+            patch("python.helpers.providers.get_provider_config", return_value=provider_cfg),
+        ):
+            config = initialize_agent(chat_id="test-chat-456")
+            assert config.chat_model.api_base == "https://api.venice.ai/api/v1"
+            assert config.chat_model.provider == "a0_venice"
 
     def test_initialize_agent_chat_id_no_override_keeps_default(self):
         from initialize import initialize_agent
