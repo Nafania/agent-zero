@@ -98,9 +98,16 @@ export function setMessages(messages) {
     }
     _massRender = false;
 
+    const shouldScroll = historyEmpty || !results[results.length - 1]?.dontScroll;
+
     let batchStart = BATCH_SIZE;
     const renderNextBatch = () => {
-      if (batchStart >= messages.length) return;
+      if (batchStart >= messages.length) {
+        if (shouldScroll) {
+          mainScroller.reApplyScroll();
+        }
+        return;
+      }
       const batchEnd = Math.min(batchStart + BATCH_SIZE, messages.length);
       _massRender = true;
       for (let i = batchStart; i < batchEnd; i++) {
@@ -108,11 +115,10 @@ export function setMessages(messages) {
       }
       _massRender = false;
       batchStart = batchEnd;
-      if (batchStart < messages.length) {
-        requestAnimationFrame(renderNextBatch);
-      }
+      requestAnimationFrame(renderNextBatch);
     };
     requestAnimationFrame(renderNextBatch);
+    return results;
   } else {
     for (let i = 0; i < messages.length; i++) {
       _massRender = historyEmpty || (isLargeAppend && i < cutoff);
@@ -140,9 +146,10 @@ export function prependMessages(messages) {
   const history = getChatHistoryEl();
   if (!history) return;
 
-  const existingNodes = Array.from(history.children);
-
-  history.innerHTML = "";
+  const existingFragment = document.createDocumentFragment();
+  while (history.firstChild) {
+    existingFragment.appendChild(history.firstChild);
+  }
 
   _massRender = true;
   for (const msg of messages) {
@@ -150,9 +157,7 @@ export function prependMessages(messages) {
   }
   _massRender = false;
 
-  for (const node of existingNodes) {
-    history.appendChild(node);
-  }
+  history.appendChild(existingFragment);
 }
 
 // entrypoint called from poll/WS communication, this is how all messages are rendered and updated

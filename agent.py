@@ -86,7 +86,7 @@ class AgentContext:
         self.log = log or Log.Log()
         self.log.context = self
         self.paused = paused
-        self.streaming_agent = streaming_agent
+        self._streaming_agent = streaming_agent
         self.task: DeferredTask | None = None
         self.created_at = created_at or datetime.now(timezone.utc)
         self.type = type
@@ -100,7 +100,25 @@ class AgentContext:
         self._raw_streaming_agent_no: int = 0
 
         # initialize agent at last (context is complete now)
-        self.agent0 = agent0 or Agent(0, self.config, self)
+        self._agent0 = agent0 or Agent(0, self.config, self)
+
+    @property
+    def agent0(self):
+        self._ensure_hydrated()
+        return self._agent0
+
+    @agent0.setter
+    def agent0(self, value):
+        self._agent0 = value
+
+    @property
+    def streaming_agent(self):
+        self._ensure_hydrated()
+        return self._streaming_agent
+
+    @streaming_agent.setter
+    def streaming_agent(self, value):
+        self._streaming_agent = value
 
     @staticmethod
     def get(id: str):
@@ -237,7 +255,6 @@ class AgentContext:
         self.paused = False
 
     def nudge(self):
-        self._ensure_hydrated()
         self.kill_process()
         self.paused = False
         self.task = self.communicate(UserMessage(self.agent0.read_prompt("fw.msg_nudge.md")))
@@ -250,7 +267,6 @@ class AgentContext:
             hydrate_context_agents(self)
 
     def get_agent(self):
-        self._ensure_hydrated()
         return self.streaming_agent or self.agent0
 
     def is_running(self) -> bool:

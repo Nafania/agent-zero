@@ -404,6 +404,7 @@ let lastLogGuid = "";
 let lastSpokenNo = 0;
 let lastChatListUpdatedAt = 0;
 let hasEarlierLogs = false;
+let loadingEarlierLogs = false;
 
 export function buildStateRequestPayload(options = {}) {
   const { forceFull = false } = options || {};
@@ -747,20 +748,21 @@ export function getHasEarlierLogs() {
 }
 
 export async function loadEarlierLogs() {
-  if (!hasEarlierLogs || !context) return;
-
-  const chatHistory = document.getElementById("chat-history");
-  if (!chatHistory) return;
-
-  const firstMsg = chatHistory.querySelector("[id^='message-']");
-  let before = 0;
-  if (firstMsg) {
-    const idStr = firstMsg.id.replace("message-", "");
-    before = parseInt(idStr, 10);
-    if (isNaN(before)) before = 0;
-  }
+  if (loadingEarlierLogs || !hasEarlierLogs || !context) return;
+  loadingEarlierLogs = true;
 
   try {
+    const chatHistory = document.getElementById("chat-history");
+    if (!chatHistory) return;
+
+    const firstMsg = chatHistory.querySelector("[id^='message-']");
+    let before = 0;
+    if (firstMsg) {
+      const idStr = firstMsg.id.replace("message-", "");
+      before = parseInt(idStr, 10);
+      if (isNaN(before)) before = 0;
+    }
+
     const response = await fetch("/chat_logs", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -782,6 +784,8 @@ export async function loadEarlierLogs() {
     updateLoadEarlierIndicator();
   } catch (error) {
     console.error("Failed to load earlier logs:", error);
+  } finally {
+    loadingEarlierLogs = false;
   }
 }
 
@@ -798,7 +802,15 @@ function updateLoadEarlierIndicator() {
       indicator.className = "load-earlier-indicator";
       indicator.innerHTML = '<button class="btn-load-earlier">Load earlier messages</button>';
       indicator.querySelector("button").addEventListener("click", () => {
-        loadEarlierLogs();
+        const btn = indicator.querySelector("button");
+        btn.textContent = "Loading...";
+        btn.disabled = true;
+        loadEarlierLogs().finally(() => {
+          if (btn) {
+            btn.textContent = "Load earlier messages";
+            btn.disabled = false;
+          }
+        });
       });
       history.insertBefore(indicator, history.firstChild);
     }

@@ -266,7 +266,7 @@ async def build_snapshot_from_request(*, request: StateRequestV1) -> SnapshotV1:
         if from_no == 0:
             logs, has_earlier_logs = active_context.log.output(start=from_no, tail=INITIAL_LOG_TAIL)
         else:
-            logs = active_context.log.output(start=from_no)
+            logs, _ = active_context.log.output(start=from_no)
     else:
         logs = []
 

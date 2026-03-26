@@ -116,7 +116,6 @@ def remove_msg_files(ctxid):
 
 
 def _serialize_context(context: AgentContext):
-    context._ensure_hydrated()
     # serialize agents
     agents = []
     agent = context.agent0
@@ -222,6 +221,11 @@ def hydrate_context_agents(context: AgentContext):
 
     streaming_agent_no = getattr(context, '_raw_streaming_agent_no', 0)
 
+    # Clear raw data FIRST to prevent re-entrant hydration when property
+    # getters trigger _ensure_hydrated() during agent deserialization.
+    context._raw_agents = None
+    context._raw_streaming_agent_no = 0
+
     agent0 = _deserialize_agents(raw_agents, context.config, context)
     streaming_agent = agent0
     while streaming_agent and streaming_agent.number != streaming_agent_no:
@@ -229,10 +233,6 @@ def hydrate_context_agents(context: AgentContext):
 
     context.agent0 = agent0
     context.streaming_agent = streaming_agent
-
-    # Clear raw data to free memory
-    context._raw_agents = None
-    context._raw_streaming_agent_no = 0
 
 
 def _deserialize_agents(

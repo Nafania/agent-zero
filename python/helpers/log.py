@@ -405,9 +405,33 @@ class Log:
 
         out = [logs[u].output() for u in unique]
 
-        if tail is not None:
-            return out, has_earlier
-        return out
+        return out, has_earlier
+
+    def get_items_before(self, before: int, limit: int) -> dict:
+        """Return paginated log items before the given index.
+
+        Args:
+            before: Return items with index < before. If <= 0, uses total count.
+            limit: Maximum number of items to return (clamped to 1-200).
+
+        Returns:
+            {"logs": [item.output(), ...], "has_more": bool}
+        """
+        limit = max(1, min(limit, 200))
+        with self._lock:
+            all_logs = list(self.logs)
+
+        if before <= 0:
+            before = len(all_logs)
+
+        start_idx = max(0, before - limit)
+        items = all_logs[start_idx:before]
+        has_more = start_idx > 0
+
+        return {
+            "logs": [item.output() for item in items],
+            "has_more": has_more,
+        }
 
     def reset(self):
         with self._lock:

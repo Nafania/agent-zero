@@ -56,12 +56,16 @@ class TestLogOutputTail:
             log.updates.append(i)
         return log
 
-    def test_output_without_tail_returns_list(self, patch_log_deps):
-        """Without tail parameter, output() returns a plain list (backward compat)."""
+    def test_output_always_returns_tuple(self, patch_log_deps):
+        """output() always returns (list, bool) tuple."""
         log = self._make_log_with_items(10)
         result = log.output()
-        assert isinstance(result, list)
-        assert len(result) == 10
+        assert isinstance(result, tuple)
+        assert len(result) == 2
+        logs, has_earlier = result
+        assert isinstance(logs, list)
+        assert len(logs) == 10
+        assert has_earlier is False
 
     def test_output_with_tail_returns_tuple(self, patch_log_deps):
         """With tail parameter, output() returns (list, bool) tuple."""
@@ -154,7 +158,6 @@ class TestLazyDeserialization:
         """Freshly created AgentContext has _raw_agents = None."""
         from agent import AgentContext
         assert hasattr(AgentContext, "__init__")
-        # Verify the attribute is documented in the class body
         import inspect
         src = inspect.getsource(AgentContext.__init__)
         assert "_raw_agents" in src
@@ -165,14 +168,33 @@ class TestLazyDeserialization:
 
         ctx = MagicMock()
         ctx._raw_agents = None
-        sentinel = ctx.agent0
+        sentinel = ctx._agent0
         hydrate_context_agents(ctx)
-        # agent0 should be unchanged — function returned early
-        assert ctx.agent0 is sentinel
+        assert ctx._agent0 is sentinel
+
+    def test_hydrate_deserializes_agents(self):
+        """hydrate_context_agents deserializes stored raw agents data."""
+        from python.helpers.persist_chat import hydrate_context_agents
+
+        ctx = MagicMock()
+        ctx._raw_agents = [{"number": 0, "data": {}, "history": ""}]
+        ctx._raw_streaming_agent_no = 0
+        ctx.config = MagicMock()
+
+        with patch("python.helpers.persist_chat._deserialize_agents") as mock_deser:
+            mock_agent = MagicMock()
+            mock_agent.number = 0
+            mock_agent.data = {}
+            mock_deser.return_value = mock_agent
+
+            hydrate_context_agents(ctx)
+
+            mock_deser.assert_called_once()
+            assert ctx._raw_agents is None
 
 
 # ---------------------------------------------------------------------------
-# 4. Chat logs endpoint
+# 4. Chat logs endpoint — pagination logic
 # ---------------------------------------------------------------------------
 
 class TestChatLogsEndpoint:
@@ -181,6 +203,77 @@ class TestChatLogsEndpoint:
         """ChatLogs endpoint can be imported."""
         from python.api.chat_logs import ChatLogs
         assert ChatLogs is not None
+
+    def test_get_items_before_basic(self, patch_log_deps):
+        """get_items_before returns correct slice and has_more flag."""
+        from python.helpers.log import Log
+
+        log = Log()
+        log.context = MagicMock()
+        for i in range(20):
+            from python.helpers.log import LogItem
+            log.logs.append(LogItem(
+                log=log, no=i, type="info",
+                heading=f"Item {i}", content=f"Content {i}",
+            ))
+
+        result = log.get_items_before(before=20, limit=5)
+        assert len(result["logs"]) == 5
+        assert result["has_more"] is True
+        assert result["logs"][0]["no"] == 15
+        assert result["logs"][-1]["no"] == 19
+
+    def test_get_items_before_from_start(self, patch_log_deps):
+        """get_items_before with before=5, limit=10 returns first 5 items."""
+        from python.helpers.log import Log
+
+        log = Log()
+        log.context = MagicMock()
+        for i in range(20):
+            from python.helpers.log import LogItem
+            log.logs.append(LogItem(
+                log=log, no=i, type="info",
+                heading=f"Item {i}", content=f"Content {i}",
+            ))
+
+        result = log.get_items_before(before=5, limit=10)
+        assert len(result["logs"]) == 5
+        assert result["has_more"] is False
+        assert result["logs"][0]["no"] == 0
+
+    def test_get_items_before_zero_defaults_to_end(self, patch_log_deps):
+        """get_items_before with before=0 returns items from the end."""
+        from python.helpers.log import Log
+
+        log = Log()
+        log.context = MagicMock()
+        for i in range(10):
+            from python.helpers.log import LogItem
+            log.logs.append(LogItem(
+                log=log, no=i, type="info",
+                heading=f"Item {i}", content=f"Content {i}",
+            ))
+
+        result = log.get_items_before(before=0, limit=3)
+        assert len(result["logs"]) == 3
+        assert result["has_more"] is True
+        assert result["logs"][-1]["no"] == 9
+
+    def test_get_items_before_clamps_limit(self, patch_log_deps):
+        """get_items_before clamps limit to 1-200."""
+        from python.helpers.log import Log
+
+        log = Log()
+        log.context = MagicMock()
+        for i in range(5):
+            from python.helpers.log import LogItem
+            log.logs.append(LogItem(
+                log=log, no=i, type="info",
+                heading=f"Item {i}", content=f"Content {i}",
+            ))
+
+        result = log.get_items_before(before=5, limit=999)
+        assert len(result["logs"]) == 5
 
 
 # ---------------------------------------------------------------------------
