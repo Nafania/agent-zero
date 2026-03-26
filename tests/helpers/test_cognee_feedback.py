@@ -229,6 +229,33 @@ class TestDrainFeedbackQueue:
         assert n == 1
         assert not list(pending.glob("*.json"))
 
+    @pytest.mark.asyncio
+    async def test_drain_increments_attempts_on_rejection(self, feedback_payload, tmp_path):
+        pending = _tmp_usr_queue(tmp_path)
+        (pending / "retry.json").write_text(json.dumps(feedback_payload))
+        cognee = MagicMock()
+        cognee.session.add_feedback = AsyncMock(return_value=False)
+        with patch("python.helpers.cognee_feedback.files.get_abs_path", side_effect=_abs_path_mock(tmp_path)):
+            n = await cf.drain_feedback_queue(cognee_module=cognee, limit=10)
+        assert n == 0
+        record = json.loads((pending / "retry.json").read_text())
+        assert record["attempts"] == 1
+
+    @pytest.mark.asyncio
+    async def test_drain_quarantines_after_max_rejections(self, feedback_payload, tmp_path):
+        pending = _tmp_usr_queue(tmp_path)
+        stale = dict(feedback_payload)
+        stale["attempts"] = cf.MAX_RETRY_ATTEMPTS - 1
+        (pending / "stale.json").write_text(json.dumps(stale))
+        failed = tmp_path / "usr" / "cognee_feedback_queue" / "failed"
+        cognee = MagicMock()
+        cognee.session.add_feedback = AsyncMock(return_value=False)
+        with patch("python.helpers.cognee_feedback.files.get_abs_path", side_effect=_abs_path_mock(tmp_path)):
+            n = await cf.drain_feedback_queue(cognee_module=cognee, limit=10)
+        assert n == 0
+        assert not list(pending.glob("*.json"))
+        assert list(failed.glob("*.json"))
+
 
 class TestValidatePayload:
     def test_accepts_minimal(self):

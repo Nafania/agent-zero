@@ -11,6 +11,7 @@ import inspect
 import json
 import logging
 import os
+import asyncio
 import uuid
 from typing import Any, Callable
 
@@ -22,6 +23,7 @@ _log = logging.getLogger(__name__)
 _UNSET = object()
 
 VALID_FEEDBACK = frozenset({"positive", "negative"})
+MAX_RETRY_ATTEMPTS = 5
 
 
 class FeedbackPayloadError(ValueError):
@@ -99,6 +101,7 @@ def _enqueue_record(payload: dict[str, Any]) -> None:
         "memory_id": payload["memory_id"],
         "feedback": payload["feedback"],
         "reason": payload.get("reason"),
+        "attempts": 0,
     }
     name = f"{uuid.uuid4().hex}.json"
     path = os.path.join(_pending_dir(), name)
@@ -107,6 +110,13 @@ def _enqueue_record(payload: dict[str, Any]) -> None:
         json.dump(record, f, ensure_ascii=False)
     os.replace(tmp, path)
     _log.info("cognee_feedback queued path=%s", path)
+
+
+def _rewrite_pending_record(path: str, record: dict[str, Any]) -> None:
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(record, f, ensure_ascii=False)
+    os.replace(tmp, path)
 
 
 async def _invoke_add_feedback(
@@ -239,6 +249,24 @@ async def drain_feedback_queue(
             except OSError:
                 pass
             forwarded += 1
+            continue
+        if ok is False:
+            attempts = int(record.get("attempts", 0)) + 1
+            if attempts >= MAX_RETRY_ATTEMPTS:
+                _quarantine_invalid_queue_file(
+                    path, f"max_retries_exceeded:{attempts}"
+                )
+                continue
+            record["attempts"] = attempts
+            try:
+                _rewrite_pending_record(path, record)
+            except Exception as e:
+                _log.warning(
+                    "cognee_feedback could not persist attempts path=%s attempts=%s err=%s",
+                    path,
+                    attempts,
+                    e,
+                )
     return forwarded
 
 
@@ -248,7 +276,11 @@ async def submit_memory_feedback(
 ) -> dict[str, Any]:
     validate_feedback_payload(payload)
 
-    await drain_feedback_queue(cognee_module=cognee_module, limit=20)
+    # Run queue drain asynchronously to avoid adding drain latency to user-facing POSTs.
+    try:
+        asyncio.create_task(drain_feedback_queue(cognee_module=cognee_module, limit=20))
+    except Exception as e:
+        _log.debug("cognee_feedback background drain scheduling skipped err=%s", e)
 
     settings = get_settings()
     if not settings.get("cognee_feedback_enabled", True):
