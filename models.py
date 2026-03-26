@@ -278,19 +278,16 @@ api_keys_round_robin: dict[str, int] = {}
 
 
 def get_api_key(service: str) -> str:
-    # get api key for the service
-    key = (
-        dotenv.get_dotenv_value(f"API_KEY_{service.upper()}")
-        or dotenv.get_dotenv_value(f"{service.upper()}_API_KEY")
-        or dotenv.get_dotenv_value(f"{service.upper()}_API_TOKEN")
-        or "None"
-    )
-    # if the key contains a comma, use round-robin
-    if "," in key:
-        api_keys = [k.strip() for k in key.split(",") if k.strip()]
-        api_keys_round_robin[service] = api_keys_round_robin.get(service, -1) + 1
-        key = api_keys[api_keys_round_robin[service] % len(api_keys)]
-    return key
+    from python.helpers.connected_providers import ProviderPool
+    pool = ProviderPool.get_instance()
+    key = pool.get_credential(service)
+    if key and key not in ("None", "NA"):
+        if "," in key:
+            api_keys = [k.strip() for k in key.split(",") if k.strip()]
+            api_keys_round_robin[service] = api_keys_round_robin.get(service, -1) + 1
+            key = api_keys[api_keys_round_robin[service] % len(api_keys)]
+        return key
+    return "None"
 
 
 def get_rate_limiter(
