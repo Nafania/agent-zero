@@ -10,6 +10,7 @@ These keys are no longer defined in settings or exposed in the WebUI. Legacy val
 | Key | Notes |
 |-----|--------|
 | `agent_memory_subdir` | Removed as a user control. Memory namespace follows active project / default dataset resolution only. |
+| `agent_knowledge_subdir` | Removed as a user control. Knowledge preload now uses default/project-scoped sources only. |
 | `memory_recall_query_prep` | Legacy A0-side recall preprocessing; ignored. |
 | `memory_recall_post_filter` | Legacy A0-side recall post-filtering; ignored. |
 | `memory_recall_similarity_threshold` | Removed as a user-facing control (no longer applied in the recall pipeline). |

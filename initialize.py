@@ -80,7 +80,7 @@ def initialize_agent(override_settings: dict | None = None):
         browser_model=browser_llm,
         profile=current_settings["agent_profile"],
         memory_subdir="default",
-        knowledge_subdirs=[current_settings["agent_knowledge_subdir"], "default"],
+        knowledge_subdirs=["default"],
         mcp_servers=current_settings["mcp_servers"],
         browser_http_headers=current_settings["browser_http_headers"],
         # code_exec params get initialized in _set_runtime_config

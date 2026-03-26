@@ -41,7 +41,6 @@ def _minimal_settings():
         "browser_model_vision": False,
         "browser_model_kwargs": {},
         "agent_profile": "",
-        "agent_knowledge_subdir": "default",
         "mcp_servers": "",
         "browser_http_headers": {},
     }
@@ -62,6 +61,7 @@ class TestInitializeAgent:
             assert config.utility_model is not None
             assert config.embeddings_model is not None
             assert config.browser_model is not None
+            assert config.knowledge_subdirs == ["default"]
             assert config.mcp_servers == ""
 
     def test_initialize_agent_uses_override_settings(self):

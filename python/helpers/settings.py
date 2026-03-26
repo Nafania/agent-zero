@@ -92,7 +92,6 @@ class Settings(TypedDict):
     browser_http_headers: dict[str, Any]
 
     agent_profile: str
-    agent_knowledge_subdir: str
 
     workdir_path: str
     workdir_show: bool
@@ -209,7 +208,6 @@ class SettingsOutputAdditional(TypedDict):
     embedding_providers: list[ModelProvider]
     shell_interfaces: list[FieldOption]
     agent_subdirs: list[FieldOption]
-    knowledge_subdirs: list[FieldOption]
     stt_models: list[FieldOption]
     is_dockerized: bool
     runtime_settings: dict[str, Any]
@@ -261,8 +259,6 @@ def convert_out(settings: Settings) -> SettingsOutput:
             agent_subdirs=[{"value": subdir, "label": subdir}
                 for subdir in files.get_subdirectories("agents")
                 if subdir != "_example"],
-            knowledge_subdirs=[{"value": subdir, "label": subdir}
-                for subdir in files.get_subdirectories("knowledge", exclude="default")],
             stt_models=[
                 {"value": "tiny", "label": "Tiny (39M, English)"},
                 {"value": "base", "label": "Base (74M, English)"},
@@ -295,7 +291,6 @@ def convert_out(settings: Settings) -> SettingsOutput:
     additional["embedding_providers"] = _ensure_option_present(additional.get("embedding_providers"), current.get("embed_model_provider"))
     additional["shell_interfaces"] = _ensure_option_present(additional.get("shell_interfaces"), current.get("shell_interface"))
     additional["agent_subdirs"] = _ensure_option_present(additional.get("agent_subdirs"), current.get("agent_profile"))
-    additional["knowledge_subdirs"] = _ensure_option_present(additional.get("knowledge_subdirs"), current.get("agent_knowledge_subdir"))
     additional["stt_models"] = _ensure_option_present(additional.get("stt_models"), current.get("stt_model_size"))
 
     # masked api keys
@@ -581,7 +576,6 @@ def get_default_settings() -> Settings:
         auth_password="",
         root_password="",
         agent_profile=get_default_value("agent_profile", "agent0"),
-        agent_knowledge_subdir=get_default_value("agent_knowledge_subdir", "custom"),
         workdir_path=get_default_value("workdir_path", files.get_abs_path_dockerized("usr/workdir")),
         workdir_show=get_default_value("workdir_show", True),
         workdir_max_depth=get_default_value("workdir_max_depth", 5),

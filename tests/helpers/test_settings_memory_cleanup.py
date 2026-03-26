@@ -15,6 +15,7 @@ import python.helpers.settings as settings_module
 REMOVED_MEMORY_KEYS = frozenset(
     {
         "agent_memory_subdir",
+        "agent_knowledge_subdir",
         "memory_recall_query_prep",
         "memory_recall_post_filter",
         "memory_recall_similarity_threshold",
@@ -73,7 +74,7 @@ class TestLegacyPayloadNormalize:
         defs = _minimal_settings()
         legacy = dict(defs)
         for key in REMOVED_MEMORY_KEYS:
-            legacy[key] = "legacy" if key == "agent_memory_subdir" else (0.5 if "threshold" in key else True)
+            legacy[key] = "legacy" if key in {"agent_memory_subdir", "agent_knowledge_subdir"} else (0.5 if "threshold" in key else True)
 
         with patch("python.helpers.settings.get_default_settings", return_value=defs):
             result = settings_module.normalize_settings(legacy)
