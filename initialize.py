@@ -8,6 +8,7 @@ def initialize_agent(override_settings: dict | None = None):
     current_settings = settings.get_settings()
     if override_settings:
         current_settings = settings.merge_settings(current_settings, override_settings)
+    current_settings = settings.normalize_settings(current_settings)
 
     def _normalize_model_kwargs(kwargs: dict) -> dict:
         # convert string values that represent valid Python numbers to numeric types
@@ -78,8 +79,8 @@ def initialize_agent(override_settings: dict | None = None):
         embeddings_model=embedding_llm,
         browser_model=browser_llm,
         profile=current_settings["agent_profile"],
-        memory_subdir=current_settings["agent_memory_subdir"],
-        knowledge_subdirs=[current_settings["agent_knowledge_subdir"], "default"],
+        memory_subdir="default",
+        knowledge_subdirs=["default"],
         mcp_servers=current_settings["mcp_servers"],
         browser_http_headers=current_settings["browser_http_headers"],
         # code_exec params get initialized in _set_runtime_config

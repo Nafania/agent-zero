@@ -12,6 +12,7 @@ import { store as stepDetailStore } from "/components/modals/process-step-detail
 import { store as preferencesStore } from "/components/sidebar/bottom/preferences/preferences-store.js";
 import { formatDuration } from "./time-utils.js";
 import { Scroller } from "./scroller.js";
+import { mountMemoryRecallFeedback } from "./memory-recall-feedback.js";
 
 // Delay before collapsing previous steps when a new step is added
 const STEP_COLLAPSE_DELAY = {
@@ -1318,17 +1319,32 @@ export function drawMessageUtil({
       ].filter(Boolean)
     : [];
 
+  let displayKvps = kvps;
+  let feedbackRaw = null;
+  if (kvps && typeof kvps === "object" && "memory_feedback_items" in kvps) {
+    displayKvps = { ...kvps };
+    feedbackRaw = displayKvps.memory_feedback_items;
+    delete displayKvps.memory_feedback_items;
+  }
+
   const result = drawProcessStep({
     id,
     title,
     code: "UTL",
     classes: ["message-util"],
-    kvps,
+    kvps: displayKvps,
     content,
     actionButtons,
     log: arguments[0],
     allowCompletedGroup: true,
   });
+
+  if (feedbackRaw != null && result.contentScroller?.element) {
+    mountMemoryRecallFeedback(result.contentScroller.element, feedbackRaw);
+  } else if (feedbackRaw != null && result.detail) {
+    const scroll = result.detail.querySelector(".process-step-detail-scroll");
+    if (scroll) mountMemoryRecallFeedback(scroll, feedbackRaw);
+  }
 
   result.dontScroll = !preferencesStore.showUtils;
   return result;

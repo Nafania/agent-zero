@@ -1,9 +1,8 @@
 import asyncio
 from python.helpers.extension import Extension
-from python.helpers.memory import Memory
+from python.helpers.memory import Memory, recall_text_and_feedback_items
 from agent import LoopData
-from python.helpers import dirty_json, errors, settings, log
-from python.helpers.cognee_init import get_cognee_setting
+from python.helpers import settings, log
 from python.helpers.print_style import PrintStyle
 
 DATA_NAME_TASK = "_recall_memories_task"
@@ -51,30 +50,7 @@ class RecallMemories(Extension):
         )
         history = self.agent.history.output_text()[-set["memory_recall_history_len"]:]
 
-        if set["memory_recall_query_prep"]:
-            system = self.agent.read_prompt("memory.memories_query.sys.md")
-            message = self.agent.read_prompt(
-                "memory.memories_query.msg.md", history=history, message=user_instruction
-            )
-            try:
-                query = await self.agent.call_utility_model(
-                    system=system,
-                    message=message,
-                )
-                query = query.strip()
-                log_item.update(query=query)
-            except Exception as e:
-                err = errors.format_error(e)
-                self.agent.context.log.log(
-                    type="warning", heading="Recall memories extension error:", content=err
-                )
-                query = ""
-
-            if not query:
-                log_item.update(heading="Failed to generate memory query")
-                return
-        else:
-            query = user_instruction + "\n\n" + history
+        query = user_instruction + "\n\n" + history
 
         if not query or len(query) <= 3:
             log_item.update(
@@ -82,8 +58,8 @@ class RecallMemories(Extension):
             )
             return
 
-        from python.helpers.memory import _get_cognee
-        cognee, SearchType = _get_cognee()
+        from python.helpers.cognee_init import get_cognee
+        cognee, _ = get_cognee()
         from cognee.modules.engine.models.node_set import NodeSet
 
         db = await Memory.get(self.agent)
@@ -125,78 +101,27 @@ class RecallMemories(Extension):
                 pass
             mem_answers, sol_answers = [], []
 
-        memories = _to_strings(mem_answers, set["memory_recall_memories_max_result"])
-        solutions = _to_strings(sol_answers, set["memory_recall_solutions_max_result"])
+        ctx = str(getattr(self.agent.context, "id", "") or "")
+        fb_fallback = db.dataset_name
+        memories, mem_fb = recall_text_and_feedback_items(
+            mem_answers,
+            set["memory_recall_memories_max_result"],
+            context_id=ctx,
+            fallback_dataset=fb_fallback,
+            kind="memory",
+        )
+        solutions, sol_fb = recall_text_and_feedback_items(
+            sol_answers,
+            set["memory_recall_solutions_max_result"],
+            context_id=ctx,
+            fallback_dataset=fb_fallback,
+            kind="solution",
+        )
 
-        if set["memory_recall_post_filter"] and (memories or solutions):
-            memories, solutions = await self._post_filter(
-                memories, solutions, history, user_instruction,
-            )
-
-        _write_extras(self.agent, extras, memories, solutions, log_item)
-
-    async def _post_filter(self, memories, solutions, history, user_instruction):
-        all_items = memories + solutions
-        mems_list = {i: text for i, text in enumerate(all_items)}
-
-        try:
-            filter_response = await self.agent.call_utility_model(
-                system=self.agent.read_prompt("memory.memories_filter.sys.md"),
-                message=self.agent.read_prompt(
-                    "memory.memories_filter.msg.md",
-                    memories=mems_list,
-                    history=history,
-                    message=user_instruction,
-                ),
-            )
-            filter_inds = dirty_json.try_parse(filter_response)
-
-            if isinstance(filter_inds, list):
-                filtered_memories = []
-                filtered_solutions = []
-                mem_len = len(memories)
-                for idx in filter_inds:
-                    if isinstance(idx, int):
-                        if idx < mem_len:
-                            filtered_memories.append(memories[idx])
-                        else:
-                            sol_idx = idx - mem_len
-                            if sol_idx < len(solutions):
-                                filtered_solutions.append(solutions[sol_idx])
-                memories = filtered_memories
-                solutions = filtered_solutions
-
-        except Exception as e:
-            err = errors.format_error(e)
-            self.agent.context.log.log(
-                type="warning", heading="Failed to filter relevant memories", content=err
-            )
-
-        return memories, solutions
+        _write_extras(self.agent, extras, memories, solutions, log_item, mem_fb + sol_fb)
 
 
-def _to_strings(answers, limit: int) -> list[str]:
-    """Convert cognee.search results to plain strings."""
-    if not answers:
-        return []
-
-    texts = []
-    for answer in answers:
-        if len(texts) >= limit:
-            break
-        text = str(answer)
-        if text.startswith("[META:"):
-            try:
-                meta_end = text.index("]\n")
-                text = text[meta_end + 2:]
-            except ValueError:
-                pass
-        texts.append(text)
-
-    return texts
-
-
-def _write_extras(agent, extras, memories, solutions, log_item):
+def _write_extras(agent, extras, memories, solutions, log_item, feedback_items):
     if not memories and not solutions:
         log_item.update(heading="No memories or solutions found")
         return
@@ -212,6 +137,8 @@ def _write_extras(agent, extras, memories, solutions, log_item):
         log_item.update(memories=memories_txt)
     if solutions_txt:
         log_item.update(solutions=solutions_txt)
+    if feedback_items:
+        log_item.update(memory_feedback_items=feedback_items)
 
     if memories_txt:
         extras["memories"] = agent.parse_prompt(

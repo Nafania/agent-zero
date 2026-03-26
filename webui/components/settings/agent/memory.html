@@ -10,18 +10,7 @@
           <div class="section-title">Memory</div>
           <div class="section-description">
             Configuration of A0's memory system. A0 memorizes and recalls memories automatically to help its context awareness.
-          </div>
-
-          <div class="field">
-            <div class="field-label">
-              <div class="field-title">Memory Subdirectory</div>
-              <div class="field-description">
-                Subdirectory of /memory folder to use for agent memory storage. Used to separate memory storage between different instances.
-              </div>
-            </div>
-            <div class="field-control">
-              <input type="text" x-model="$store.settings.settings.agent_memory_subdir" />
-            </div>
+            When auto-recall finds items, the chat util step shows thumbs up/down so you can send Cognee feedback on each recalled memory or solution.
           </div>
 
           <div class="field">
@@ -71,36 +60,6 @@
 
           <div class="field">
             <div class="field-label">
-              <div class="field-title">Auto-recall AI query preparation</div>
-              <div class="field-description">
-                Enables vector DB query preparation from conversation context by utility LLM for auto-recall. Improves search quality, adds 1 utility LLM call per auto-recall.
-              </div>
-            </div>
-            <div class="field-control">
-              <label class="toggle">
-                <input type="checkbox" x-model="$store.settings.settings.memory_recall_query_prep" />
-                <span class="toggler"></span>
-              </label>
-            </div>
-          </div>
-
-          <div class="field">
-            <div class="field-label">
-              <div class="field-title">Auto-recall AI post-filtering</div>
-              <div class="field-description">
-                Enables memory relevance filtering by utility LLM for auto-recall. Improves search quality, adds 1 utility LLM call per auto-recall.
-              </div>
-            </div>
-            <div class="field-control">
-              <label class="toggle">
-                <input type="checkbox" x-model="$store.settings.settings.memory_recall_post_filter" />
-                <span class="toggler"></span>
-              </label>
-            </div>
-          </div>
-
-          <div class="field">
-            <div class="field-label">
               <div class="field-title">Memory auto-recall interval</div>
               <div class="field-description">
                 Memories are recalled after every user or superior agent message. During agent's monologue, memories are recalled every X turns based on this parameter.
@@ -121,19 +80,6 @@
             </div>
             <div class="field-control">
               <input type="number" x-model.number="$store.settings.settings.memory_recall_history_len" />
-            </div>
-          </div>
-
-          <div class="field">
-            <div class="field-label">
-              <div class="field-title">Memory auto-recall similarity threshold</div>
-              <div class="field-description">
-                The threshold for similarity search in memory recall (0 = no similarity, 1 = exact match).
-              </div>
-            </div>
-            <div class="field-control">
-              <input type="range" min="0" max="1" step="0.01" x-model.number="$store.settings.settings.memory_recall_similarity_threshold" />
-              <span class="range-value" x-text="$store.settings.settings.memory_recall_similarity_threshold"></span>
             </div>
           </div>
 
@@ -200,33 +146,6 @@
             </div>
           </div>
 
-          <div class="field">
-            <div class="field-label">
-              <div class="field-title">Auto-memorize AI consolidation</div>
-              <div class="field-description">
-                A0 will automatically consolidate similar memories using utility LLM. Improves memory quality over time, adds 2 utility LLM calls per memory.
-              </div>
-            </div>
-            <div class="field-control">
-              <label class="toggle">
-                <input type="checkbox" x-model="$store.settings.settings.memory_memorize_consolidation" />
-                <span class="toggler"></span>
-              </label>
-            </div>
-          </div>
-
-          <div class="field">
-            <div class="field-label">
-              <div class="field-title">Auto-memorize replacement threshold</div>
-              <div class="field-description">
-                Only applies when AI consolidation is disabled. Replaces previous similar memories with new ones based on this threshold. 0 = replace even if not similar at all, 1 = replace only if exact match.
-              </div>
-            </div>
-            <div class="field-control">
-              <input type="range" min="0" max="1" step="0.01" x-model.number="$store.settings.settings.memory_memorize_replace_threshold" />
-              <span class="range-value" x-text="$store.settings.settings.memory_memorize_replace_threshold"></span>
-            </div>
-          </div>
         </div>
       </template>
     </div>

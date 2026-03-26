@@ -5,6 +5,7 @@ from python.helpers import guids
 import os
 import json
 import asyncio
+import hashlib
 
 
 from python.helpers.print_style import PrintStyle
@@ -22,6 +23,15 @@ from python.helpers.cognee_init import get_cognee_setting
 def _get_cognee():
     from python.helpers.cognee_init import get_cognee
     return get_cognee()
+
+
+def stable_memory_id_fallback(content: str, dataset_name: str = "") -> str:
+    """Deterministic id when Cognee/chunk metadata has no id (feedback correlation)."""
+    h = hashlib.sha256()
+    h.update(str(dataset_name).encode("utf-8", errors="replace"))
+    h.update(b"\0")
+    h.update(content[:8000].encode("utf-8", errors="replace"))
+    return "syn_" + h.hexdigest()[:32]
 
 
 class Memory:
@@ -364,6 +374,40 @@ def _parse_filter_to_node_names(filter_str: str) -> list[str]:
     return node_names
 
 
+def recall_text_and_feedback_items(
+    answers: Any,
+    limit: int,
+    *,
+    context_id: str,
+    fallback_dataset: str,
+    kind: str,
+) -> tuple[list[str], list[dict[str, Any]]]:
+    """
+    Plain recall lines for prompts plus rows the UI can POST to /memory_feedback.
+    Each row: text, memory_id, dataset, context_id, kind ('memory' | 'solution').
+    """
+    docs = _results_to_documents(answers or [], limit)
+    texts: list[str] = []
+    items: list[dict[str, Any]] = []
+    for doc in docs:
+        content = (doc.page_content or "").strip()
+        if not content:
+            continue
+        ds = str(doc.metadata.get("dataset") or fallback_dataset or "default")
+        mid = str(doc.metadata.get("id") or stable_memory_id_fallback(content, ds))
+        texts.append(content)
+        items.append(
+            {
+                "text": content,
+                "memory_id": mid,
+                "dataset": ds,
+                "context_id": str(context_id or ""),
+                "kind": kind,
+            }
+        )
+    return texts, items
+
+
 def _results_to_documents(results: Any, limit: int) -> list[Document]:
     docs = []
     if not results:
@@ -397,7 +441,8 @@ def _results_to_documents(results: Any, limit: int) -> list[Document]:
             metadata.setdefault("dataset", result.dataset_name)
 
         if not metadata.get("id"):
-            metadata["id"] = guids.generate_id(10)
+            ds = str(metadata.get("dataset") or "")
+            metadata["id"] = stable_memory_id_fallback(content, ds)
         if not metadata.get("area"):
             metadata["area"] = Memory.Area.MAIN.value
         if not metadata.get("timestamp"):

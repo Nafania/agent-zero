@@ -1,11 +1,9 @@
-import asyncio
 from python.helpers import settings, errors
 from python.helpers.extension import Extension
 from python.helpers.memory import Memory
 from python.helpers.dirty_json import DirtyJson
 from agent import LoopData
 from python.helpers.log import LogItem
-from python.tools.memory_load import DEFAULT_THRESHOLD as DEFAULT_MEMORY_THRESHOLD
 from python.helpers.defer import DeferredTask, THREAD_BACKGROUND
 
 
@@ -30,8 +28,6 @@ class MemorizeSolutions(Extension):
 
     async def memorize(self, loop_data: LoopData, log_item: LogItem, db: Memory, **kwargs):
         try:
-            set = settings.get_settings()
-
             system = self.agent.read_prompt("memory.solutions_sum.sys.md")
             msgs_text = self.agent.concat_messages(self.agent.history)
 
@@ -79,8 +75,6 @@ class MemorizeSolutions(Extension):
                     heading=f"{len(solutions)} successful solutions to memorize.", solutions=solutions_txt
                 )
 
-            rem = []
-
             for solution in solutions:
                 if isinstance(solution, dict):
                     problem = solution.get("problem", "Unknown problem")
@@ -89,24 +83,12 @@ class MemorizeSolutions(Extension):
                 else:
                     txt = f"# Solution\n {str(solution)}"
 
-                if set["memory_memorize_replace_threshold"] > 0:
-                    rem += await db.delete_documents_by_query(
-                        query=txt,
-                        threshold=set["memory_memorize_replace_threshold"],
-                        filter=f"area=='{Memory.Area.SOLUTIONS.value}'",
-                    )
-                    if rem:
-                        rem_txt = "\n\n".join(Memory.format_docs_plain(rem))
-                        log_item.update(replaced=rem_txt)
-
                 await db.insert_text(text=txt, metadata={"area": Memory.Area.SOLUTIONS.value})
 
             log_item.update(
                 result=f"{len(solutions)} solutions memorized.",
                 heading=f"{len(solutions)} solutions memorized.",
             )
-            if rem:
-                log_item.stream(result=f"\nReplaced {len(rem)} previous solutions.")
 
         except Exception as e:
             err = errors.format_error(e)
