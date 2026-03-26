@@ -20,7 +20,8 @@ These keys are no longer defined in settings or exposed in the WebUI. Legacy val
 
 Recall attaches structured rows (`memory_feedback_items`) to the util log entry. The UI can submit per-item feedback (`positive` / `negative`, optional `reason`) to **`POST /memory_feedback`**, which forwards signals to Cognee (with disk-backed queuing when forwarding is deferred).
 
-Payload fields include: `context_id`, `dataset`, `memory_id`, `feedback`, optional `reason`, and `kind` (`memory` | `solution`).
+`POST /memory_feedback` expects: `context_id`, `dataset`, `memory_id`, `feedback`, and optional `reason`.
+`kind` (`memory` | `solution`) remains available in UI/context rows (`memory_feedback_items`) for rendering and analytics context.
 
 ## Action for operators
 
