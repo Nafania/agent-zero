@@ -1,6 +1,9 @@
 <html>
   <head>
     <title>Agent Config</title>
+    <script type="module">
+      import { store as oauthStore } from "/js/oauth.js";
+    </script>
   </head>
 
   <body>
@@ -27,6 +30,47 @@
               </select>
             </div>
           </div>
+
+          <div class="section-title">OAuth Connections</div>
+          <div class="section-description">
+            Connect model providers via OAuth for seamless authentication.
+            You'll need to register an OAuth app with each provider first.
+          </div>
+
+          <template x-if="$store.oauth && $store.oauth.providers">
+            <div>
+              <template x-for="provider in $store.oauth.providers.filter(p => p.enabled)" :key="provider.provider_id">
+                <div class="field">
+                  <div class="field-label">
+                    <div class="field-title" x-text="provider.name"></div>
+                    <div class="field-description">
+                      <span x-show="provider.connected" style="color: var(--color-success, green)">Connected</span>
+                      <span x-show="!provider.connected" style="color: var(--color-muted, gray)">Not connected</span>
+                    </div>
+                  </div>
+                  <div class="field-control">
+                    <template x-if="!provider.connected">
+                      <div>
+                        <input type="text" x-model="provider._client_id" placeholder="Client ID" style="margin-bottom: 4px;">
+                        <input type="password" x-model="provider._client_secret" placeholder="Client Secret" style="margin-bottom: 4px;">
+                        <button @click="$store.oauth.connect(provider)" class="btn btn-primary btn-sm">Sign in</button>
+                        <template x-if="provider._manualFlow">
+                          <div style="margin-top: 8px;">
+                            <p style="font-size: 0.85em; color: var(--color-muted, gray);">Redirect didn't work? Paste the authorization code:</p>
+                            <input type="text" x-model="provider._manualCode" placeholder="Paste authorization code" style="margin-bottom: 4px;">
+                            <button @click="$store.oauth.submitManualCode(provider)" class="btn btn-sm">Submit code</button>
+                          </div>
+                        </template>
+                      </div>
+                    </template>
+                    <template x-if="provider.connected">
+                      <button @click="$store.oauth.disconnect(provider.provider_id)" class="btn btn-danger btn-sm">Disconnect</button>
+                    </template>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </template>
 
         </div>
       </template>
