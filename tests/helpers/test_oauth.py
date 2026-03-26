@@ -1,4 +1,5 @@
 import secrets
+from contextlib import asynccontextmanager
 
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
@@ -9,6 +10,20 @@ from python.helpers.oauth import (
     OpenAIOAuth,
     get_oauth_provider,
 )
+
+
+def _mock_async_client(post_response=None, get_response=None):
+    mock_client = MagicMock()
+    if post_response is not None:
+        mock_client.post = AsyncMock(return_value=post_response)
+    if get_response is not None:
+        mock_client.get = AsyncMock(return_value=get_response)
+
+    @asynccontextmanager
+    async def fake_client(*args, **kwargs):
+        yield mock_client
+
+    return fake_client, mock_client
 
 
 class TestGoogleOAuth:
@@ -52,8 +67,10 @@ class TestGoogleOAuth:
             "token_type": "Bearer",
             "scope": "https://www.googleapis.com/auth/generative-language",
         }
+        mock_response.raise_for_status = MagicMock()
+        factory, _ = _mock_async_client(post_response=mock_response)
 
-        with patch("httpx.AsyncClient.post", new_callable=AsyncMock, return_value=mock_response):
+        with patch("python.helpers.oauth.httpx.AsyncClient", side_effect=factory):
             tokens = await self.provider.exchange_code(
                 code="4/test-auth-code",
                 client_id="test-client-id",
@@ -70,8 +87,9 @@ class TestGoogleOAuth:
         mock_response.status_code = 400
         mock_response.json.return_value = {"error": "invalid_grant"}
         mock_response.raise_for_status.side_effect = Exception("400 Bad Request")
+        factory, _ = _mock_async_client(post_response=mock_response)
 
-        with patch("httpx.AsyncClient.post", new_callable=AsyncMock, return_value=mock_response):
+        with patch("python.helpers.oauth.httpx.AsyncClient", side_effect=factory):
             with pytest.raises(Exception):
                 await self.provider.exchange_code(
                     code="bad-code",
@@ -90,8 +108,10 @@ class TestGoogleOAuth:
             "token_type": "Bearer",
             "scope": "https://www.googleapis.com/auth/generative-language",
         }
+        mock_response.raise_for_status = MagicMock()
+        factory, _ = _mock_async_client(post_response=mock_response)
 
-        with patch("httpx.AsyncClient.post", new_callable=AsyncMock, return_value=mock_response):
+        with patch("python.helpers.oauth.httpx.AsyncClient", side_effect=factory):
             tokens = await self.provider.refresh_token(
                 refresh_token="1//test-refresh",
                 client_id="test-client-id",
@@ -114,8 +134,10 @@ class TestGoogleOAuth:
                  "inputTokenLimit": 2048},
             ],
         }
+        mock_response.raise_for_status = MagicMock()
+        factory, _ = _mock_async_client(get_response=mock_response)
 
-        with patch("httpx.AsyncClient.get", new_callable=AsyncMock, return_value=mock_response):
+        with patch("python.helpers.oauth.httpx.AsyncClient", side_effect=factory):
             models = await self.provider.list_models(access_token="ya29.test")
         assert len(models) == 1
         assert models[0].id == "gemini-2.5-pro"
@@ -148,7 +170,10 @@ class TestOpenAIOAuth:
             "token_type": "Bearer",
             "scope": "model.read model.request",
         }
-        with patch("httpx.AsyncClient.post", new_callable=AsyncMock, return_value=mock_response):
+        mock_response.raise_for_status = MagicMock()
+        factory, _ = _mock_async_client(post_response=mock_response)
+
+        with patch("python.helpers.oauth.httpx.AsyncClient", side_effect=factory):
             tokens = await self.provider.exchange_code(
                 code="oai-code", client_id="cid", client_secret="cs",
                 redirect_uri="http://localhost/cb",
@@ -167,7 +192,10 @@ class TestOpenAIOAuth:
                 {"id": "dall-e-3", "owned_by": "openai"},
             ]
         }
-        with patch("httpx.AsyncClient.get", new_callable=AsyncMock, return_value=mock_response):
+        mock_response.raise_for_status = MagicMock()
+        factory, _ = _mock_async_client(get_response=mock_response)
+
+        with patch("python.helpers.oauth.httpx.AsyncClient", side_effect=factory):
             models = await self.provider.list_models(access_token="sk-test")
         model_ids = [m.id for m in models]
         assert "gpt-4o" in model_ids
@@ -206,12 +234,15 @@ class TestAnthropicOAuth:
             "token_type": "Bearer",
             "scope": "user:inference",
         }
-        with patch("httpx.AsyncClient.post", new_callable=AsyncMock, return_value=mock_response) as mock_post:
+        mock_response.raise_for_status = MagicMock()
+        factory, mock_client = _mock_async_client(post_response=mock_response)
+
+        with patch("python.helpers.oauth.httpx.AsyncClient", side_effect=factory):
             await self.provider.exchange_code(
                 code="ant-code", client_id="cid", client_secret="cs",
                 redirect_uri="http://localhost/cb", code_verifier="test-verifier",
             )
-            call_kwargs = mock_post.call_args
+            call_kwargs = mock_client.post.call_args
             assert call_kwargs.kwargs["data"]["code_verifier"] == "test-verifier"
 
 
