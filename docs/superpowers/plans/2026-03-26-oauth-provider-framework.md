@@ -1093,6 +1093,15 @@ class ProviderPool:
         return result
 
     def disconnect(self, provider_id: str):
+        tokens = self.store.load(provider_id)
+        if tokens:
+            strategy = get_oauth_provider(provider_id)
+            if strategy:
+                try:
+                    import asyncio
+                    asyncio.run(strategy.revoke(tokens.access_token))
+                except Exception as e:
+                    logger.warning("Failed to revoke token for %s (best-effort): %s", provider_id, e)
         self.store.delete(provider_id)
         self._model_cache.pop(provider_id, None)
         logger.info("Disconnected OAuth for %s", provider_id)
@@ -1556,7 +1565,9 @@ class OAuthCallback(ApiHandler):
             redirect_uri=pending["redirect_uri"],
             code_verifier=pending.get("code_verifier"),
         )
-        ProviderPool.get_instance().store.save(provider_id, tokens)
+        pool = ProviderPool.get_instance()
+        pool.store.save(provider_id, tokens)
+        pool._model_cache.pop(provider_id, None)  # invalidate model cache on connect
 
         return FlaskResponse(
             "<html><body><h2>Connected!</h2><p>You can close this window.</p>"
@@ -1601,7 +1612,9 @@ class OAuthExchange(ApiHandler):
             redirect_uri=pending.get("redirect_uri", ""),
             code_verifier=pending.get("code_verifier"),
         )
-        ProviderPool.get_instance().store.save(provider_id, tokens)
+        pool = ProviderPool.get_instance()
+        pool.store.save(provider_id, tokens)
+        pool._model_cache.pop(provider_id, None)  # invalidate model cache on connect
 
         return {"status": "connected", "provider_id": provider_id}
 ```
@@ -1909,7 +1922,40 @@ In `initialize.py`, after building `chat_llm` from settings (line 43), add overr
                 )
 ```
 
-Note: The calling code must pass `chat_model_override` via kwargs. Check `run_ui.py` or the chat creation flow for how `initialize()` is called, and pass the override from `_load_override(chat_id)` there.
+The `initialize_agent()` function is called from two key locations:
+- `python/helpers/settings.py:619` — global re-initialization on settings change (no chat context, no override needed)
+- `python/extensions/agent_init/_15_load_profile_settings.py:37` — per-agent profile override
+
+Add `chat_id` as an optional parameter to `initialize_agent()`:
+
+```python
+def initialize_agent(override_settings: dict | None = None, chat_id: str | None = None):
+```
+
+At the top of the function (after building `chat_llm`), load and apply override:
+
+```python
+    if chat_id:
+        from python.api.chat_model_override import _load_override
+        chat_override = _load_override(chat_id)
+        if chat_override:
+            from python.helpers.connected_providers import ProviderPool
+            pool = ProviderPool.get_instance()
+            if pool.is_connected(chat_override["provider"]):
+                chat_llm = models.ModelConfig(
+                    type=models.ModelType.CHAT,
+                    provider=chat_override["provider"],
+                    name=chat_override["model"],
+                    ctx_length=current_settings["chat_model_ctx_length"],
+                    vision=current_settings["chat_model_vision"],
+                    limit_requests=current_settings["chat_model_rl_requests"],
+                    limit_input=current_settings["chat_model_rl_input"],
+                    limit_output=current_settings["chat_model_rl_output"],
+                    kwargs=_normalize_model_kwargs(current_settings["chat_model_kwargs"]),
+                )
+```
+
+Then find where agent is created for a chat (search for `AgentContext` creation in `run_ui.py` or `python/api/chat_*.py`) and pass `chat_id` to `initialize_agent()` there. The agent context likely has a `chat_id` field — use it.
 
 - [ ] **Step 5: Run tests to verify pass**
 
@@ -1962,6 +2008,13 @@ In `webui/components/settings/agent/agent.html`, after the existing agent profil
                       <input type="text" x-model="provider._client_id" placeholder="Client ID" class="input-sm">
                       <input type="password" x-model="provider._client_secret" placeholder="Client Secret" class="input-sm">
                       <button @click="$store.oauth.connect(provider)" class="btn btn-primary btn-sm">Sign in</button>
+                      <template x-if="provider._manualFlow">
+                        <div class="manual-code-flow">
+                          <p class="text-muted">Redirect didn't work? Paste the authorization code here:</p>
+                          <input type="text" x-model="provider._manualCode" placeholder="Paste authorization code">
+                          <button @click="$store.oauth.submitManualCode(provider)" class="btn btn-sm">Submit code</button>
+                        </div>
+                      </template>
                     </div>
                   </template>
                   <template x-if="provider.connected">
@@ -2000,6 +2053,8 @@ document.addEventListener("alpine:init", () => {
       }
     },
 
+    _pendingState: null,
+
     async connect(provider) {
       const redirectUri = window.location.origin + "/oauth_callback";
       try {
@@ -2016,17 +2071,50 @@ document.addEventListener("alpine:init", () => {
         });
         const data = await resp.json();
         if (data.authorization_url) {
+          this._pendingState = data.state;
+          provider._manualFlow = false;
+          provider._manualCode = "";
+
           const popup = window.open(data.authorization_url, "oauth", "width=600,height=700");
-          // Poll for popup close then refresh providers
+          let elapsed = 0;
           const timer = setInterval(() => {
+            elapsed += 500;
             if (popup && popup.closed) {
               clearInterval(timer);
+              this._pendingState = null;
               this.loadProviders();
+            }
+            // After 5s if popup hasn't closed, offer manual flow
+            if (elapsed >= 5000 && popup && !popup.closed) {
+              provider._manualFlow = true;
             }
           }, 500);
         }
       } catch (e) {
         console.error("OAuth connect failed:", e);
+      }
+    },
+
+    async submitManualCode(provider) {
+      if (!provider._manualCode || !this._pendingState) return;
+      try {
+        const resp = await fetch("/oauth_exchange", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            provider_id: provider.provider_id,
+            code: provider._manualCode,
+            state: this._pendingState,
+          }),
+        });
+        const data = await resp.json();
+        if (data.status === "connected") {
+          this._pendingState = null;
+          provider._manualFlow = false;
+          await this.loadProviders();
+        }
+      } catch (e) {
+        console.error("Manual code exchange failed:", e);
       }
     },
 
