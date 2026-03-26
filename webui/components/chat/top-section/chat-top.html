@@ -34,6 +34,11 @@
                     </button>
                     <div x-show="$store.modelPicker.open" @click.outside="$store.modelPicker.open = false"
                          style="position: absolute; right: 0; top: 100%; background: var(--color-bg, white); border: 1px solid var(--color-border, #ccc); border-radius: 4px; padding: 8px; z-index: 100; min-width: 250px;">
+                      <div x-show="$store.modelPicker.currentOverride"
+                           @click="$store.modelPicker.resetToDefault()"
+                           style="padding: 4px 8px; cursor: pointer; border-radius: 2px; margin-bottom: 8px; font-size: 0.85em; color: var(--color-accent, #1976d2); border-bottom: 1px solid var(--color-border, #eee);">
+                        &#8592; Reset to default
+                      </div>
                       <template x-for="[providerId, models] in Object.entries($store.modelPicker.models)" :key="providerId">
                         <div style="margin-bottom: 8px;">
                           <div style="font-weight: bold; font-size: 0.85em; text-transform: uppercase; padding: 4px 0;" x-text="providerId"></div>

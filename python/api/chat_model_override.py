@@ -1,7 +1,16 @@
 import json
 import os
+import re
 from python.helpers.api import ApiHandler, Input, Output, Request
 from python.helpers import files
+
+_SAFE_CHAT_ID = re.compile(r"^[a-zA-Z0-9_\-]+$")
+
+
+def _validate_chat_id(chat_id: str) -> str | None:
+    if not chat_id or not _SAFE_CHAT_ID.match(chat_id):
+        return None
+    return chat_id
 
 
 def _override_path(chat_id: str) -> str:
@@ -9,7 +18,10 @@ def _override_path(chat_id: str) -> str:
 
 
 def _load_override(chat_id: str) -> dict | None:
-    path = _override_path(chat_id)
+    safe = _validate_chat_id(chat_id)
+    if not safe:
+        return None
+    path = _override_path(safe)
     if not os.path.exists(path):
         return None
     try:
@@ -20,10 +32,22 @@ def _load_override(chat_id: str) -> dict | None:
 
 
 def _save_override(chat_id: str, provider: str, model: str):
-    path = _override_path(chat_id)
+    safe = _validate_chat_id(chat_id)
+    if not safe:
+        raise ValueError(f"Invalid chat_id: {chat_id}")
+    path = _override_path(safe)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as f:
         json.dump({"provider": provider, "model": model}, f)
+
+
+def _delete_override(chat_id: str):
+    safe = _validate_chat_id(chat_id)
+    if not safe:
+        return
+    path = _override_path(safe)
+    if os.path.exists(path):
+        os.remove(path)
 
 
 class ChatModelOverride(ApiHandler):
@@ -31,6 +55,12 @@ class ChatModelOverride(ApiHandler):
         chat_id = input.get("chat_id", "")
         if not chat_id:
             return {"error": "chat_id required"}
+        if not _validate_chat_id(chat_id):
+            return {"error": "invalid chat_id"}
+
+        if input.get("reset"):
+            _delete_override(chat_id)
+            return {"status": "ok", "chat_id": chat_id, "override": None}
 
         provider = input.get("provider")
         model = input.get("model")

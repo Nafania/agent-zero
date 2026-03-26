@@ -49,10 +49,14 @@ def initialize_agent(override_settings: dict | None = None, chat_id: str | None 
             from python.helpers.connected_providers import ProviderPool
             pool = ProviderPool.get_instance()
             if pool.is_connected(chat_override["provider"]):
+                from python.helpers.providers import get_provider_config
+                provider_cfg = get_provider_config("chat", chat_override["provider"]) or {}
+                api_base = provider_cfg.get("api_base", "") or ""
                 chat_llm = models.ModelConfig(
                     type=models.ModelType.CHAT,
                     provider=chat_override["provider"],
                     name=chat_override["model"],
+                    api_base=api_base,
                     ctx_length=current_settings["chat_model_ctx_length"],
                     vision=current_settings["chat_model_vision"],
                     limit_requests=current_settings["chat_model_rl_requests"],

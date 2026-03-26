@@ -88,3 +88,20 @@ class TestProviderPool:
         pool.store.save("google", valid_tokens)
         pool.disconnect("google")
         assert pool.store.load("google") is None
+
+    def test_run_async_from_sync_context(self, pool):
+        import asyncio
+        async def _coro():
+            return 42
+        result = pool._run_async(_coro())
+        assert result == 42
+
+    def test_disconnect_revokes_via_run_async(self, pool, valid_tokens):
+        pool.store.save("google", valid_tokens)
+        with patch("python.helpers.connected_providers.get_oauth_provider") as mock_get:
+            mock_strategy = MagicMock()
+            mock_strategy.revoke = AsyncMock(return_value=None)
+            mock_get.return_value = mock_strategy
+            pool.disconnect("google")
+        mock_strategy.revoke.assert_called_once_with("test-access")
+        assert pool.store.load("google") is None

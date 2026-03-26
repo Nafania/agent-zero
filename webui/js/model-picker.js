@@ -59,6 +59,21 @@ const model = {
     }
   },
 
+  async resetToDefault() {
+    if (!this.chatId) return;
+    try {
+      await fetch("/chat_model_override", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: this.chatId, reset: true }),
+      });
+      this.currentOverride = null;
+      this.open = false;
+    } catch (e) {
+      console.error("Failed to reset model override:", e);
+    }
+  },
+
   get currentLabel() {
     if (this.currentOverride) {
       return `${this.currentOverride.model} (${this.currentOverride.provider})`;

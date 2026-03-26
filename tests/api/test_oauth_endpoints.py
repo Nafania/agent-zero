@@ -129,6 +129,28 @@ class TestOAuthCallback:
         assert "Invalid" in mock_resp.call_args[0][0]
 
     @pytest.mark.asyncio
+    async def test_returns_400_for_unknown_provider(self):
+        handler = _make(OAuthCallback)
+        _pending_states["unk-state"] = {
+            "provider_id": "nonexistent",
+            "redirect_uri": "http://localhost/cb",
+            "code_verifier": None,
+            "flow": "redirect",
+            "created": 9999999999,
+        }
+        request = MagicMock()
+        request.args = {"code": "abc", "state": "unk-state", "error": ""}
+
+        with patch("python.api.oauth_callback.get_oauth_provider", return_value=None):
+            with patch("python.api.oauth_callback.FlaskResponse") as mock_resp:
+                await handler.process({}, request)
+
+        mock_resp.assert_called_once()
+        assert mock_resp.call_args[1]["status"] == 400
+        assert "Unknown provider" in mock_resp.call_args[0][0]
+        _pending_states.clear()
+
+    @pytest.mark.asyncio
     async def test_exchanges_code_and_saves_tokens(self):
         handler = _make(OAuthCallback)
         _pending_states["cb-state"] = {

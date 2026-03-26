@@ -112,25 +112,26 @@ class ProviderPool:
                 return current
 
             try:
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    import concurrent.futures
-                    with concurrent.futures.ThreadPoolExecutor() as executor:
-                        future = executor.submit(
-                            asyncio.run,
-                            strategy.refresh_token(tokens.refresh_token, cid, cs)
-                        )
-                        refreshed = future.result(timeout=30)
-                else:
-                    refreshed = loop.run_until_complete(
-                        strategy.refresh_token(tokens.refresh_token, cid, cs)
-                    )
+                refreshed = self._run_async(
+                    strategy.refresh_token(tokens.refresh_token, cid, cs)
+                )
                 self.store.save(provider_id, refreshed)
                 logger.info("OAuth token refreshed for %s", provider_id)
                 return refreshed
             except Exception as e:
                 logger.warning("Failed to refresh OAuth token for %s: %s", provider_id, e)
                 return None
+
+    @staticmethod
+    def _run_async(coro):
+        """Run an async coroutine from sync code, safe when called inside a running event loop."""
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            return asyncio.run(coro)
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            return pool.submit(asyncio.run, coro).result(timeout=30)
 
     def is_connected(self, provider_id: str) -> bool:
         tokens = self.store.load(provider_id)
@@ -155,7 +156,7 @@ class ProviderPool:
             strategy = get_oauth_provider(provider_id)
             if strategy:
                 try:
-                    asyncio.run(strategy.revoke(tokens.access_token))
+                    self._run_async(strategy.revoke(tokens.access_token))
                 except Exception as e:
                     logger.warning("Failed to revoke token for %s (best-effort): %s", provider_id, e)
         self.store.delete(provider_id)

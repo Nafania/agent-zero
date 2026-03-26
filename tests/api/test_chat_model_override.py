@@ -52,3 +52,42 @@ class TestOverrideHelpers:
     def test_load_nonexistent_returns_none(self, tmp_path):
         with patch("python.api.chat_model_override.files.get_abs_path", side_effect=lambda p: str(tmp_path / p)):
             assert _load_override("nonexistent") is None
+
+    def test_path_traversal_chat_id_rejected(self):
+        assert _load_override("../../etc/passwd") is None
+
+    def test_save_rejects_traversal(self):
+        with pytest.raises(ValueError):
+            _save_override("../evil", "openai", "gpt-4o")
+
+    def test_save_rejects_slashes(self):
+        with pytest.raises(ValueError):
+            _save_override("foo/bar", "openai", "gpt-4o")
+
+    def test_delete_override(self, tmp_path):
+        from python.api.chat_model_override import _delete_override
+        with patch("python.api.chat_model_override.files.get_abs_path", side_effect=lambda p: str(tmp_path / p)):
+            _save_override("chat-del", "openai", "gpt-4o")
+            assert _load_override("chat-del") is not None
+            _delete_override("chat-del")
+            assert _load_override("chat-del") is None
+
+
+class TestChatModelOverrideReset:
+    @pytest.mark.asyncio
+    async def test_reset_override(self):
+        handler = _make()
+        with patch("python.api.chat_model_override._delete_override") as mock_del:
+            result = await handler.process({
+                "chat_id": "abc-123",
+                "reset": True,
+            }, MagicMock())
+        mock_del.assert_called_once_with("abc-123")
+        assert result["status"] == "ok"
+        assert result["override"] is None
+
+    @pytest.mark.asyncio
+    async def test_invalid_chat_id_returns_error(self):
+        handler = _make()
+        result = await handler.process({"chat_id": "../../etc/passwd"}, MagicMock())
+        assert "error" in result

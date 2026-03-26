@@ -31,9 +31,14 @@ class OAuthTokenStore:
             suffix=".tmp",
         )
         try:
+            os.fchmod(fd, 0o600)
             with os.fdopen(fd, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, default=str)
             os.replace(tmp, self.file_path)
+            try:
+                os.chmod(self.file_path, 0o600)
+            except OSError:
+                pass
         except Exception:
             if os.path.exists(tmp):
                 os.unlink(tmp)

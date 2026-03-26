@@ -28,6 +28,12 @@ class OAuthCallback(ApiHandler):
 
         provider_id = pending["provider_id"]
         provider = get_oauth_provider(provider_id)
+        if not provider:
+            return FlaskResponse(
+                f"<html><body><h2>Unknown provider</h2><p>Provider '{provider_id}' is not supported.</p></body></html>",
+                content_type="text/html",
+                status=400,
+            )
         cid = dotenv.get_dotenv_value(f"OAUTH_CLIENT_ID_{provider_id.upper()}") or ""
         cs = dotenv.get_dotenv_value(f"OAUTH_CLIENT_SECRET_{provider_id.upper()}") or ""
 
