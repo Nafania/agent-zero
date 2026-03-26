@@ -11,7 +11,7 @@
 1. **OAuth as alternative to API key** — each provider shows "Sign in" button alongside the API key field. Either method works; OAuth takes priority when both are present.
 2. **Three providers at launch:** Google (enabled), OpenAI (enabled), Anthropic (code-complete but hidden in UI — blocked by Anthropic's third-party restriction, enable when they open access).
 3. **User provides OAuth app credentials** — user registers their own OAuth app with each provider, enters `client_id` + `client_secret` in Agent Zero settings. Stored persistently in `usr/.env`.
-4. **Dynamic redirect with copy-paste fallback** — OAuth callback URL derived from browser's `window.location.origin`. When redirect is unreachable (remote access, NAT), user can copy-paste the authorization code manually.
+4. **Dynamic redirect with manual code fallback** — OAuth callback URL derived from browser's `window.location.origin`. When redirect is unreachable (remote access, NAT), user can copy-paste the authorization code manually.
 5. **Per-chat model switching** — only the chat model can be overridden per conversation. Utility, browser, and embedding models remain global.
 6. **Dynamic model lists** — provider APIs queried for available models (cached 1 hour).
 
@@ -37,9 +37,9 @@ New module `python/helpers/oauth.py` with strategy pattern:
 - Methods: `get_authorization_url()`, `exchange_code()`, `refresh_token()`, `revoke()`, `list_models()`
 
 **Concrete strategies:**
-- `GoogleOAuth` — standard OAuth2 Authorization Code flow. Token URL: `https://oauth2.googleapis.com/token`. Models endpoint: `https://generativelanguage.googleapis.com/v1beta/models`.
-- `OpenAIOAuth` — standard OAuth2 Authorization Code flow. Token URL: `https://auth.openai.com/oauth/token`. Models endpoint: `https://api.openai.com/v1/models`.
-- `AnthropicOAuth` — OAuth2 with PKCE (S256). Authorization: `https://claude.ai/oauth/authorize`. Token: `https://console.anthropic.com/v1/oauth/token`. Models: `https://api.anthropic.com/v1/models`.
+- `GoogleOAuth` — standard OAuth2 Authorization Code flow. Token URL: `https://oauth2.googleapis.com/token`. Models endpoint: `https://generativelanguage.googleapis.com/v1beta/models`. Scopes: `https://www.googleapis.com/auth/generative-language`.
+- `OpenAIOAuth` — standard OAuth2 Authorization Code flow. Token URL: `https://auth.openai.com/oauth/token`. Models endpoint: `https://api.openai.com/v1/models`. Scopes: provider-defined (request at authorization time).
+- `AnthropicOAuth` — OAuth2 with PKCE (S256). Authorization: `https://claude.ai/oauth/authorize`. Token: `https://console.anthropic.com/v1/oauth/token`. Models: `https://api.anthropic.com/v1/models`. Scopes: `user:inference user:profile`.
 
 **Data types:**
 
@@ -132,7 +132,7 @@ Stored in chat metadata (existing `context.json`). Only the chat model is overri
 
 **Application:** `initialize.py` checks for per-chat override before building `ModelConfig`. If override exists and the provider is connected, use it. If provider has disconnected since override was set — fallback to global default, notify user.
 
-**Dynamic model list:** `ProviderPool.list_models(provider_id)` queries the provider's models API endpoint. Results cached in memory for 1 hour. Cache invalidated on connect/disconnect. Works for both OAuth and API-key providers.
+**Dynamic model list:** `ProviderPool.list_models(provider_id)` queries the provider's models API endpoint. Results cached in memory for 1 hour. Cache invalidated on connect/disconnect. Works for both OAuth and API-key providers. Model lists are filtered to chat-capable models only — each strategy defines a filter predicate (e.g., Google: `generateContent` method supported; OpenAI: model ID starts with `gpt-`, `o1-`, `o3-`, `chatgpt-`; Anthropic: model ID starts with `claude-`).
 
 **UI: Model Picker dropdown in chat header:**
 - Shows current model: "GPT-4o (OpenAI)"
@@ -151,7 +151,7 @@ New file `python/api/oauth.py`:
 | Method | Path | Purpose |
 |--------|------|---------|
 | `GET` | `/api/oauth/providers` | List providers with OAuth support and connection status |
-| `POST` | `/api/oauth/authorize` | Accept `{provider_id, client_id, client_secret, redirect_uri}` or `{..., flow: "device"}`. Save client creds, generate state + PKCE, return `{authorization_url}` |
+| `POST` | `/api/oauth/authorize` | Accept `{provider_id, client_id, client_secret, redirect_uri}` or `{..., flow: "manual"}`. Save client creds, generate state + PKCE, return `{authorization_url}`. State and PKCE verifier stored server-side in an in-memory dict keyed by state value (TTL 10 min). |
 | `GET` | `/api/oauth/callback` | Redirect endpoint. Validate state, exchange code, persist tokens, return HTML success page |
 | `POST` | `/api/oauth/exchange-code` | Manual code exchange for copy-paste fallback: `{provider_id, code}` |
 | `POST` | `/api/oauth/disconnect` | Revoke + remove tokens for `{provider_id}` |
@@ -177,7 +177,7 @@ CSRF/auth: same model as existing API handlers. State parameter validation on ca
 **Primary: dynamic redirect.** Frontend sends `window.location.origin + "/api/oauth/callback"` as `redirect_uri` in the authorize request. Works when user accesses Agent Zero UI directly (same host resolves for both browser and server).
 
 **Fallback: manual code exchange.** When redirect fails (NAT, tunnel, provider rejects dynamic URI):
-1. Frontend calls authorize with `{flow: "device"}`
+1. Frontend calls authorize with `{flow: "manual"}`
 2. Backend returns authorization URL without redirect
 3. User opens URL, authorizes, receives code on provider's page
 4. User pastes code into Agent Zero UI
