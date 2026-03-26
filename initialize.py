@@ -4,7 +4,7 @@ from python.helpers import runtime, settings, defer
 from python.helpers.print_style import PrintStyle
 
 
-def initialize_agent(override_settings: dict | None = None):
+def initialize_agent(override_settings: dict | None = None, chat_id: str | None = None):
     current_settings = settings.get_settings()
     if override_settings:
         current_settings = settings.merge_settings(current_settings, override_settings)
@@ -41,6 +41,25 @@ def initialize_agent(override_settings: dict | None = None):
         limit_output=current_settings["chat_model_rl_output"],
         kwargs=_normalize_model_kwargs(current_settings["chat_model_kwargs"]),
     )
+
+    if chat_id:
+        from python.api.chat_model_override import _load_override
+        chat_override = _load_override(chat_id)
+        if chat_override:
+            from python.helpers.connected_providers import ProviderPool
+            pool = ProviderPool.get_instance()
+            if pool.is_connected(chat_override["provider"]):
+                chat_llm = models.ModelConfig(
+                    type=models.ModelType.CHAT,
+                    provider=chat_override["provider"],
+                    name=chat_override["model"],
+                    ctx_length=current_settings["chat_model_ctx_length"],
+                    vision=current_settings["chat_model_vision"],
+                    limit_requests=current_settings["chat_model_rl_requests"],
+                    limit_input=current_settings["chat_model_rl_input"],
+                    limit_output=current_settings["chat_model_rl_output"],
+                    kwargs=_normalize_model_kwargs(current_settings["chat_model_kwargs"]),
+                )
 
     # utility model from user settings
     utility_llm = models.ModelConfig(
