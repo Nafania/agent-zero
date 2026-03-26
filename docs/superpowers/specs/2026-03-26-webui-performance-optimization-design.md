@@ -26,11 +26,13 @@ Five coordinated changes across backend and frontend.
 
 Backend holds a module-level `_chat_list_updated_at: float` timestamp, updated by operations that change the chat list: create, remove, rename, running-status change.
 
-`StateRequestV1` gains a field `chat_list_since: float`. The client sends the timestamp of its last received chat list update. `build_snapshot_from_request` compares: if `chat_list_since >= _chat_list_updated_at`, it sets `contexts` and `tasks` to `None` in the snapshot and skips the `AgentContext.all()` iteration + sort entirely.
+`StateRequestV1` gains a field `chat_list_since: float`. The client sends the timestamp of its last received chat list update. On first load, hard refresh, or new tab, the client sends `chat_list_since: 0`, which always triggers a full list. `build_snapshot_from_request` compares: if `chat_list_since >= _chat_list_updated_at`, it sets `contexts` and `tasks` to `None` in the snapshot and skips the `AgentContext.all()` iteration + sort entirely.
 
 `SnapshotV1` gains `chat_list_updated_at: float`. The client stores this and passes it back in subsequent requests.
 
 Frontend `applySnapshot` checks: if `contexts` is `null`, leave the sidebar list unchanged. Otherwise apply as today.
+
+Both `contexts` and `tasks` follow the same conditional logic — they are either both included or both `null`. The `has_earlier_logs` field in the snapshot and the `has_more` field in the `/chat_logs` response represent the same concept (whether older log items exist) for their respective contexts.
 
 **Files:** `state_snapshot.py`, `index.js`, `sync-store.js`, `chats-store.js`, `tasks-store.js`.
 
@@ -40,7 +42,7 @@ Frontend `applySnapshot` checks: if `contexts` is `null`, leave the sidebar list
 
 #### Backend
 
-`Log.output()` gains an optional `tail: int | None` parameter. When `tail` is set and `start == 0` (full load), the method collects all unique log item numbers from `updates`, takes only the last `tail` items, and returns their outputs. The snapshot includes a new field `has_earlier_logs: bool` indicating whether there are log items before the returned window.
+`Log.output()` gains an optional `tail: int | None` parameter. When `tail` is set and `start == 0` (full load), the method collects all unique log item numbers from `updates`, takes only the last `tail` items, and returns their outputs. When `start != 0` (incremental push), `tail` is ignored. The snapshot includes a new field `has_earlier_logs: bool` indicating whether there are log items before the returned window.
 
 Default tail size: `INITIAL_LOG_TAIL = 50`.
 
@@ -130,13 +132,15 @@ A loading indicator at the top of `#chat-history` appears when `has_earlier_logs
 | `python/helpers/log.py` | `tail` param in `output()`, switch `_notify_state_monitor` to `mark_dirty_for_context` |
 | `python/helpers/state_monitor.py` | No structural changes; existing `mark_dirty_for_context` and `mark_dirty_all` used as-is |
 | `python/helpers/persist_chat.py` | Two-phase deserialization: metadata-only in `load_tmp_chats`, lazy `_deserialize_agents` |
-| `agent.py` | `_raw_agents` field, `_ensure_hydrated()` method, guard in `output()` |
+| `agent.py` | `_raw_agents` field, `_ensure_hydrated()` method; `output()` works without hydration, guards on paths accessing `agent0`/chain |
 | `python/api/chat_logs.py` | New endpoint for paginated log history |
 | `python/api/chat_create.py`, `chat_remove.py`, `chat_reset.py` | Update `_chat_list_updated_at` on list mutations |
+| `run_ui.py` | No edit needed — new `chat_logs.py` is auto-discovered by `load_classes_from_folder` in `run_ui.py` |
 | `webui/index.js` | Track `chat_list_updated_at`, pass `chat_list_since`, handle `has_earlier_logs`, call `/chat_logs` |
 | `webui/js/messages.js` | Batched `requestAnimationFrame` rendering, prepend logic with scroll preservation |
 | `webui/components/sync/sync-store.js` | Pass `chat_list_since` in state request payload |
 | `webui/components/sidebar/chats/chats-store.js` | Handle `null` contexts gracefully |
+| `webui/components/sidebar/tasks/tasks-store.js` | Handle `null` tasks gracefully |
 
 ## Testing
 
