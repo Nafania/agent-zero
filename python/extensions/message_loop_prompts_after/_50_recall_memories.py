@@ -1,6 +1,6 @@
 import asyncio
 from python.helpers.extension import Extension
-from python.helpers.memory import Memory
+from python.helpers.memory import Memory, recall_text_and_feedback_items
 from agent import LoopData
 from python.helpers import settings, log
 from python.helpers.print_style import PrintStyle
@@ -101,34 +101,27 @@ class RecallMemories(Extension):
                 pass
             mem_answers, sol_answers = [], []
 
-        memories = _to_strings(mem_answers, set["memory_recall_memories_max_result"])
-        solutions = _to_strings(sol_answers, set["memory_recall_solutions_max_result"])
+        ctx = str(getattr(self.agent.context, "id", "") or "")
+        fb_fallback = db.dataset_name
+        memories, mem_fb = recall_text_and_feedback_items(
+            mem_answers,
+            set["memory_recall_memories_max_result"],
+            context_id=ctx,
+            fallback_dataset=fb_fallback,
+            kind="memory",
+        )
+        solutions, sol_fb = recall_text_and_feedback_items(
+            sol_answers,
+            set["memory_recall_solutions_max_result"],
+            context_id=ctx,
+            fallback_dataset=fb_fallback,
+            kind="solution",
+        )
 
-        _write_extras(self.agent, extras, memories, solutions, log_item)
-
-
-def _to_strings(answers, limit: int) -> list[str]:
-    """Convert cognee.search results to plain strings."""
-    if not answers:
-        return []
-
-    texts = []
-    for answer in answers:
-        if len(texts) >= limit:
-            break
-        text = str(answer)
-        if text.startswith("[META:"):
-            try:
-                meta_end = text.index("]\n")
-                text = text[meta_end + 2:]
-            except ValueError:
-                pass
-        texts.append(text)
-
-    return texts
+        _write_extras(self.agent, extras, memories, solutions, log_item, mem_fb + sol_fb)
 
 
-def _write_extras(agent, extras, memories, solutions, log_item):
+def _write_extras(agent, extras, memories, solutions, log_item, feedback_items):
     if not memories and not solutions:
         log_item.update(heading="No memories or solutions found")
         return
@@ -144,6 +137,8 @@ def _write_extras(agent, extras, memories, solutions, log_item):
         log_item.update(memories=memories_txt)
     if solutions_txt:
         log_item.update(solutions=solutions_txt)
+    if feedback_items:
+        log_item.update(memory_feedback_items=feedback_items)
 
     if memories_txt:
         extras["memories"] = agent.parse_prompt(

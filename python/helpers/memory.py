@@ -374,6 +374,40 @@ def _parse_filter_to_node_names(filter_str: str) -> list[str]:
     return node_names
 
 
+def recall_text_and_feedback_items(
+    answers: Any,
+    limit: int,
+    *,
+    context_id: str,
+    fallback_dataset: str,
+    kind: str,
+) -> tuple[list[str], list[dict[str, Any]]]:
+    """
+    Plain recall lines for prompts plus rows the UI can POST to /memory_feedback.
+    Each row: text, memory_id, dataset, context_id, kind ('memory' | 'solution').
+    """
+    docs = _results_to_documents(answers or [], limit)
+    texts: list[str] = []
+    items: list[dict[str, Any]] = []
+    for doc in docs:
+        content = (doc.page_content or "").strip()
+        if not content:
+            continue
+        ds = str(doc.metadata.get("dataset") or fallback_dataset or "default")
+        mid = str(doc.metadata.get("id") or stable_memory_id_fallback(content, ds))
+        texts.append(content)
+        items.append(
+            {
+                "text": content,
+                "memory_id": mid,
+                "dataset": ds,
+                "context_id": str(context_id or ""),
+                "kind": kind,
+            }
+        )
+    return texts, items
+
+
 def _results_to_documents(results: Any, limit: int) -> list[Document]:
     docs = []
     if not results:
