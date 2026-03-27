@@ -39,6 +39,7 @@ const model = {
   _unreadIds: {},
 
   formatRelativeTime,
+  _tick: 0,
 
   // for convenience
   getSelectedChatId() {
@@ -56,6 +57,7 @@ const model = {
     if (lastSelectedChat) {
       this.selectChat(lastSelectedChat);
     }
+    setInterval(() => { this._tick++; }, 10000);
   },
 
   // Update contexts from polling
