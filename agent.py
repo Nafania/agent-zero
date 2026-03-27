@@ -322,6 +322,10 @@ class AgentContext:
             return response
         except Exception as e:
             agent.handle_critical_exception(e)
+        finally:
+            if user:
+                from python.helpers.state_snapshot import touch_chat_list
+                touch_chat_list()
 
 
 @dataclass
