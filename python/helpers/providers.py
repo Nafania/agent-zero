@@ -99,3 +99,17 @@ def get_raw_providers(provider_type: ModelType) -> List[Dict[str, str]]:
 def get_provider_config(provider_type: ModelType, provider_id: str) -> Optional[Dict[str, str]]:
     """Return metadata for a single provider (None if not found)."""
     return ProviderManager.get_instance().get_provider_config(provider_type, provider_id)
+
+
+def get_oauth_providers() -> list[dict]:
+    result = []
+    for p in get_raw_providers("chat"):
+        oauth = p.get("oauth")
+        if isinstance(oauth, dict) and oauth.get("strategy"):
+            result.append({
+                "provider_id": (p.get("id") or p.get("value", "")).lower(),
+                "name": p.get("name", ""),
+                "enabled": oauth.get("enabled", False),
+                "strategy": oauth["strategy"],
+            })
+    return result
