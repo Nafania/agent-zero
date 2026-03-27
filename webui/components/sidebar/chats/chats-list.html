@@ -37,6 +37,11 @@
                     :style="context.project?.color ? { backgroundColor: context.project.color } : { border: '1px solid var(--color-border)' }"></span>
                   <span class="chat-name"
                     x-text="context.name ? context.name : 'Chat #' + context.no"></span>
+                  <span class="unread-dot"
+                    x-show="context.unread && context.id !== $store.chats.selected"></span>
+                  <span class="chat-timestamp"
+                    x-text="$store.chats.formatRelativeTime(context.last_message)"
+                    :title="context.last_message ? new Date(context.last_message).toLocaleString() : ''"></span>
                 </div>
                 <button class="btn-icon-action chat-list-action-btn" title="Close chat" @click.stop="$confirmClick($event, () => $store.chats.killChat(context.id))">
                   <span class="material-symbols-outlined">close</span>
@@ -193,13 +198,31 @@
       font-weight: 600;
     }
 
-    .chat-unread .project-color-ball {
-      background-color: #4fc3f7 !important;
-      border: none !important;
+    .unread-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: #4fc3f7;
+      flex-shrink: 0;
     }
 
-    .light-mode .chat-unread .project-color-ball {
-      background-color: #0288d1 !important;
+    .light-mode .unread-dot {
+      background-color: #0288d1;
+    }
+
+    /* Relative timestamp */
+    .chat-timestamp {
+      font-size: 0.7em;
+      color: var(--color-secondary);
+      opacity: 0.6;
+      flex-shrink: 0;
+      margin-left: auto;
+      padding: 0 4px;
+      white-space: nowrap;
+    }
+
+    .light-mode .chat-timestamp {
+      color: var(--color-secondary-light);
     }
   </style>
 </body>

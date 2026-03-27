@@ -13,6 +13,23 @@ import { store as notificationStore } from "/components/notifications/notificati
 import { store as tasksStore } from "/components/sidebar/tasks/tasks-store.js";
 import { store as syncStore } from "/components/sync/sync-store.js";
 
+function formatRelativeTime(isoString) {
+  if (!isoString) return "";
+  const now = Date.now();
+  const then = new Date(isoString).getTime();
+  if (isNaN(then)) return "";
+  const seconds = Math.max(0, Math.floor((now - then) / 1000));
+  if (seconds < 60) return seconds + "s";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return minutes + "m";
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return hours + "h";
+  const days = Math.floor(hours / 24);
+  if (days < 7) return days + "d";
+  const weeks = Math.floor(days / 7);
+  return weeks + "w";
+}
+
 const model = {
   contexts: [],
   selected: "",
@@ -20,6 +37,8 @@ const model = {
   loggedIn: false,
   _prevRunning: {},
   _unreadIds: {},
+
+  formatRelativeTime,
 
   // for convenience
   getSelectedChatId() {
@@ -42,10 +61,11 @@ const model = {
   // Update contexts from polling
   applyContexts(contextsList) {
     if (contextsList === null || contextsList === undefined) return;
-    // Sort by created_at time (newer first)
-    this.contexts = contextsList.sort(
-      (a, b) => (b.created_at || 0) - (a.created_at || 0)
-    );
+    this.contexts = contextsList.sort((a, b) => {
+      const ta = a.last_message ? new Date(a.last_message).getTime() : 0;
+      const tb = b.last_message ? new Date(b.last_message).getTime() : 0;
+      return tb - ta;
+    });
 
     // Detect running → stopped transitions for non-selected chats
     for (const ctx of this.contexts) {
