@@ -21,13 +21,13 @@ def _reset_module_state():
     ci._cognee_module = None
     ci._search_type_class = None
     ci._configured = False
-    mem.Memory._initialized = False
+    mem.Memory._initialized_subdirs.clear()
     mem.Memory._datasets_cache.clear()
     yield
     ci._cognee_module = None
     ci._search_type_class = None
     ci._configured = False
-    mem.Memory._initialized = False
+    mem.Memory._initialized_subdirs.clear()
     mem.Memory._datasets_cache.clear()
 
 
@@ -255,12 +255,12 @@ class TestReload:
         ci._configured = True
         ci._cognee_module = MagicMock()
         ci._search_type_class = MagicMock()
-        mem.Memory._initialized = True
+        mem.Memory._initialized_subdirs.add("default")
         mem.reload()
         assert ci._configured is True
         assert ci._cognee_module is not None
         assert ci._search_type_class is not None
-        assert mem.Memory._initialized is False
+        assert len(mem.Memory._initialized_subdirs) == 0
         assert len(mem.Memory._datasets_cache) == 0
 
 

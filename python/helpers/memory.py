@@ -41,7 +41,7 @@ class Memory:
         FRAGMENTS = "fragments"
         SOLUTIONS = "solutions"
 
-    _initialized: bool = False
+    _initialized_subdirs: set[str] = set()
     _datasets_cache: dict[str, str] = {}
     _existing_datasets_cache: set[str] | None = None
     _existing_datasets_ts: float = 0
@@ -53,8 +53,8 @@ class Memory:
         memory_subdir = get_agent_memory_subdir(agent)
         dataset_name = _subdir_to_dataset(memory_subdir)
         mem = Memory(dataset_name=dataset_name, memory_subdir=memory_subdir)
-        if not Memory._initialized:
-            Memory._initialized = True
+        if memory_subdir not in Memory._initialized_subdirs:
+            Memory._initialized_subdirs.add(memory_subdir)
             knowledge_subdirs = get_knowledge_subdirs_by_memory_subdir(
                 memory_subdir, agent.config.knowledge_subdirs or []
             )
@@ -86,7 +86,7 @@ class Memory:
 
     @staticmethod
     async def reload(agent: Agent) -> "Memory":
-        Memory._initialized = False
+        Memory._initialized_subdirs.clear()
         Memory._datasets_cache.clear()
         return await Memory.get(agent)
 
@@ -526,7 +526,7 @@ def reload():
     ci._configured = False
     ci._cognee_module = None
     ci._search_type_class = None
-    Memory._initialized = False
+    Memory._initialized_subdirs.clear()
     Memory._datasets_cache.clear()
     Memory._invalidate_datasets_cache()
     ci.configure_cognee()
