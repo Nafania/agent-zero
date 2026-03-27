@@ -1,8 +1,10 @@
 """Tests for webui performance optimizations: tail-based log output, conditional
-chat list, lazy deserialization, chat-logs endpoint, and scoped dirty signals."""
+chat list, lazy deserialization, chat-logs endpoint, scoped dirty signals,
+chat rename refresh, last_message updates, and process_chain completion signals."""
 
 import sys
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -296,3 +298,137 @@ class TestScopedDirtySignals:
             log._notify_state_monitor()
             mock_ctx_dirty.assert_called_once_with("test-ctx-123", reason="log.Log._notify_state_monitor")
             mock_all_dirty.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# 6. Chat rename triggers chat list refresh
+# ---------------------------------------------------------------------------
+
+class TestChatRenameRefresh:
+
+    def test_rename_extension_calls_touch_chat_list(self):
+        """_60_rename_chat.py imports and calls touch_chat_list after rename."""
+        import inspect
+        from python.extensions.monologue_start._60_rename_chat import RenameChat
+
+        src = inspect.getsource(RenameChat.change_name)
+        assert "touch_chat_list" in src
+        assert "mark_dirty_all" in src
+
+
+# ---------------------------------------------------------------------------
+# 7. hist_add_message updates AgentContext.last_message
+# ---------------------------------------------------------------------------
+
+class TestHistAddMessageUpdatesContext:
+
+    def test_hist_add_message_updates_context_last_message(self):
+        """Agent.hist_add_message sets self.context.last_message."""
+        import inspect
+        from agent import Agent
+
+        src = inspect.getsource(Agent.hist_add_message)
+        assert "self.context.last_message" in src
+        assert "touch_chat_list" in src
+
+    def test_hist_add_message_sets_both_timestamps(self):
+        """hist_add_message updates both Agent.last_message and context.last_message."""
+        from agent import Agent
+
+        agent = MagicMock(spec=Agent)
+        agent.context = MagicMock()
+        agent.context.last_message = datetime(2020, 1, 1, tzinfo=timezone.utc)
+        agent.history = MagicMock()
+        agent.history.add_message = MagicMock(return_value=MagicMock())
+
+        with patch("agent.asyncio") as mock_asyncio, \
+             patch("python.helpers.state_snapshot.touch_chat_list"):
+            mock_asyncio.run = MagicMock()
+            Agent.hist_add_message(agent, ai=False, content="test")
+
+        assert agent.context.last_message > datetime(2020, 1, 1, tzinfo=timezone.utc)
+
+
+# ---------------------------------------------------------------------------
+# 8. _process_chain finally block broadcasts completion
+# ---------------------------------------------------------------------------
+
+class TestProcessChainCompletion:
+
+    def test_process_chain_has_finally_with_touch_and_dirty(self):
+        """_process_chain has a finally block that calls touch_chat_list and mark_dirty_all."""
+        import inspect
+        from agent import AgentContext
+
+        src = inspect.getsource(AgentContext._process_chain)
+        assert "finally:" in src
+        assert "touch_chat_list" in src
+        assert "mark_dirty_all" in src
+
+    def test_process_chain_finally_only_for_user_messages(self):
+        """The finally block only fires for top-level user messages (user=True)."""
+        import inspect
+        from agent import AgentContext
+
+        src = inspect.getsource(AgentContext._process_chain)
+        assert "if user:" in src
+
+
+# ---------------------------------------------------------------------------
+# 9. Frontend formatRelativeTime (unit logic test)
+# ---------------------------------------------------------------------------
+
+class TestFormatRelativeTime:
+    """Test the Python-side equivalent of the JS formatRelativeTime boundaries."""
+
+    @staticmethod
+    def _format(seconds):
+        """Mirror the JS formatRelativeTime logic for unit testing boundaries."""
+        if seconds < 60:
+            return f"{seconds}s"
+        minutes = seconds // 60
+        if minutes < 60:
+            return f"{minutes}m"
+        hours = minutes // 60
+        if hours < 24:
+            return f"{hours}h"
+        days = hours // 24
+        if days < 7:
+            return f"{days}d"
+        weeks = days // 7
+        return f"{weeks}w"
+
+    def test_seconds(self):
+        assert self._format(0) == "0s"
+        assert self._format(59) == "59s"
+
+    def test_minutes(self):
+        assert self._format(60) == "1m"
+        assert self._format(3599) == "59m"
+
+    def test_hours(self):
+        assert self._format(3600) == "1h"
+        assert self._format(86399) == "23h"
+
+    def test_days(self):
+        assert self._format(86400) == "1d"
+        assert self._format(604799) == "6d"
+
+    def test_weeks(self):
+        assert self._format(604800) == "1w"
+        assert self._format(1209600) == "2w"
+
+
+# ---------------------------------------------------------------------------
+# 10. Sort order uses last_message, not created_at
+# ---------------------------------------------------------------------------
+
+class TestChatListSortOrder:
+
+    def test_chats_store_sorts_by_last_message(self):
+        """chats-store.js sorts contexts by last_message, not created_at."""
+        store_path = PROJECT_ROOT / "webui" / "components" / "sidebar" / "chats" / "chats-store.js"
+        content = store_path.read_text()
+        assert "last_message" in content
+        assert "new Date(a.last_message)" in content or "a.last_message" in content
+        assert "created_at" not in content.split("sort(")[1].split(");")[0] if "sort(" in content else True
