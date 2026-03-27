@@ -13,12 +13,11 @@ import { store as notificationStore } from "/components/notifications/notificati
 import { store as tasksStore } from "/components/sidebar/tasks/tasks-store.js";
 import { store as syncStore } from "/components/sync/sync-store.js";
 
-function formatRelativeTime(isoString) {
+function formatRelativeTime(isoString, _tick) {
   if (!isoString) return "";
-  const now = Date.now();
   const then = new Date(isoString).getTime();
   if (isNaN(then)) return "";
-  const seconds = Math.max(0, Math.floor((now - then) / 1000));
+  const seconds = Math.max(0, Math.floor((Date.now() - then) / 1000));
   if (seconds < 60) return seconds + "s";
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) return minutes + "m";

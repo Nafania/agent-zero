@@ -40,7 +40,7 @@
                   <span class="unread-dot"
                     x-show="context.unread && context.id !== $store.chats.selected"></span>
                   <span class="chat-timestamp"
-                    x-text="void $store.chats._tick, $store.chats.formatRelativeTime(context.last_message)"
+                    x-text="$store.chats.formatRelativeTime(context.last_message, $store.chats._tick)"
                     :title="context.last_message ? new Date(context.last_message).toLocaleString() : ''"></span>
                 </div>
                 <button class="btn-icon-action chat-list-action-btn" title="Close chat" @click.stop="$confirmClick($event, () => $store.chats.killChat(context.id))">
