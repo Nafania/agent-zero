@@ -695,7 +695,11 @@ class Agent:
     def hist_add_message(
         self, ai: bool, content: history.MessageContent, tokens: int = 0
     ):
-        self.last_message = datetime.now(timezone.utc)
+        now = datetime.now(timezone.utc)
+        self.last_message = now
+        self.context.last_message = now
+        from python.helpers.state_snapshot import touch_chat_list
+        touch_chat_list()
         # Allow extensions to process content before adding to history
         content_data = {"content": content}
         asyncio.run(
