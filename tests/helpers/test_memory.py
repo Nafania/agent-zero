@@ -199,6 +199,32 @@ class TestResultsToDocuments:
         docs = _results_to_documents(results, 10)
         assert docs[0].page_content == "from dict"
 
+    def test_cognee_05_dict_format(self):
+        from python.helpers.memory import _results_to_documents
+        result = {"dataset_name": "test_ds", "search_result": ["actual content"]}
+        docs = _results_to_documents([result], 10)
+        assert len(docs) == 1
+        assert docs[0].page_content == "actual content"
+        assert docs[0].metadata["dataset"] == "test_ds"
+
+    def test_cognee_05_multi_element_list(self):
+        from python.helpers.memory import _results_to_documents
+        result = {"search_result": ["line1", "line2"]}
+        docs = _results_to_documents([result], 10)
+        assert docs[0].page_content == "line1\nline2"
+
+    def test_cognee_05_empty_search_result(self):
+        from python.helpers.memory import _results_to_documents
+        result = {"search_result": []}
+        docs = _results_to_documents([result], 10)
+        assert len(docs) == 0
+
+    def test_skips_empty_content(self):
+        from python.helpers.memory import _results_to_documents
+        docs = _results_to_documents(["", "  ", "valid content"], 10)
+        assert len(docs) == 1
+        assert docs[0].page_content == "valid content"
+
 
 # --- get_knowledge_subdirs_by_memory_subdir ---
 

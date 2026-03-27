@@ -41,7 +41,7 @@ class Memory:
         FRAGMENTS = "fragments"
         SOLUTIONS = "solutions"
 
-    _initialized_subdirs: set[str] = set()
+    _initialized_subdirs: set[str] = set()  # intentional class-level mutable — tracks which subdirs have been preloaded
     _datasets_cache: dict[str, str] = {}
     _existing_datasets_cache: set[str] | None = None
     _existing_datasets_ts: float = 0
@@ -74,7 +74,8 @@ class Memory:
     ) -> "Memory":
         dataset_name = _subdir_to_dataset(memory_subdir)
         mem = Memory(dataset_name=dataset_name, memory_subdir=memory_subdir)
-        if preload_knowledge:
+        if preload_knowledge and memory_subdir not in Memory._initialized_subdirs:
+            Memory._initialized_subdirs.add(memory_subdir)
             import initialize
             agent_config = initialize.initialize_agent()
             knowledge_subdirs = get_knowledge_subdirs_by_memory_subdir(
@@ -438,6 +439,9 @@ def _results_to_documents(results: Any, limit: int) -> list[Document]:
         dataset_name = _extract_dataset_name(result)
         if dataset_name:
             metadata.setdefault("dataset", dataset_name)
+
+        if not content or not content.strip():
+            continue
 
         if not metadata.get("id"):
             ds = str(metadata.get("dataset") or "")
