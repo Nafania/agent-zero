@@ -306,14 +306,34 @@ class TestScopedDirtySignals:
 
 class TestChatRenameRefresh:
 
-    def test_rename_extension_calls_touch_chat_list(self):
-        """_60_rename_chat.py imports and calls touch_chat_list after rename."""
-        import inspect
+    def test_rename_calls_touch_and_dirty(self):
+        """RenameChat.change_name calls touch_chat_list + mark_dirty_all after rename."""
         from python.extensions.monologue_start._60_rename_chat import RenameChat
+        import asyncio
 
-        src = inspect.getsource(RenameChat.change_name)
-        assert "touch_chat_list" in src
-        assert "mark_dirty_all" in src
+        async def fake_call_utility_model(**kwargs):
+            return "New Name"
+
+        ext = MagicMock(spec=RenameChat)
+        ext.agent = MagicMock()
+        ext.agent.context = MagicMock()
+        ext.agent.context.name = "Old Name"
+        ext.agent.history.output_text.return_value = "hi"
+        ext.agent.config.utility_model.ctx_length = 1000
+        ext.agent.read_prompt = MagicMock(return_value="prompt")
+        ext.agent.call_utility_model = fake_call_utility_model
+
+        with patch("python.extensions.monologue_start._60_rename_chat.persist_chat") as mock_persist, \
+             patch("python.extensions.monologue_start._60_rename_chat.tokens") as mock_tokens, \
+             patch("python.helpers.state_snapshot.touch_chat_list") as mock_touch, \
+             patch("python.helpers.state_monitor_integration.mark_dirty_all") as mock_dirty:
+            mock_tokens.trim_to_tokens.return_value = "hi"
+            asyncio.get_event_loop().run_until_complete(
+                RenameChat.change_name(ext)
+            )
+            mock_touch.assert_called_once()
+            mock_dirty.assert_called_once_with(reason="rename_chat")
+            assert ext.agent.context.name == "New Name"
 
 
 # ---------------------------------------------------------------------------
@@ -322,14 +342,9 @@ class TestChatRenameRefresh:
 
 class TestHistAddMessageUpdatesContext:
 
-    def test_hist_add_message_updates_context_last_message(self):
-        """Agent.hist_add_message sets self.context.last_message."""
-        import inspect
+    def setup_method(self):
         from agent import Agent
-
-        src = inspect.getsource(Agent.hist_add_message)
-        assert "self.context.last_message" in src
-        assert "touch_chat_list" in src
+        Agent._last_msg_touch = 0.0
 
     def test_hist_add_message_sets_both_timestamps(self):
         """hist_add_message updates both Agent.last_message and context.last_message."""
@@ -348,6 +363,45 @@ class TestHistAddMessageUpdatesContext:
 
         assert agent.context.last_message > datetime(2020, 1, 1, tzinfo=timezone.utc)
 
+    def test_hist_add_message_debounces_touch_chat_list(self):
+        """touch_chat_list is debounced: first call fires, rapid follow-up is skipped."""
+        from agent import Agent
+
+        agent = MagicMock(spec=Agent)
+        agent.context = MagicMock()
+        agent.context.last_message = datetime(2020, 1, 1, tzinfo=timezone.utc)
+        agent.history = MagicMock()
+        agent.history.add_message = MagicMock(return_value=MagicMock())
+
+        with patch("agent.asyncio") as mock_asyncio, \
+             patch("python.helpers.state_snapshot.touch_chat_list") as mock_touch:
+            mock_asyncio.run = MagicMock()
+            Agent._last_msg_touch = 0.0
+            Agent.hist_add_message(agent, ai=False, content="msg1")
+            Agent.hist_add_message(agent, ai=True, content="msg2")
+            Agent.hist_add_message(agent, ai=False, content="msg3")
+            assert mock_touch.call_count == 1
+
+    def test_hist_add_message_fires_after_interval(self):
+        """touch_chat_list fires again after the debounce interval elapses."""
+        from agent import Agent
+
+        agent = MagicMock(spec=Agent)
+        agent.context = MagicMock()
+        agent.context.last_message = datetime(2020, 1, 1, tzinfo=timezone.utc)
+        agent.history = MagicMock()
+        agent.history.add_message = MagicMock(return_value=MagicMock())
+
+        with patch("agent.asyncio") as mock_asyncio, \
+             patch("python.helpers.state_snapshot.touch_chat_list") as mock_touch:
+            mock_asyncio.run = MagicMock()
+            Agent._last_msg_touch = 0.0
+            Agent.hist_add_message(agent, ai=False, content="msg1")
+            assert mock_touch.call_count == 1
+            Agent._last_msg_touch = time.time() - Agent._MSG_TOUCH_INTERVAL - 1
+            Agent.hist_add_message(agent, ai=True, content="msg2")
+            assert mock_touch.call_count == 2
+
 
 # ---------------------------------------------------------------------------
 # 8. _process_chain finally block broadcasts completion
@@ -355,23 +409,59 @@ class TestHistAddMessageUpdatesContext:
 
 class TestProcessChainCompletion:
 
-    def test_process_chain_has_finally_with_touch_and_dirty(self):
-        """_process_chain has a finally block that calls touch_chat_list and mark_dirty_all."""
-        import inspect
+    def test_process_chain_broadcasts_on_completion(self):
+        """_process_chain calls touch_chat_list + mark_dirty_all in finally for user messages."""
+        import asyncio
         from agent import AgentContext
 
-        src = inspect.getsource(AgentContext._process_chain)
-        assert "finally:" in src
-        assert "touch_chat_list" in src
-        assert "mark_dirty_all" in src
+        async def fake_monologue():
+            return "response"
 
-    def test_process_chain_finally_only_for_user_messages(self):
-        """The finally block only fires for top-level user messages (user=True)."""
-        import inspect
+        async def fake_call_extensions(*args, **kwargs):
+            return None
+
+        ctx = MagicMock(spec=AgentContext)
+        mock_agent = MagicMock()
+        mock_agent.monologue = fake_monologue
+        mock_agent.data = {}
+        mock_agent.hist_add_user_message = MagicMock()
+        ctx.get_agent.return_value = mock_agent
+        mock_agent.call_extensions = fake_call_extensions
+
+        with patch("python.helpers.state_snapshot.touch_chat_list") as mock_touch, \
+             patch("python.helpers.state_monitor_integration.mark_dirty_all") as mock_dirty:
+            asyncio.get_event_loop().run_until_complete(
+                AgentContext._process_chain(ctx, mock_agent, "hello", user=True)
+            )
+            mock_touch.assert_called()
+            mock_dirty.assert_called_with(reason="process_chain_end")
+
+    def test_process_chain_skips_broadcast_for_subordinate(self):
+        """_process_chain does NOT broadcast for subordinate calls (user=False)."""
+        import asyncio
         from agent import AgentContext
 
-        src = inspect.getsource(AgentContext._process_chain)
-        assert "if user:" in src
+        async def fake_monologue():
+            return "response"
+
+        async def fake_call_extensions(*args, **kwargs):
+            return None
+
+        ctx = MagicMock(spec=AgentContext)
+        mock_agent = MagicMock()
+        mock_agent.monologue = fake_monologue
+        mock_agent.data = {}
+        mock_agent.hist_add_tool_result = MagicMock()
+        ctx.get_agent.return_value = mock_agent
+        mock_agent.call_extensions = fake_call_extensions
+
+        with patch("python.helpers.state_snapshot.touch_chat_list") as mock_touch, \
+             patch("python.helpers.state_monitor_integration.mark_dirty_all") as mock_dirty:
+            asyncio.get_event_loop().run_until_complete(
+                AgentContext._process_chain(ctx, mock_agent, "result", user=False)
+            )
+            mock_touch.assert_not_called()
+            mock_dirty.assert_not_called()
 
 
 # ---------------------------------------------------------------------------

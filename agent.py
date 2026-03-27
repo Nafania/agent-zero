@@ -1,4 +1,4 @@
-import asyncio, random, string, threading
+import asyncio, random, string, threading, time
 import nest_asyncio
 
 nest_asyncio.apply()
@@ -698,14 +698,20 @@ class Agent:
     def set_data(self, field: str, value):
         self.data[field] = value
 
+    _last_msg_touch: float = 0.0
+    _MSG_TOUCH_INTERVAL: float = 5.0
+
     def hist_add_message(
         self, ai: bool, content: history.MessageContent, tokens: int = 0
     ):
         now = datetime.now(timezone.utc)
         self.last_message = now
         self.context.last_message = now
-        from python.helpers.state_snapshot import touch_chat_list
-        touch_chat_list()
+        now_mono = time.time()
+        if now_mono - Agent._last_msg_touch >= Agent._MSG_TOUCH_INTERVAL:
+            Agent._last_msg_touch = now_mono
+            from python.helpers.state_snapshot import touch_chat_list
+            touch_chat_list()
         # Allow extensions to process content before adding to history
         content_data = {"content": content}
         asyncio.run(
