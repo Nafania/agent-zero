@@ -325,7 +325,9 @@ class AgentContext:
         finally:
             if user:
                 from python.helpers.state_snapshot import touch_chat_list
+                from python.helpers.state_monitor_integration import mark_dirty_all
                 touch_chat_list()
+                mark_dirty_all(reason="process_chain_end")
 
 
 @dataclass
