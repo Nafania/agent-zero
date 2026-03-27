@@ -27,6 +27,9 @@ chat:
   anthropic:
     name: Anthropic
     litellm_provider: anthropic
+    oauth:
+      enabled: false
+      strategy: anthropic
   cometapi:
     name: CometAPI
     litellm_provider: cometapi
@@ -44,6 +47,9 @@ chat:
   google:
     name: Google
     litellm_provider: gemini
+    oauth:
+      enabled: true
+      strategy: google
   groq:
     name: Groq
     litellm_provider: groq
@@ -65,6 +71,9 @@ chat:
   openai:
     name: OpenAI
     litellm_provider: openai
+    oauth:
+      enabled: true
+      strategy: openai
   azure:
     name: OpenAI Azure
     litellm_provider: azure

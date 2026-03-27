@@ -121,6 +121,7 @@ class Settings(TypedDict):
     cognee_data_dir: str
 
     api_keys: dict[str, str]
+    oauth_client_credentials: dict[str, dict[str, str]]
 
     auth_login: str
     auth_password: str
@@ -466,6 +467,8 @@ def _load_sensitive_settings(settings: Settings):
     except Exception:
         settings["secrets"] = ""
 
+    _load_oauth_client_credentials(settings)
+
 
 def _read_settings_file() -> Settings | None:
     if os.path.exists(SETTINGS_FILE):
@@ -486,6 +489,7 @@ def _write_settings_file(settings: Settings):
 
 def _remove_sensitive_settings(settings: Settings):
     settings["api_keys"] = {}
+    settings["oauth_client_credentials"] = {}
     settings["auth_login"] = ""
     settings["auth_password"] = ""
     settings["rfc_password"] = ""
@@ -513,7 +517,29 @@ def _write_sensitive_settings(settings: Settings):
     secrets_manager = get_default_secrets_manager()
     submitted_content = settings["secrets"]
     secrets_manager.save_secrets_with_merge(submitted_content)
+    _write_oauth_client_credentials(settings)
 
+
+def _load_oauth_client_credentials(settings: Settings):
+    from python.helpers.providers import get_oauth_providers
+    creds = {}
+    for p in get_oauth_providers():
+        pid = p["provider_id"]
+        cid = dotenv.get_dotenv_value(f"OAUTH_CLIENT_ID_{pid.upper()}") or ""
+        cs = dotenv.get_dotenv_value(f"OAUTH_CLIENT_SECRET_{pid.upper()}") or ""
+        if cid or cs:
+            creds[pid] = {"client_id": cid, "client_secret": cs}
+    settings["oauth_client_credentials"] = creds
+
+
+def _write_oauth_client_credentials(settings: Settings):
+    for pid, creds in settings.get("oauth_client_credentials", {}).items():
+        cid = creds.get("client_id", "")
+        cs = creds.get("client_secret", "")
+        if cid:
+            dotenv.save_dotenv_value(f"OAUTH_CLIENT_ID_{pid.upper()}", cid)
+        if cs and cs != API_KEY_PLACEHOLDER:
+            dotenv.save_dotenv_value(f"OAUTH_CLIENT_SECRET_{pid.upper()}", cs)
 
 
 def get_default_settings() -> Settings:
@@ -572,6 +598,7 @@ def get_default_settings() -> Settings:
         cognee_session_cache=get_default_value("cognee_session_cache", "filesystem"),
         cognee_data_dir=get_default_value("cognee_data_dir", "usr/cognee"),
         api_keys={},
+        oauth_client_credentials={},
         auth_login="",
         auth_password="",
         root_password="",
