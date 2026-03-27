@@ -194,42 +194,49 @@ class ProviderPool:
         return models
 
 
-async def _list_models_via_api(provider_id: str, api_key: str) -> list[ModelInfo]:
-    """List models from a provider using its OpenAI-compatible /models endpoint."""
+_KNOWN_API_BASES: dict[str, str] = {
+    "openrouter": "https://openrouter.ai/api/v1",
+    "openai": "https://api.openai.com/v1",
+    "deepseek": "https://api.deepseek.com/v1",
+    "groq": "https://api.groq.com/openai/v1",
+    "mistral": "https://api.mistral.ai/v1",
+    "xai": "https://api.x.ai/v1",
+}
+
+
+def _resolve_api_base(provider_id: str) -> str:
+    """Derive API base URL from providers.yaml config, falling back to known defaults."""
     from python.helpers.providers import get_provider_config
-    import aiohttp
 
     config = get_provider_config("chat", provider_id)
     if not config:
-        return []
+        return _KNOWN_API_BASES.get(provider_id, "")
 
-    litellm_provider = config.get("litellm_provider", "")
     kwargs = config.get("kwargs", {}) or {}
     api_base = kwargs.get("api_base", "")
+    if api_base:
+        return api_base
 
-    _API_BASES = {
-        "openrouter": "https://openrouter.ai/api/v1",
-        "openai": "https://api.openai.com/v1",
-        "deepseek": "https://api.deepseek.com/v1",
-        "groq": "https://api.groq.com/openai/v1",
-        "mistral": "https://api.mistral.ai/v1",
-        "xai": "https://api.x.ai/v1",
-    }
+    litellm_provider = config.get("litellm_provider", "")
+    return _KNOWN_API_BASES.get(litellm_provider) or _KNOWN_API_BASES.get(provider_id, "")
 
-    if not api_base:
-        api_base = _API_BASES.get(litellm_provider) or _API_BASES.get(provider_id, "")
+
+async def _list_models_via_api(provider_id: str, api_key: str) -> list[ModelInfo]:
+    """List models from a provider using its OpenAI-compatible /models endpoint."""
+    import httpx
+
+    api_base = _resolve_api_base(provider_id)
     if not api_base:
         return []
 
     models_url = f"{api_base.rstrip('/')}/models"
     try:
-        async with aiohttp.ClientSession() as session:
-            headers = {"Authorization": f"Bearer {api_key}"}
-            async with session.get(models_url, headers=headers, timeout=aiohttp.ClientTimeout(total=15)) as resp:
-                if resp.status != 200:
-                    logger.warning("Models API returned %d for %s", resp.status, provider_id)
-                    return []
-                data = await resp.json()
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.get(models_url, headers={"Authorization": f"Bearer {api_key}"})
+            if resp.status_code != 200:
+                logger.warning("Models API returned %d for %s", resp.status_code, provider_id)
+                return []
+            data = resp.json()
     except Exception as e:
         logger.warning("Failed to list models via API for %s: %s", provider_id, e)
         return []

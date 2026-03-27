@@ -276,7 +276,7 @@ class Memory:
             if target:
                 data_items = await cognee.datasets.list_data(target.id)
                 for item in data_items:
-                    content = _read_data_item_content(item)
+                    content = read_data_item_content(item)
                     for doc_id in list(id_set):
                         if doc_id in content:
                             await cognee.datasets.delete_data(
@@ -478,7 +478,7 @@ def _extract_metadata_from_text(text: str) -> tuple[str, dict]:
     return text, {"area": Memory.Area.MAIN.value}
 
 
-def _read_data_item_content(item) -> str:
+def read_data_item_content(item) -> str:
     """Read the text content of a Cognee data item, checking the file at raw_data_location.
 
     Falls back to raw_data_location + name when the file cannot be read, so
@@ -513,7 +513,7 @@ async def _delete_data_by_id(dataset_name: str, data_id: str):
             return False
         data_items = await cognee.datasets.list_data(target.id)
         for item in data_items:
-            content = _read_data_item_content(item)
+            content = read_data_item_content(item)
             if data_id in content:
                 await cognee.datasets.delete_data(
                     dataset_id=target.id,

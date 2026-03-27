@@ -1,7 +1,7 @@
 import time as _time
 
 from python.helpers.api import ApiHandler, Request, Response
-from python.helpers.memory import Memory, get_existing_memory_subdirs, get_context_memory_subdir, _read_data_item_content
+from python.helpers.memory import Memory, get_existing_memory_subdirs, get_context_memory_subdir, read_data_item_content
 from python.helpers import files
 from python.helpers.print_style import PrintStyle
 from langchain_core.documents import Document
@@ -202,7 +202,7 @@ class MemoryDashboard(ApiHandler):
                         PrintStyle.error(f"[MemoryDashboard] Failed to list data for '{ds.name}': {e}")
                         continue
                     for item in data_items:
-                        content = self._read_data_item_content(item)
+                        content = self.read_data_item_content(item)
                         text, meta = _extract_metadata_from_text(content)
                         if not meta.get("id"):
                             meta["id"] = guids.generate_id(10)
@@ -253,8 +253,8 @@ class MemoryDashboard(ApiHandler):
         }
 
     @staticmethod
-    def _read_data_item_content(item) -> str:
-        return _read_data_item_content(item)
+    def read_data_item_content(item) -> str:
+        return read_data_item_content(item)
 
     def _format_memory_for_dashboard(self, m: Document) -> dict:
         metadata = m.metadata

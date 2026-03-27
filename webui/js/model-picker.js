@@ -1,11 +1,14 @@
 import { createStore } from "/js/AlpineStore.js";
 
+const _STALE_MS = 5 * 60 * 1000;
+
 const model = {
   models: {},
   currentOverride: null,
   chatId: null,
   open: false,
   loading: false,
+  _lastLoadedAt: 0,
 
   init() {
     this.loadModels();
@@ -14,6 +17,9 @@ const model = {
   async toggle() {
     this.open = !this.open;
     if (this.open) {
+      if (Date.now() - this._lastLoadedAt > _STALE_MS) {
+        this.loadModels();
+      }
       const chats = globalThis.Alpine?.store("chats");
       const chatId = chats?.selected;
       if (chatId && chatId !== this.chatId) {
@@ -56,6 +62,7 @@ const model = {
         }
       }
       this.models = newModels;
+      this._lastLoadedAt = Date.now();
     } catch (e) {
       console.error("Failed to load connected providers:", e);
     } finally {
