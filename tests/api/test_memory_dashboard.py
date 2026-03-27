@@ -112,7 +112,7 @@ def _make_cognee_with_items(items_by_dataset: dict[str, list]):
 # Pre-existing tests for helper methods
 # ===========================================================================
 
-# --- _read_data_item_content ---
+# --- read_data_item_content ---
 
 class TestReadDataItemContent:
     def test_reads_file_from_raw_data_location(self):
@@ -125,7 +125,7 @@ class TestReadDataItemContent:
         try:
             item = MagicMock()
             item.raw_data_location = path
-            result = dashboard._read_data_item_content(item)
+            result = dashboard.read_data_item_content(item)
             assert result == "test content from file"
         finally:
             os.unlink(path)
@@ -140,24 +140,24 @@ class TestReadDataItemContent:
         try:
             item = MagicMock()
             item.raw_data_location = f"file://{path}"
-            result = dashboard._read_data_item_content(item)
+            result = dashboard.read_data_item_content(item)
             assert result == "url scheme content"
         finally:
             os.unlink(path)
 
-    def test_falls_back_to_name(self):
+    def test_falls_back_to_raw_location_when_file_missing(self):
         dashboard = _make_dashboard()
         item = MagicMock()
         item.raw_data_location = "/nonexistent/path/file.txt"
         item.name = "fallback_name"
-        result = dashboard._read_data_item_content(item)
-        assert result == "fallback_name"
+        result = dashboard.read_data_item_content(item)
+        assert result == "/nonexistent/path/file.txt"
 
     def test_no_raw_data_location(self):
         dashboard = _make_dashboard()
         item = MagicMock(spec=[])
         item.name = "just_a_name"
-        result = dashboard._read_data_item_content(item)
+        result = dashboard.read_data_item_content(item)
         assert result == "just_a_name"
 
 

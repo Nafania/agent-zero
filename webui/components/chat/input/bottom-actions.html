@@ -5,12 +5,54 @@
     import { store as historyStore } from "/components/modals/history/history-store.js";
     import { store as contextStore } from "/components/modals/context/context-store.js";
     import { store as chatsStore } from "/components/sidebar/chats/chats-store.js";
+    import { store as modelPickerStore } from "/js/model-picker.js";
   </script>
 </head>
 <body>
   <div x-data>
     <template x-if="$store.chatInput">
       <div class="text-buttons-row">
+
+        <!-- Model Picker -->
+        <template x-if="$store.modelPicker">
+          <div class="model-picker-bottom">
+            <button class="text-button" @click="$store.modelPicker.toggle()">
+              <span class="material-symbols-outlined">smart_toy</span>
+              <p x-text="$store.modelPicker.currentLabel"></p>
+              <span class="model-picker-caret">&#9662;</span>
+            </button>
+            <div x-show="$store.modelPicker.open" @click.outside="$store.modelPicker.open = false"
+                 class="model-picker-dropdown">
+              <div x-show="$store.modelPicker.loading" class="model-picker-loading">
+                Loading models...
+              </div>
+              <div x-show="$store.modelPicker.currentOverride"
+                   @click="$store.modelPicker.resetToDefault()"
+                   class="model-picker-reset">
+                &#8592; Reset to default
+              </div>
+              <template x-for="[providerId, models] in Object.entries($store.modelPicker.models)" :key="providerId">
+                <div class="model-picker-group">
+                  <div class="model-picker-provider" x-text="providerId"></div>
+                  <template x-for="m in models" :key="m.id">
+                    <div @click="$store.modelPicker.selectModel(providerId, m.id)"
+                         class="model-picker-item"
+                         :class="{'model-picker-item-active': $store.modelPicker.currentOverride?.model === m.id}">
+                      <span x-text="m.name"></span>
+                      <span x-show="m.context_length" class="model-picker-ctx" x-text="Math.round(m.context_length / 1000) + 'k'"></span>
+                      <span x-show="m.supports_vision" class="model-picker-tag">vision</span>
+                    </div>
+                  </template>
+                </div>
+              </template>
+              <div x-show="!$store.modelPicker.loading && Object.keys($store.modelPicker.models).length === 0"
+                   class="model-picker-empty">
+                No models available. Check provider API keys in Settings.
+              </div>
+            </div>
+          </div>
+        </template>
+
         <button class="text-button" @click="$store.chatInput.pauseAgent(!$store.chatInput.paused)">
             <template x-if="!$store.chatInput.paused">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="14" height="14">
@@ -89,6 +131,35 @@
 
         @media (max-width: 768px) { .text-buttons-row { width: 90%; display: flex; padding-top: var(--spacing-xs); gap: var(--spacing-xs); white-space: pre-wrap; } .text-button { font-size: 0.6rem; } .text-button svg { width: 18px; height: 18px; flex-shrink: 0; } .text-button .material-symbols-outlined { font-size: 18px; } }
         @media (max-width: 640px) { .text-buttons-row { display: flex; width: 90%; padding-top: var(--spacing-xs); gap: var(--spacing-xs); white-space: pre-wrap; } .text-button { max-height: 25px; } .text-button p { display: none; } }
+
+        .model-picker-bottom { position: relative; }
+        .model-picker-caret { font-size: 8px; }
+        .model-picker-loading { padding: 8px; text-align: center; font-size: 0.8em; opacity: 0.6; }
+        .model-picker-group { margin-bottom: 4px; }
+        .model-picker-empty { padding: 8px; font-size: 0.8em; opacity: 0.6; }
+        .model-picker-dropdown {
+          position: absolute; left: 0; bottom: 100%; margin-bottom: 4px;
+          background: var(--color-panel, white); border: 1px solid var(--color-border, #ccc);
+          border-radius: 6px; padding: 6px; z-index: 200; min-width: 280px; max-height: 400px;
+          overflow-y: auto; box-shadow: 0 -2px 12px rgba(0,0,0,0.15);
+        }
+        .model-picker-reset {
+          padding: 4px 8px; cursor: pointer; border-radius: 3px; margin-bottom: 6px;
+          font-size: 0.8em; color: var(--color-accent, #1976d2);
+          border-bottom: 1px solid var(--color-border, #eee);
+        }
+        .model-picker-reset:hover { background: var(--color-background-hover); }
+        .model-picker-provider {
+          font-weight: bold; font-size: 0.75em; text-transform: uppercase;
+          padding: 4px 4px 2px; opacity: 0.7;
+        }
+        .model-picker-item {
+          padding: 3px 8px; cursor: pointer; border-radius: 3px; font-size: 0.8em;
+        }
+        .model-picker-item:hover { background: var(--color-background-hover); }
+        .model-picker-item-active { background: var(--color-accent-bg, #e3f2fd); }
+        .model-picker-ctx { font-size: 0.85em; color: var(--color-muted, gray); margin-left: 6px; }
+        .model-picker-tag { font-size: 0.7em; background: var(--color-tag-bg, #e8eaf6); padding: 1px 4px; border-radius: 2px; margin-left: 4px; }
     </style>
 </body>
 </html>

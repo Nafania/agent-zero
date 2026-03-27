@@ -838,3 +838,65 @@ class TestDeleteOptimization:
 
         assert removed == []
         mock_cognee.datasets.list_datasets.assert_not_called()
+
+
+# --- read_data_item_content ---
+
+class TestReadDataItemContent:
+    def test_valid_file_returns_content(self, tmp_path):
+        from python.helpers.memory import read_data_item_content
+
+        f = tmp_path / "mem.txt"
+        f.write_text("hello world", encoding="utf-8")
+
+        item = MagicMock()
+        item.raw_data_location = str(f)
+        item.name = "mem.txt"
+
+        assert read_data_item_content(item) == "hello world"
+
+    def test_file_uri_scheme(self, tmp_path):
+        from python.helpers.memory import read_data_item_content
+        from urllib.parse import quote
+
+        f = tmp_path / "doc.txt"
+        f.write_text("uri content", encoding="utf-8")
+
+        item = MagicMock()
+        item.raw_data_location = f"file://{quote(str(f))}"
+        item.name = "doc.txt"
+
+        assert read_data_item_content(item) == "uri content"
+
+    def test_missing_file_falls_back_to_raw_location(self):
+        from python.helpers.memory import read_data_item_content
+
+        item = MagicMock()
+        item.raw_data_location = "/nonexistent/path/abc123.txt"
+        item.name = "abc123.txt"
+
+        assert read_data_item_content(item) == "/nonexistent/path/abc123.txt"
+
+    def test_none_raw_location_falls_back_to_name(self):
+        from python.helpers.memory import read_data_item_content
+
+        item = MagicMock()
+        item.raw_data_location = None
+        item.name = "fallback_name"
+
+        assert read_data_item_content(item) == "fallback_name"
+
+    def test_unreadable_file_falls_back_gracefully(self, tmp_path):
+        from python.helpers.memory import read_data_item_content
+
+        f = tmp_path / "locked.txt"
+        f.write_text("secret", encoding="utf-8")
+        f.chmod(0o000)
+
+        item = MagicMock()
+        item.raw_data_location = str(f)
+        item.name = "locked.txt"
+
+        result = read_data_item_content(item)
+        f.chmod(0o644)
+        assert result == str(f)
