@@ -402,6 +402,9 @@ function setConnectionStatus(connected) {
 let lastLogVersion = 0;
 let lastLogGuid = "";
 let lastSpokenNo = 0;
+let lastChatListUpdatedAt = 0;
+let hasEarlierLogs = false;
+let loadingEarlierLogs = false;
 
 export function buildStateRequestPayload(options = {}) {
   const { forceFull = false } = options || {};
@@ -410,6 +413,7 @@ export function buildStateRequestPayload(options = {}) {
     context: context || null,
     log_from: forceFull ? 0 : lastLogVersion,
     notifications_from: forceFull ? 0 : notificationStore.lastNotificationVersion || 0,
+    chat_list_since: forceFull ? 0 : lastChatListUpdatedAt,
     timezone,
   };
 }
@@ -466,6 +470,13 @@ export async function applySnapshot(snapshot, options = {}) {
   lastLogVersion = snapshot.log_version;
   lastLogGuid = snapshot.log_guid;
 
+  if (typeof snapshot.chat_list_updated_at === "number") {
+    lastChatListUpdatedAt = snapshot.chat_list_updated_at;
+  }
+
+  hasEarlierLogs = !!snapshot.has_earlier_logs;
+  updateLoadEarlierIndicator();
+
   updateProgress(snapshot.log_progress, snapshot.log_progress_active);
 
   // Update notifications from snapshot
@@ -479,13 +490,13 @@ export async function applySnapshot(snapshot, options = {}) {
     setConnectionStatus(true);
   }
 
-  // Update chats list using store
-  let contexts = snapshot.contexts || [];
-  chatsStore.applyContexts(contexts);
+  if (snapshot.contexts !== null && snapshot.contexts !== undefined) {
+    chatsStore.applyContexts(snapshot.contexts);
+  }
 
-  // Update tasks list using store
-  let tasks = snapshot.tasks || [];
-  tasksStore.applyTasks(tasks);
+  if (snapshot.tasks !== null && snapshot.tasks !== undefined) {
+    tasksStore.applyTasks(snapshot.tasks);
+  }
 
   // Make sure the active context is properly selected in both lists
   if (context) {
@@ -640,6 +651,7 @@ export const setContext = function (id) {
   lastLogGuid = "";
   lastLogVersion = 0;
   lastSpokenNo = 0;
+  hasEarlierLogs = false;
 
   // Stop speech when switching chats
   speechStore.stopAudio();
@@ -730,6 +742,84 @@ import { store as _chatNavigationStore } from "/components/chat/navigation/chat-
 // Navigation logic in chat-navigation-store.js
 // forceScrollChatToBottom is kept here as it is used by system events
 
+
+export function getHasEarlierLogs() {
+  return hasEarlierLogs;
+}
+
+export async function loadEarlierLogs() {
+  if (loadingEarlierLogs || !hasEarlierLogs || !context) return;
+  loadingEarlierLogs = true;
+
+  try {
+    const chatHistory = document.getElementById("chat-history");
+    if (!chatHistory) return;
+
+    const firstMsg = chatHistory.querySelector("[id^='message-']");
+    let before = 0;
+    if (firstMsg) {
+      const idStr = firstMsg.id.replace("message-", "");
+      before = parseInt(idStr, 10);
+      if (isNaN(before)) before = 0;
+    }
+
+    const response = await fetch("/chat_logs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ context_id: context, before, limit: 50 }),
+    });
+    const data = await response.json();
+
+    if (data.logs && data.logs.length > 0) {
+      const prevScrollHeight = chatHistory.scrollHeight;
+      const prevScrollTop = chatHistory.scrollTop;
+
+      msgs.prependMessages(data.logs);
+
+      const newScrollHeight = chatHistory.scrollHeight;
+      chatHistory.scrollTop = prevScrollTop + (newScrollHeight - prevScrollHeight);
+    }
+
+    hasEarlierLogs = !!data.has_more;
+    updateLoadEarlierIndicator();
+  } catch (error) {
+    console.error("Failed to load earlier logs:", error);
+  } finally {
+    loadingEarlierLogs = false;
+  }
+}
+
+function updateLoadEarlierIndicator() {
+  const history = document.getElementById("chat-history");
+  if (!history) return;
+
+  let indicator = document.getElementById("load-earlier-indicator");
+
+  if (hasEarlierLogs) {
+    if (!indicator) {
+      indicator = document.createElement("div");
+      indicator.id = "load-earlier-indicator";
+      indicator.className = "load-earlier-indicator";
+      indicator.innerHTML = '<button class="btn-load-earlier">Load earlier messages</button>';
+      indicator.querySelector("button").addEventListener("click", () => {
+        const btn = indicator.querySelector("button");
+        btn.textContent = "Loading...";
+        btn.disabled = true;
+        loadEarlierLogs().finally(() => {
+          if (btn) {
+            btn.textContent = "Load earlier messages";
+            btn.disabled = false;
+          }
+        });
+      });
+      history.insertBefore(indicator, history.firstChild);
+    }
+  } else {
+    if (indicator) {
+      indicator.remove();
+    }
+  }
+}
 
 // setInterval(poll, 250);
 

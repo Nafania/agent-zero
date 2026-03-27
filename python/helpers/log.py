@@ -347,10 +347,7 @@ class Log:
         ctx = self.context
         if not ctx:
             return
-        # Logs update both the active chat stream (sid-bound) and the global chats list
-        # (context metadata like last_message/log_version). Broadcast so all tabs refresh
-        # their chat/task lists without leaking logs (logs are still scoped per-sid).
-        _lazy_mark_dirty_all(reason="log.Log._notify_state_monitor")
+        _lazy_mark_dirty_for_context(ctx.id, reason="log.Log._notify_state_monitor")
 
     def _notify_state_monitor_for_context_update(self) -> None:
         ctx = self.context
@@ -385,7 +382,7 @@ class Log:
     def set_initial_progress(self):
         self.set_progress("Waiting for input", 0, False)
 
-    def output(self, start=None, end=None):
+    def output(self, start=None, end=None, tail=None):
         with self._lock:
             if start is None:
                 start = 0
@@ -394,13 +391,47 @@ class Log:
             updates = self.updates[start:end]
             logs = list(self.logs)
 
-        out = []
+        unique = []
         seen = set()
         for update in updates:
             if update not in seen and update < len(logs):
-                out.append(logs[update].output())
+                unique.append(update)
                 seen.add(update)
-        return out
+
+        has_earlier = False
+        if tail is not None and start == 0 and len(unique) > tail:
+            has_earlier = True
+            unique = unique[-tail:]
+
+        out = [logs[u].output() for u in unique]
+
+        return out, has_earlier
+
+    def get_items_before(self, before: int, limit: int) -> dict:
+        """Return paginated log items before the given index.
+
+        Args:
+            before: Return items with index < before. If <= 0, uses total count.
+            limit: Maximum number of items to return (clamped to 1-200).
+
+        Returns:
+            {"logs": [item.output(), ...], "has_more": bool}
+        """
+        limit = max(1, min(limit, 200))
+        with self._lock:
+            all_logs = list(self.logs)
+
+        if before <= 0:
+            before = len(all_logs)
+
+        start_idx = max(0, before - limit)
+        items = all_logs[start_idx:before]
+        has_more = start_idx > 0
+
+        return {
+            "logs": [item.output() for item in items],
+            "has_more": has_more,
+        }
 
     def reset(self):
         with self._lock:

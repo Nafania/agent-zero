@@ -1,4 +1,4 @@
-import asyncio, random, string, threading
+import asyncio, random, string, threading, time
 import nest_asyncio
 
 nest_asyncio.apply()
@@ -86,7 +86,7 @@ class AgentContext:
         self.log = log or Log.Log()
         self.log.context = self
         self.paused = paused
-        self.streaming_agent = streaming_agent
+        self._streaming_agent = streaming_agent
         self.task: DeferredTask | None = None
         self.created_at = created_at or datetime.now(timezone.utc)
         self.type = type
@@ -94,8 +94,31 @@ class AgentContext:
         self.no = AgentContext._counter
         self.last_message = last_message or datetime.now(timezone.utc)
 
+        # Lazy deserialization support: these are set by persist_chat._deserialize_context
+        # when loading from disk to defer the expensive agent/history deserialization.
+        self._raw_agents: list | None = None
+        self._raw_streaming_agent_no: int = 0
+
         # initialize agent at last (context is complete now)
-        self.agent0 = agent0 or Agent(0, self.config, self)
+        self._agent0 = agent0 or Agent(0, self.config, self)
+
+    @property
+    def agent0(self):
+        self._ensure_hydrated()
+        return self._agent0
+
+    @agent0.setter
+    def agent0(self, value):
+        self._agent0 = value
+
+    @property
+    def streaming_agent(self):
+        self._ensure_hydrated()
+        return self._streaming_agent
+
+    @streaming_agent.setter
+    def streaming_agent(self, value):
+        self._streaming_agent = value
 
     @staticmethod
     def get(id: str):
@@ -237,6 +260,12 @@ class AgentContext:
         self.task = self.communicate(UserMessage(self.agent0.read_prompt("fw.msg_nudge.md")))
         return self.task
 
+    def _ensure_hydrated(self):
+        """Ensure agents and history are fully deserialized (lazy hydration)."""
+        if self._raw_agents is not None:
+            from python.helpers.persist_chat import hydrate_context_agents
+            hydrate_context_agents(self)
+
     def get_agent(self):
         return self.streaming_agent or self.agent0
 
@@ -293,6 +322,12 @@ class AgentContext:
             return response
         except Exception as e:
             agent.handle_critical_exception(e)
+        finally:
+            if user:
+                from python.helpers.state_snapshot import touch_chat_list
+                from python.helpers.state_monitor_integration import mark_dirty_all
+                touch_chat_list()
+                mark_dirty_all(reason="process_chain_end")
 
 
 @dataclass
@@ -663,10 +698,20 @@ class Agent:
     def set_data(self, field: str, value):
         self.data[field] = value
 
+    _last_msg_touch: float = 0.0
+    _MSG_TOUCH_INTERVAL: float = 5.0
+
     def hist_add_message(
         self, ai: bool, content: history.MessageContent, tokens: int = 0
     ):
-        self.last_message = datetime.now(timezone.utc)
+        now = datetime.now(timezone.utc)
+        self.last_message = now
+        self.context.last_message = now
+        now_mono = time.time()
+        if now_mono - Agent._last_msg_touch >= Agent._MSG_TOUCH_INTERVAL:
+            Agent._last_msg_touch = now_mono
+            from python.helpers.state_snapshot import touch_chat_list
+            touch_chat_list()
         # Allow extensions to process content before adding to history
         content_data = {"content": content}
         asyncio.run(

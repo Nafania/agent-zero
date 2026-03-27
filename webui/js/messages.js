@@ -89,14 +89,43 @@ export function setMessages(messages) {
   });
 
   const results = [];
+  const BATCH_SIZE = 20;
 
-  // process messages
-  for (let i = 0; i < messages.length; i++) {
-    _massRender = historyEmpty || (isLargeAppend && i < cutoff);
-    results.push(setMessage(messages[i]) || {});
+  if (massRender && messages.length > BATCH_SIZE) {
+    for (let i = 0; i < Math.min(BATCH_SIZE, messages.length); i++) {
+      _massRender = true;
+      results.push(setMessage(messages[i]) || {});
+    }
+    _massRender = false;
+
+    const shouldScroll = historyEmpty || !results[results.length - 1]?.dontScroll;
+
+    let batchStart = BATCH_SIZE;
+    const renderNextBatch = () => {
+      if (batchStart >= messages.length) {
+        if (shouldScroll) {
+          mainScroller.reApplyScroll();
+        }
+        return;
+      }
+      const batchEnd = Math.min(batchStart + BATCH_SIZE, messages.length);
+      _massRender = true;
+      for (let i = batchStart; i < batchEnd; i++) {
+        setMessage(messages[i]);
+      }
+      _massRender = false;
+      batchStart = batchEnd;
+      requestAnimationFrame(renderNextBatch);
+    };
+    requestAnimationFrame(renderNextBatch);
+    return results;
+  } else {
+    for (let i = 0; i < messages.length; i++) {
+      _massRender = historyEmpty || (isLargeAppend && i < cutoff);
+      results.push(setMessage(messages[i]) || {});
+    }
   }
 
-  // reset _massRender flag
   _massRender = false;
 
   const shouldScroll = historyEmpty || !results[results.length - 1]?.dontScroll;
@@ -109,6 +138,26 @@ export function setMessages(messages) {
       _scrollOnNextProcessGroup = null;
     });
   }
+}
+
+export function prependMessages(messages) {
+  if (!messages || messages.length === 0) return;
+
+  const history = getChatHistoryEl();
+  if (!history) return;
+
+  const existingFragment = document.createDocumentFragment();
+  while (history.firstChild) {
+    existingFragment.appendChild(history.firstChild);
+  }
+
+  _massRender = true;
+  for (const msg of messages) {
+    setMessage(msg);
+  }
+  _massRender = false;
+
+  history.appendChild(existingFragment);
 }
 
 // entrypoint called from poll/WS communication, this is how all messages are rendered and updated

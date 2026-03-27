@@ -236,10 +236,11 @@ class TestLog:
         log = Log()
         log.log("info", heading="A")
         log.log("info", heading="B")
-        out = log.output()
+        out, has_earlier = log.output()
         assert len(out) == 2
         assert out[0]["heading"] == "A"
         assert out[1]["heading"] == "B"
+        assert has_earlier is False
 
     def test_log_output_with_start_end(self, patch_log_dependencies):
         from python.helpers.log import Log
@@ -248,7 +249,7 @@ class TestLog:
         log.log("info", heading="A")
         log.log("info", heading="B")
         log.log("info", heading="C")
-        out = log.output(start=1, end=2)
+        out, _ = log.output(start=1, end=2)
         assert len(out) == 1
         assert out[0]["heading"] == "B"
 
@@ -314,7 +315,8 @@ class TestLog:
         log = Log()
         item = log.log("info", heading="H", id="custom-id")
         assert item.id == "custom-id"
-        assert log.output()[0]["id"] == "custom-id"
+        out, _ = log.output()
+        assert out[0]["id"] == "custom-id"
 
     def test_log_update_progress_persistent_vs_temporary(self, patch_log_dependencies):
         from python.helpers.log import Log
