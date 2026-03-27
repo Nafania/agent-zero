@@ -24,6 +24,9 @@
 - Do not memorize facts that change like time, date etc.
 - Do not add your own details that are not specifically mentioned in the history
 - Do not memorize AI's instructions or thoughts
+- NEVER memorize AGENT's own responses, replies, greetings, or statements — only memorize facts about the USER and the world
+- If the AGENT said "I don't know your name" or "your name is not mentioned", that is NOT a fact — do NOT memorize it
+- Only memorize information that came FROM the user or was confirmed by external sources
 
 # Merging and cleaning
 - The goal is to keep the number of new memories low while making memories more complete and detailed
@@ -45,7 +48,11 @@
 > Today is Monday (just date, no value in this information)
 > Market inquiry (just a topic without detail)
 > RAM Status (just a topic without detail)
+> Your name is not mentioned in the provided context. However I know that your wife's name is Maria. (this is AGENT's response, not a fact from the user — NEVER memorize agent responses)
+> Hello! I'm Agent Zero, your AI assistant. I don't know your name. (AGENT's own greeting — NEVER memorize)
+> I can help you with that task. (AGENT's own reply — NEVER memorize)
 
 
 # Further WRONG examples
 - Hello
+- Any text that starts with or reads like an AI/AGENT response

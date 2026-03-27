@@ -41,7 +41,7 @@ class Memory:
         FRAGMENTS = "fragments"
         SOLUTIONS = "solutions"
 
-    _initialized: bool = False
+    _initialized_subdirs: set[str] = set()  # intentional class-level mutable — tracks which subdirs have been preloaded
     _datasets_cache: dict[str, str] = {}
     _existing_datasets_cache: set[str] | None = None
     _existing_datasets_ts: float = 0
@@ -53,8 +53,8 @@ class Memory:
         memory_subdir = get_agent_memory_subdir(agent)
         dataset_name = _subdir_to_dataset(memory_subdir)
         mem = Memory(dataset_name=dataset_name, memory_subdir=memory_subdir)
-        if not Memory._initialized:
-            Memory._initialized = True
+        if memory_subdir not in Memory._initialized_subdirs:
+            Memory._initialized_subdirs.add(memory_subdir)
             knowledge_subdirs = get_knowledge_subdirs_by_memory_subdir(
                 memory_subdir, agent.config.knowledge_subdirs or []
             )
@@ -74,7 +74,8 @@ class Memory:
     ) -> "Memory":
         dataset_name = _subdir_to_dataset(memory_subdir)
         mem = Memory(dataset_name=dataset_name, memory_subdir=memory_subdir)
-        if preload_knowledge:
+        if preload_knowledge and memory_subdir not in Memory._initialized_subdirs:
+            Memory._initialized_subdirs.add(memory_subdir)
             import initialize
             agent_config = initialize.initialize_agent()
             knowledge_subdirs = get_knowledge_subdirs_by_memory_subdir(
@@ -86,7 +87,7 @@ class Memory:
 
     @staticmethod
     async def reload(agent: Agent) -> "Memory":
-        Memory._initialized = False
+        Memory._initialized_subdirs.clear()
         Memory._datasets_cache.clear()
         return await Memory.get(agent)
 
@@ -420,9 +421,7 @@ def _results_to_documents(results: Any, limit: int) -> list[Document]:
         content = ""
         metadata: dict[str, Any] = {}
 
-        raw = result
-        if hasattr(result, "search_result"):
-            raw = result.search_result
+        raw = _unwrap_search_result(result)
 
         if isinstance(raw, str):
             content, metadata = _extract_metadata_from_text(raw)
@@ -437,8 +436,12 @@ def _results_to_documents(results: Any, limit: int) -> list[Document]:
         else:
             content, metadata = _extract_metadata_from_text(str(raw))
 
-        if hasattr(result, "dataset_name") and result.dataset_name:
-            metadata.setdefault("dataset", result.dataset_name)
+        dataset_name = _extract_dataset_name(result)
+        if dataset_name:
+            metadata.setdefault("dataset", dataset_name)
+
+        if not content or not content.strip():
+            continue
 
         if not metadata.get("id"):
             ds = str(metadata.get("dataset") or "")
@@ -451,6 +454,43 @@ def _results_to_documents(results: Any, limit: int) -> list[Document]:
         docs.append(Document(page_content=content, metadata=metadata))
 
     return docs
+
+
+def _unwrap_search_result(result: Any) -> Any:
+    """Extract the actual content from a Cognee search result wrapper.
+
+    Cognee >=0.5 returns objects/dicts with structure:
+      {dataset_id, dataset_name, dataset_tenant_id, search_result: [str, ...]}
+    where search_result is a list of strings. Earlier versions returned
+    objects with a .search_result attribute holding a single value.
+    """
+    raw = result
+
+    # Object with .search_result attribute
+    if hasattr(result, "search_result"):
+        raw = result.search_result
+    # Dict with 'search_result' key
+    elif isinstance(result, dict) and "search_result" in result:
+        raw = result["search_result"]
+
+    # search_result is often a list — unwrap single-element lists,
+    # join multi-element lists into one string
+    if isinstance(raw, list):
+        texts = [str(item) for item in raw if item]
+        raw = "\n".join(texts) if texts else ""
+
+    return raw
+
+
+def _extract_dataset_name(result: Any) -> str:
+    """Pull dataset_name from a Cognee result wrapper (object or dict)."""
+    if hasattr(result, "dataset_name") and result.dataset_name:
+        return str(result.dataset_name)
+    if isinstance(result, dict):
+        dn = result.get("dataset_name")
+        if dn:
+            return str(dn)
+    return ""
 
 
 def _deduplicate_documents(docs: list[Document]) -> list[Document]:
@@ -526,7 +566,7 @@ def reload():
     ci._configured = False
     ci._cognee_module = None
     ci._search_type_class = None
-    Memory._initialized = False
+    Memory._initialized_subdirs.clear()
     Memory._datasets_cache.clear()
     Memory._invalidate_datasets_cache()
     ci.configure_cognee()
