@@ -1,27 +1,65 @@
 import { createStore } from "/js/AlpineStore.js";
-import { store as oauthStore } from "/js/oauth.js";
 
 const model = {
   models: {},
   currentOverride: null,
   chatId: null,
   open: false,
+  loading: false,
+
+  init() {
+    this.loadModels();
+  },
+
+  async toggle() {
+    this.open = !this.open;
+    if (this.open) {
+      const chats = globalThis.Alpine?.store("chats");
+      const chatId = chats?.selected;
+      if (chatId && chatId !== this.chatId) {
+        await this.loadOverride(chatId);
+      }
+    }
+  },
 
   async loadModels() {
-    if (!oauthStore || !oauthStore.providers) return;
+    this.loading = true;
+    try {
+      const resp = await fetch("/connected_providers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = await resp.json();
+      const providers = (data.providers || []).filter((p) => p.is_active);
 
-    for (const p of oauthStore.providers.filter((p) => p.connected)) {
-      try {
-        const resp = await fetch("/provider_models", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ provider_id: p.provider_id }),
-        });
-        const data = await resp.json();
-        this.models[p.provider_id] = data.models;
-      } catch (e) {
-        console.error(`Failed to load models for ${p.provider_id}:`, e);
+      const modelPromises = providers.map(async (p) => {
+        try {
+          const mResp = await fetch("/provider_models", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ provider_id: p.provider_id }),
+          });
+          const mData = await mResp.json();
+          return { providerId: p.provider_id, models: mData.models || [] };
+        } catch (e) {
+          console.error(`Failed to load models for ${p.provider_id}:`, e);
+          return { providerId: p.provider_id, models: [] };
+        }
+      });
+
+      const results = await Promise.all(modelPromises);
+      const newModels = {};
+      for (const r of results) {
+        if (r.models.length > 0) {
+          newModels[r.providerId] = r.models;
+        }
       }
+      this.models = newModels;
+    } catch (e) {
+      console.error("Failed to load connected providers:", e);
+    } finally {
+      this.loading = false;
     }
   },
 

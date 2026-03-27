@@ -1,7 +1,7 @@
 import time as _time
 
 from python.helpers.api import ApiHandler, Request, Response
-from python.helpers.memory import Memory, get_existing_memory_subdirs, get_context_memory_subdir
+from python.helpers.memory import Memory, get_existing_memory_subdirs, get_context_memory_subdir, _read_data_item_content
 from python.helpers import files
 from python.helpers.print_style import PrintStyle
 from langchain_core.documents import Document
@@ -254,20 +254,7 @@ class MemoryDashboard(ApiHandler):
 
     @staticmethod
     def _read_data_item_content(item) -> str:
-        raw_location = getattr(item, "raw_data_location", None)
-        if raw_location:
-            import os
-            from urllib.parse import urlparse, unquote
-            path = raw_location
-            if path.startswith("file://"):
-                path = unquote(urlparse(path).path)
-            if os.path.isfile(path):
-                try:
-                    with open(path, "r", encoding="utf-8") as f:
-                        return f.read()
-                except Exception:
-                    pass
-        return str(getattr(item, "name", ""))
+        return _read_data_item_content(item)
 
     def _format_memory_for_dashboard(self, m: Document) -> dict:
         metadata = m.metadata

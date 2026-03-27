@@ -6,7 +6,6 @@
     <!-- Import the alpine store -->
     <script type="module">
         import { store } from "/components/chat/top-section/chat-top-store.js";
-        import { store as modelPickerStore } from "/js/model-picker.js";
     </script>
 </head>
 
@@ -24,38 +23,6 @@
                 <x-component path="notifications/notification-icons.html"></x-component>
                 <!-- Project Selector -->
                 <x-component path="projects/project-selector.html"></x-component>
-
-                <!-- Model Picker -->
-                <template x-if="$store.modelPicker">
-                  <div class="model-picker" style="position: relative; margin-left: 8px;">
-                    <button @click="$store.modelPicker.open = !$store.modelPicker.open" class="btn btn-sm btn-outline">
-                      <span x-text="$store.modelPicker.currentLabel"></span>
-                      <span>&#9662;</span>
-                    </button>
-                    <div x-show="$store.modelPicker.open" @click.outside="$store.modelPicker.open = false"
-                         style="position: absolute; right: 0; top: 100%; background: var(--color-bg, white); border: 1px solid var(--color-border, #ccc); border-radius: 4px; padding: 8px; z-index: 100; min-width: 250px;">
-                      <div x-show="$store.modelPicker.currentOverride"
-                           @click="$store.modelPicker.resetToDefault()"
-                           style="padding: 4px 8px; cursor: pointer; border-radius: 2px; margin-bottom: 8px; font-size: 0.85em; color: var(--color-accent, #1976d2); border-bottom: 1px solid var(--color-border, #eee);">
-                        &#8592; Reset to default
-                      </div>
-                      <template x-for="[providerId, models] in Object.entries($store.modelPicker.models)" :key="providerId">
-                        <div style="margin-bottom: 8px;">
-                          <div style="font-weight: bold; font-size: 0.85em; text-transform: uppercase; padding: 4px 0;" x-text="providerId"></div>
-                          <template x-for="m in models" :key="m.id">
-                            <div @click="$store.modelPicker.selectModel(providerId, m.id)"
-                                 style="padding: 4px 8px; cursor: pointer; border-radius: 2px;"
-                                 :style="{'background': $store.modelPicker.currentOverride?.model === m.id ? 'var(--color-accent-bg, #e3f2fd)' : ''}">
-                              <span x-text="m.name"></span>
-                              <span style="font-size: 0.75em; color: var(--color-muted, gray); margin-left: 8px;" x-text="Math.round(m.context_length / 1000) + 'k'"></span>
-                              <span x-show="m.supports_vision" style="font-size: 0.7em; background: var(--color-tag-bg, #e8eaf6); padding: 1px 4px; border-radius: 2px; margin-left: 4px;">vision</span>
-                            </div>
-                          </template>
-                        </div>
-                      </template>
-                    </div>
-                  </div>
-                </template>
             </div>
 
         </template>

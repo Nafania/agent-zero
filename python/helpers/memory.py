@@ -276,10 +276,9 @@ class Memory:
             if target:
                 data_items = await cognee.datasets.list_data(target.id)
                 for item in data_items:
-                    item_text = getattr(item, "raw_data_location", "") or getattr(item, "name", "") or ""
-                    item_str = str(item_text)
+                    content = _read_data_item_content(item)
                     for doc_id in list(id_set):
-                        if doc_id in item_str:
+                        if doc_id in content:
                             await cognee.datasets.delete_data(
                                 dataset_id=target.id,
                                 data_id=item.id,
@@ -479,6 +478,23 @@ def _extract_metadata_from_text(text: str) -> tuple[str, dict]:
     return text, {"area": Memory.Area.MAIN.value}
 
 
+def _read_data_item_content(item) -> str:
+    """Read the text content of a Cognee data item, checking the file at raw_data_location."""
+    raw_location = getattr(item, "raw_data_location", None)
+    if raw_location:
+        from urllib.parse import urlparse, unquote
+        path = raw_location
+        if path.startswith("file://"):
+            path = unquote(urlparse(path).path)
+        if os.path.isfile(path):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    return f.read()
+            except Exception:
+                pass
+    return str(getattr(item, "name", ""))
+
+
 async def _delete_data_by_id(dataset_name: str, data_id: str):
     cognee, _ = _get_cognee()
     try:
@@ -492,8 +508,8 @@ async def _delete_data_by_id(dataset_name: str, data_id: str):
             return False
         data_items = await cognee.datasets.list_data(target.id)
         for item in data_items:
-            item_text = getattr(item, "raw_data_location", "") or getattr(item, "name", "") or ""
-            if data_id in str(item_text):
+            content = _read_data_item_content(item)
+            if data_id in content:
                 await cognee.datasets.delete_data(
                     dataset_id=target.id,
                     data_id=item.id,
