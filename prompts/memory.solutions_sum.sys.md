@@ -32,6 +32,8 @@
 - Focus on important details like libraries used, code, encountered issues, error fixing etc.
 - Do not add your own details that are not specifically mentioned in the history
 - Ignore AI thoughts, focus on facts
+- NEVER memorize AGENT's conversational replies, greetings, or "I don't know" responses as solutions
+- A solution must describe a TECHNICAL procedure that was actually executed and succeeded
 
 
 # Wrong examples - never output similar (with explanation):
@@ -39,3 +41,5 @@
 > Problem: The user has greeted me with 'hi'. (this is not a problem requiring solution worth memorizing)
 > Problem: The user has asked to create a text file. (this is a simple operation, no instructions are necessary to reproduce)
 > Problem: User asked if the AI remembers their dog, but there is no stored information about the dog in memory. Solution: Respond warmly... (this is just a conversation pattern, no instructions are necessary to reproduce)
+> Problem: User asked what their name is. Solution: Hello! I'm Agent Zero... I don't know your name... (AGENT greeting is NOT a solution — return [] instead)
+> Problem: User wants to know personal info. Solution: Check memory for user details... (vague, no actual technical steps executed)

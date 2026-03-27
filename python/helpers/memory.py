@@ -420,9 +420,7 @@ def _results_to_documents(results: Any, limit: int) -> list[Document]:
         content = ""
         metadata: dict[str, Any] = {}
 
-        raw = result
-        if hasattr(result, "search_result"):
-            raw = result.search_result
+        raw = _unwrap_search_result(result)
 
         if isinstance(raw, str):
             content, metadata = _extract_metadata_from_text(raw)
@@ -437,8 +435,9 @@ def _results_to_documents(results: Any, limit: int) -> list[Document]:
         else:
             content, metadata = _extract_metadata_from_text(str(raw))
 
-        if hasattr(result, "dataset_name") and result.dataset_name:
-            metadata.setdefault("dataset", result.dataset_name)
+        dataset_name = _extract_dataset_name(result)
+        if dataset_name:
+            metadata.setdefault("dataset", dataset_name)
 
         if not metadata.get("id"):
             ds = str(metadata.get("dataset") or "")
@@ -451,6 +450,43 @@ def _results_to_documents(results: Any, limit: int) -> list[Document]:
         docs.append(Document(page_content=content, metadata=metadata))
 
     return docs
+
+
+def _unwrap_search_result(result: Any) -> Any:
+    """Extract the actual content from a Cognee search result wrapper.
+
+    Cognee >=0.5 returns objects/dicts with structure:
+      {dataset_id, dataset_name, dataset_tenant_id, search_result: [str, ...]}
+    where search_result is a list of strings. Earlier versions returned
+    objects with a .search_result attribute holding a single value.
+    """
+    raw = result
+
+    # Object with .search_result attribute
+    if hasattr(result, "search_result"):
+        raw = result.search_result
+    # Dict with 'search_result' key
+    elif isinstance(result, dict) and "search_result" in result:
+        raw = result["search_result"]
+
+    # search_result is often a list — unwrap single-element lists,
+    # join multi-element lists into one string
+    if isinstance(raw, list):
+        texts = [str(item) for item in raw if item]
+        raw = "\n".join(texts) if texts else ""
+
+    return raw
+
+
+def _extract_dataset_name(result: Any) -> str:
+    """Pull dataset_name from a Cognee result wrapper (object or dict)."""
+    if hasattr(result, "dataset_name") and result.dataset_name:
+        return str(result.dataset_name)
+    if isinstance(result, dict):
+        dn = result.get("dataset_name")
+        if dn:
+            return str(dn)
+    return ""
 
 
 def _deduplicate_documents(docs: list[Document]) -> list[Document]:
