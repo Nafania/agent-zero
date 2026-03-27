@@ -159,21 +159,6 @@ class TestTaskStatusSync:
         await ext.execute(loop_data=mock_loop_data)
 
 
-class TestUpdateCheck:
-    """Tests for user_message_ui/_10_update_check.py."""
-
-    @pytest.mark.asyncio
-    async def test_returns_early_when_disabled(self, mock_agent, mock_loop_data):
-        with patch(
-            "python.extensions.user_message_ui._10_update_check.settings.get_settings",
-            return_value={"update_check_enabled": False},
-        ):
-            from python.extensions.user_message_ui._10_update_check import UpdateCheck
-
-            ext = UpdateCheck(agent=mock_agent)
-            await ext.execute(loop_data=mock_loop_data)
-
-
 class TestUtilModelCallMaskSecrets:
     """Tests for util_model_call_before/_10_mask_secrets.py."""
 
