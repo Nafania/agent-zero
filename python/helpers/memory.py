@@ -479,7 +479,11 @@ def _extract_metadata_from_text(text: str) -> tuple[str, dict]:
 
 
 def _read_data_item_content(item) -> str:
-    """Read the text content of a Cognee data item, checking the file at raw_data_location."""
+    """Read the text content of a Cognee data item, checking the file at raw_data_location.
+
+    Falls back to raw_data_location + name when the file cannot be read, so
+    that IDs embedded in either the file content or the path are found.
+    """
     raw_location = getattr(item, "raw_data_location", None)
     if raw_location:
         from urllib.parse import urlparse, unquote
@@ -492,6 +496,7 @@ def _read_data_item_content(item) -> str:
                     return f.read()
             except Exception:
                 pass
+        return str(raw_location)
     return str(getattr(item, "name", ""))
 
 
