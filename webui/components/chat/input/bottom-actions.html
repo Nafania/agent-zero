@@ -15,15 +15,15 @@
 
         <!-- Model Picker -->
         <template x-if="$store.modelPicker">
-          <div class="model-picker-bottom" style="position: relative;">
+          <div class="model-picker-bottom">
             <button class="text-button" @click="$store.modelPicker.toggle()">
               <span class="material-symbols-outlined">smart_toy</span>
               <p x-text="$store.modelPicker.currentLabel"></p>
-              <span style="font-size: 8px;">&#9662;</span>
+              <span class="model-picker-caret">&#9662;</span>
             </button>
             <div x-show="$store.modelPicker.open" @click.outside="$store.modelPicker.open = false"
                  class="model-picker-dropdown">
-              <div x-show="$store.modelPicker.loading" style="padding: 8px; text-align: center; font-size: 0.8em; opacity: 0.6;">
+              <div x-show="$store.modelPicker.loading" class="model-picker-loading">
                 Loading models...
               </div>
               <div x-show="$store.modelPicker.currentOverride"
@@ -32,7 +32,7 @@
                 &#8592; Reset to default
               </div>
               <template x-for="[providerId, models] in Object.entries($store.modelPicker.models)" :key="providerId">
-                <div style="margin-bottom: 4px;">
+                <div class="model-picker-group">
                   <div class="model-picker-provider" x-text="providerId"></div>
                   <template x-for="m in models" :key="m.id">
                     <div @click="$store.modelPicker.selectModel(providerId, m.id)"
@@ -46,7 +46,7 @@
                 </div>
               </template>
               <div x-show="!$store.modelPicker.loading && Object.keys($store.modelPicker.models).length === 0"
-                   style="padding: 8px; font-size: 0.8em; opacity: 0.6;">
+                   class="model-picker-empty">
                 No models available. Check provider API keys in Settings.
               </div>
             </div>
@@ -132,6 +132,11 @@
         @media (max-width: 768px) { .text-buttons-row { width: 90%; display: flex; padding-top: var(--spacing-xs); gap: var(--spacing-xs); white-space: pre-wrap; } .text-button { font-size: 0.6rem; } .text-button svg { width: 18px; height: 18px; flex-shrink: 0; } .text-button .material-symbols-outlined { font-size: 18px; } }
         @media (max-width: 640px) { .text-buttons-row { display: flex; width: 90%; padding-top: var(--spacing-xs); gap: var(--spacing-xs); white-space: pre-wrap; } .text-button { max-height: 25px; } .text-button p { display: none; } }
 
+        .model-picker-bottom { position: relative; }
+        .model-picker-caret { font-size: 8px; }
+        .model-picker-loading { padding: 8px; text-align: center; font-size: 0.8em; opacity: 0.6; }
+        .model-picker-group { margin-bottom: 4px; }
+        .model-picker-empty { padding: 8px; font-size: 0.8em; opacity: 0.6; }
         .model-picker-dropdown {
           position: absolute; left: 0; bottom: 100%; margin-bottom: 4px;
           background: var(--color-panel, white); border: 1px solid var(--color-border, #ccc);

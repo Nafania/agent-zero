@@ -249,6 +249,9 @@ async def _list_models_via_api(provider_id: str, api_key: str) -> list[ModelInfo
             continue
         name = m.get("name") or mid
         ctx = m.get("context_length") or m.get("context_window") or 0
+        # Vision detection relies on OpenRouter's architecture.modality field.
+        # Other providers (OpenAI, Groq, Mistral, etc.) don't expose this,
+        # so supports_vision will be False for them.
         vision = False
         arch = m.get("architecture", {})
         if isinstance(arch, dict):

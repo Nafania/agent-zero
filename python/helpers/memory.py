@@ -276,7 +276,7 @@ class Memory:
             if target:
                 data_items = await cognee.datasets.list_data(target.id)
                 for item in data_items:
-                    content = read_data_item_content(item)
+                    content = await read_data_item_content_async(item)
                     for doc_id in list(id_set):
                         if doc_id in content:
                             await cognee.datasets.delete_data(
@@ -500,6 +500,12 @@ def read_data_item_content(item) -> str:
     return str(getattr(item, "name", ""))
 
 
+async def read_data_item_content_async(item) -> str:
+    """Async wrapper around read_data_item_content to avoid blocking the event loop."""
+    import asyncio
+    return await asyncio.to_thread(read_data_item_content, item)
+
+
 async def _delete_data_by_id(dataset_name: str, data_id: str):
     cognee, _ = _get_cognee()
     try:
@@ -513,7 +519,7 @@ async def _delete_data_by_id(dataset_name: str, data_id: str):
             return False
         data_items = await cognee.datasets.list_data(target.id)
         for item in data_items:
-            content = read_data_item_content(item)
+            content = await read_data_item_content_async(item)
             if data_id in content:
                 await cognee.datasets.delete_data(
                     dataset_id=target.id,
