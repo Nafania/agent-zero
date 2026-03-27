@@ -41,7 +41,7 @@ class Memory:
         FRAGMENTS = "fragments"
         SOLUTIONS = "solutions"
 
-    _initialized: bool = False
+    _initialized_subdirs: set[str] = set()  # intentional class-level mutable — tracks which subdirs have been preloaded
     _datasets_cache: dict[str, str] = {}
     _existing_datasets_cache: set[str] | None = None
     _existing_datasets_ts: float = 0
@@ -53,8 +53,8 @@ class Memory:
         memory_subdir = get_agent_memory_subdir(agent)
         dataset_name = _subdir_to_dataset(memory_subdir)
         mem = Memory(dataset_name=dataset_name, memory_subdir=memory_subdir)
-        if not Memory._initialized:
-            Memory._initialized = True
+        if memory_subdir not in Memory._initialized_subdirs:
+            Memory._initialized_subdirs.add(memory_subdir)
             knowledge_subdirs = get_knowledge_subdirs_by_memory_subdir(
                 memory_subdir, agent.config.knowledge_subdirs or []
             )
@@ -74,7 +74,8 @@ class Memory:
     ) -> "Memory":
         dataset_name = _subdir_to_dataset(memory_subdir)
         mem = Memory(dataset_name=dataset_name, memory_subdir=memory_subdir)
-        if preload_knowledge:
+        if preload_knowledge and memory_subdir not in Memory._initialized_subdirs:
+            Memory._initialized_subdirs.add(memory_subdir)
             import initialize
             agent_config = initialize.initialize_agent()
             knowledge_subdirs = get_knowledge_subdirs_by_memory_subdir(
@@ -86,7 +87,7 @@ class Memory:
 
     @staticmethod
     async def reload(agent: Agent) -> "Memory":
-        Memory._initialized = False
+        Memory._initialized_subdirs.clear()
         Memory._datasets_cache.clear()
         return await Memory.get(agent)
 
@@ -276,10 +277,9 @@ class Memory:
             if target:
                 data_items = await cognee.datasets.list_data(target.id)
                 for item in data_items:
-                    item_text = getattr(item, "raw_data_location", "") or getattr(item, "name", "") or ""
-                    item_str = str(item_text)
+                    content = await read_data_item_content_async(item)
                     for doc_id in list(id_set):
-                        if doc_id in item_str:
+                        if doc_id in content:
                             await cognee.datasets.delete_data(
                                 dataset_id=target.id,
                                 data_id=item.id,
@@ -420,9 +420,7 @@ def _results_to_documents(results: Any, limit: int) -> list[Document]:
         content = ""
         metadata: dict[str, Any] = {}
 
-        raw = result
-        if hasattr(result, "search_result"):
-            raw = result.search_result
+        raw = _unwrap_search_result(result)
 
         if isinstance(raw, str):
             content, metadata = _extract_metadata_from_text(raw)
@@ -437,8 +435,12 @@ def _results_to_documents(results: Any, limit: int) -> list[Document]:
         else:
             content, metadata = _extract_metadata_from_text(str(raw))
 
-        if hasattr(result, "dataset_name") and result.dataset_name:
-            metadata.setdefault("dataset", result.dataset_name)
+        dataset_name = _extract_dataset_name(result)
+        if dataset_name:
+            metadata.setdefault("dataset", dataset_name)
+
+        if not content or not content.strip():
+            continue
 
         if not metadata.get("id"):
             ds = str(metadata.get("dataset") or "")
@@ -451,6 +453,43 @@ def _results_to_documents(results: Any, limit: int) -> list[Document]:
         docs.append(Document(page_content=content, metadata=metadata))
 
     return docs
+
+
+def _unwrap_search_result(result: Any) -> Any:
+    """Extract the actual content from a Cognee search result wrapper.
+
+    Cognee >=0.5 returns objects/dicts with structure:
+      {dataset_id, dataset_name, dataset_tenant_id, search_result: [str, ...]}
+    where search_result is a list of strings. Earlier versions returned
+    objects with a .search_result attribute holding a single value.
+    """
+    raw = result
+
+    # Object with .search_result attribute
+    if hasattr(result, "search_result"):
+        raw = result.search_result
+    # Dict with 'search_result' key
+    elif isinstance(result, dict) and "search_result" in result:
+        raw = result["search_result"]
+
+    # search_result is often a list — unwrap single-element lists,
+    # join multi-element lists into one string
+    if isinstance(raw, list):
+        texts = [str(item) for item in raw if item]
+        raw = "\n".join(texts) if texts else ""
+
+    return raw
+
+
+def _extract_dataset_name(result: Any) -> str:
+    """Pull dataset_name from a Cognee result wrapper (object or dict)."""
+    if hasattr(result, "dataset_name") and result.dataset_name:
+        return str(result.dataset_name)
+    if isinstance(result, dict):
+        dn = result.get("dataset_name")
+        if dn:
+            return str(dn)
+    return ""
 
 
 def _deduplicate_documents(docs: list[Document]) -> list[Document]:
@@ -479,6 +518,34 @@ def _extract_metadata_from_text(text: str) -> tuple[str, dict]:
     return text, {"area": Memory.Area.MAIN.value}
 
 
+def read_data_item_content(item) -> str:
+    """Read the text content of a Cognee data item, checking the file at raw_data_location.
+
+    Falls back to raw_data_location + name when the file cannot be read, so
+    that IDs embedded in either the file content or the path are found.
+    """
+    raw_location = getattr(item, "raw_data_location", None)
+    if raw_location:
+        from urllib.parse import urlparse, unquote
+        path = raw_location
+        if path.startswith("file://"):
+            path = unquote(urlparse(path).path)
+        if os.path.isfile(path):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    return f.read()
+            except Exception:
+                pass
+        return str(raw_location)
+    return str(getattr(item, "name", ""))
+
+
+async def read_data_item_content_async(item) -> str:
+    """Async wrapper around read_data_item_content to avoid blocking the event loop."""
+    import asyncio
+    return await asyncio.to_thread(read_data_item_content, item)
+
+
 async def _delete_data_by_id(dataset_name: str, data_id: str):
     cognee, _ = _get_cognee()
     try:
@@ -492,8 +559,8 @@ async def _delete_data_by_id(dataset_name: str, data_id: str):
             return False
         data_items = await cognee.datasets.list_data(target.id)
         for item in data_items:
-            item_text = getattr(item, "raw_data_location", "") or getattr(item, "name", "") or ""
-            if data_id in str(item_text):
+            content = await read_data_item_content_async(item)
+            if data_id in content:
                 await cognee.datasets.delete_data(
                     dataset_id=target.id,
                     data_id=item.id,
@@ -526,7 +593,7 @@ def reload():
     ci._configured = False
     ci._cognee_module = None
     ci._search_type_class = None
-    Memory._initialized = False
+    Memory._initialized_subdirs.clear()
     Memory._datasets_cache.clear()
     Memory._invalidate_datasets_cache()
     ci.configure_cognee()

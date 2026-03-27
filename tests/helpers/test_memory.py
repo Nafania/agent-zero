@@ -21,13 +21,13 @@ def _reset_module_state():
     ci._cognee_module = None
     ci._search_type_class = None
     ci._configured = False
-    mem.Memory._initialized = False
+    mem.Memory._initialized_subdirs.clear()
     mem.Memory._datasets_cache.clear()
     yield
     ci._cognee_module = None
     ci._search_type_class = None
     ci._configured = False
-    mem.Memory._initialized = False
+    mem.Memory._initialized_subdirs.clear()
     mem.Memory._datasets_cache.clear()
 
 
@@ -199,6 +199,32 @@ class TestResultsToDocuments:
         docs = _results_to_documents(results, 10)
         assert docs[0].page_content == "from dict"
 
+    def test_cognee_05_dict_format(self):
+        from python.helpers.memory import _results_to_documents
+        result = {"dataset_name": "test_ds", "search_result": ["actual content"]}
+        docs = _results_to_documents([result], 10)
+        assert len(docs) == 1
+        assert docs[0].page_content == "actual content"
+        assert docs[0].metadata["dataset"] == "test_ds"
+
+    def test_cognee_05_multi_element_list(self):
+        from python.helpers.memory import _results_to_documents
+        result = {"search_result": ["line1", "line2"]}
+        docs = _results_to_documents([result], 10)
+        assert docs[0].page_content == "line1\nline2"
+
+    def test_cognee_05_empty_search_result(self):
+        from python.helpers.memory import _results_to_documents
+        result = {"search_result": []}
+        docs = _results_to_documents([result], 10)
+        assert len(docs) == 0
+
+    def test_skips_empty_content(self):
+        from python.helpers.memory import _results_to_documents
+        docs = _results_to_documents(["", "  ", "valid content"], 10)
+        assert len(docs) == 1
+        assert docs[0].page_content == "valid content"
+
 
 # --- get_knowledge_subdirs_by_memory_subdir ---
 
@@ -255,12 +281,12 @@ class TestReload:
         ci._configured = True
         ci._cognee_module = MagicMock()
         ci._search_type_class = MagicMock()
-        mem.Memory._initialized = True
+        mem.Memory._initialized_subdirs.add("default")
         mem.reload()
         assert ci._configured is True
         assert ci._cognee_module is not None
         assert ci._search_type_class is not None
-        assert mem.Memory._initialized is False
+        assert len(mem.Memory._initialized_subdirs) == 0
         assert len(mem.Memory._datasets_cache) == 0
 
 
@@ -812,3 +838,65 @@ class TestDeleteOptimization:
 
         assert removed == []
         mock_cognee.datasets.list_datasets.assert_not_called()
+
+
+# --- read_data_item_content ---
+
+class TestReadDataItemContent:
+    def test_valid_file_returns_content(self, tmp_path):
+        from python.helpers.memory import read_data_item_content
+
+        f = tmp_path / "mem.txt"
+        f.write_text("hello world", encoding="utf-8")
+
+        item = MagicMock()
+        item.raw_data_location = str(f)
+        item.name = "mem.txt"
+
+        assert read_data_item_content(item) == "hello world"
+
+    def test_file_uri_scheme(self, tmp_path):
+        from python.helpers.memory import read_data_item_content
+        from urllib.parse import quote
+
+        f = tmp_path / "doc.txt"
+        f.write_text("uri content", encoding="utf-8")
+
+        item = MagicMock()
+        item.raw_data_location = f"file://{quote(str(f))}"
+        item.name = "doc.txt"
+
+        assert read_data_item_content(item) == "uri content"
+
+    def test_missing_file_falls_back_to_raw_location(self):
+        from python.helpers.memory import read_data_item_content
+
+        item = MagicMock()
+        item.raw_data_location = "/nonexistent/path/abc123.txt"
+        item.name = "abc123.txt"
+
+        assert read_data_item_content(item) == "/nonexistent/path/abc123.txt"
+
+    def test_none_raw_location_falls_back_to_name(self):
+        from python.helpers.memory import read_data_item_content
+
+        item = MagicMock()
+        item.raw_data_location = None
+        item.name = "fallback_name"
+
+        assert read_data_item_content(item) == "fallback_name"
+
+    def test_unreadable_file_falls_back_gracefully(self, tmp_path):
+        from python.helpers.memory import read_data_item_content
+
+        f = tmp_path / "locked.txt"
+        f.write_text("secret", encoding="utf-8")
+        f.chmod(0o000)
+
+        item = MagicMock()
+        item.raw_data_location = str(f)
+        item.name = "locked.txt"
+
+        result = read_data_item_content(item)
+        f.chmod(0o644)
+        assert result == str(f)
