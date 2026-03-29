@@ -625,7 +625,6 @@ def send_frontend_reload_notification(plugin_names: list[str] | None = None):
             detail="",
             display_time=display_time,
             group="plugins_changed",
-            id="plugins_frontend_reload",
         )
 
     DeferredTask().start_task(_send_later)
