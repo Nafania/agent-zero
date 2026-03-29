@@ -7,9 +7,6 @@ if TYPE_CHECKING:
     from agent import Agent
 
 
-DEFAULT_EXTENSIONS_FOLDER = "extensions/python"
-USER_EXTENSIONS_FOLDER = "usr/extensions"
-
 _cache: dict[str, list[type["Extension"]]] = {}
 
 

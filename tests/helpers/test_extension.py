@@ -15,8 +15,6 @@ from helpers.extension import (
     call_extensions,
     _get_file_from_module,
     _get_extensions,
-    DEFAULT_EXTENSIONS_FOLDER,
-    USER_EXTENSIONS_FOLDER,
 )
 
 
@@ -90,3 +88,22 @@ class TestCallExtensions:
             mg.side_effect = [[ExtA], [ExtB]]
             await call_extensions("test", agent=None)
         assert mg.call_count >= 1
+
+    @pytest.mark.asyncio
+    async def test_call_extensions_splits_override_and_default_paths(self):
+        """get_paths must be called with include_default=False so profile/user
+        override paths don't include 'python/'. The default path
+        (extensions/python/<ext_point>) is appended separately."""
+        with patch("helpers.subagents.get_paths", return_value=[]) as mock_gp, \
+             patch("helpers.extension.files") as mock_files, \
+             patch("helpers.extension._get_extensions", return_value=[]):
+            mock_files.get_abs_path.return_value = "/abs/extensions/python/agent_init"
+            mock_files.exists.return_value = True
+            await call_extensions("agent_init", agent=None)
+
+        mock_gp.assert_called_once_with(
+            None, "extensions", "agent_init",
+            default_root="", include_default=False,
+        )
+        mock_files.get_abs_path.assert_called_with("extensions", "python", "agent_init")
+        mock_files.exists.assert_called_with("/abs/extensions/python/agent_init")
