@@ -25,8 +25,8 @@ This guide consolidates everything you need to design, implement, and troublesho
 - **Runtime (`run_ui.py`)** – boots `python-socketio.AsyncServer` inside an ASGI stack served by Uvicorn. Flask routes are mounted via `uvicorn.middleware.wsgi.WSGIMiddleware`, and Flask + Socket.IO share the same process so session cookies and CSRF semantics stay aligned.
 - **Singleton handlers** – every `WebSocketHandler` subclass exposes `get_instance()` and is registered exactly once. Direct instantiation raises `SingletonInstantiationError`, keeping shared state and lifecycle hooks deterministic.
 - **Dispatcher offload** – handler entrypoints (`process_event`, `on_connect`, `on_disconnect`) run in a background worker loop (via `DeferredTask`) so blocking handlers cannot stall the Socket.IO transport. Socket.IO emits/disconnects are marshalled back to the dispatcher loop. Diagnostic timing and payload summaries are only built when Event Console watchers are subscribed (development mode).
-- **`python/helpers/websocket_manager.py`** – orchestrates routing, buffering, aggregation, metadata envelopes, and session tracking. Think of it as the “switchboard” for every WebSocket event.
-- **`python/helpers/websocket.py`** – base class for application handlers. Provides lifecycle hooks, helper methods (`emit_to`, `broadcast`, `request`, `request_all`) and identifier metadata.
+- **`helpers/websocket_manager.py`** – orchestrates routing, buffering, aggregation, metadata envelopes, and session tracking. Think of it as the “switchboard” for every WebSocket event.
+- **`helpers/websocket.py`** – base class for application handlers. Provides lifecycle hooks, helper methods (`emit_to`, `broadcast`, `request`, `request_all`) and identifier metadata.
 - **`webui/js/websocket.js`** – frontend singleton exposing a minimal client API (`emit`, `request`, `on`, `off`) with lazy connection management and development-only logging (no client-side `broadcast()` or `requestAll()` helpers).
 - **Developer Harness (`webui/components/settings/developer/websocket-test-store.js`)** – manual and automatic validation suite for emit/request flows, timeout behaviour (including the default unlimited wait), correlation ID propagation, envelope metadata, subscription persistence across reconnect, and development-mode diagnostics.
 - **Specs & Contracts** – canonical definitions live under `specs/003-websocket-event-handlers/`. This guide references those documents but focuses on applied usage.
@@ -38,7 +38,7 @@ This guide consolidates everything you need to design, implement, and troublesho
 | Term | Where it Appears | Meaning |
 |------|------------------|---------|
 | `sid` | Socket.IO | Connection identifier for a Socket.IO namespace connection. With only the root namespace (`/`), each tab has one `sid`. When connecting to multiple namespaces, a tab has one `sid` per namespace. Treat connection identity as `(namespace, sid)`. |
-| `handlerId` | Manager Envelope | Fully-qualified Python class name (e.g., `python.websocket_handlers.notifications.NotificationHandler`). Used for result aggregation and logging. |
+| `handlerId` | Manager Envelope | Fully-qualified Python class name (e.g., `websocket_handlers.notifications.NotificationHandler`). Used for result aggregation and logging. |
 | `eventId` | Manager Envelope | UUIDv4 generated for every server→client delivery. Unique per emission. Useful when correlating broadcast fan-out or diagnosing duplicates. |
 | `correlationId` | Bidirectional flows | Thread that ties together request, response, and any follow-up events. Client may supply one; otherwise the manager generates and echoes it everywhere. |
 | `data` | Envelope payload | Application payload you define. Always a JSON-serialisable object. |
@@ -63,7 +63,7 @@ Useful mental model: **client ↔ manager ↔ handler**. The manager normalises 
 Agent Zero can also push poll-shaped state snapshots over the WebSocket bus, replacing the legacy 4Hz `/poll` loop while preserving the existing UI update contract.
 
 - **Handshake**: the frontend sync store (`/components/sync/sync-store.js`) calls `websocket.request("state_request", { context, log_from, notifications_from, timezone })` to establish per-tab cursors and a `seq_base`.
-- **Push**: the server emits `state_push` events containing `{ runtime_epoch, seq, snapshot }`, where `snapshot` is exactly the `/poll` payload shape built by `python/helpers/state_snapshot.py`.
+- **Push**: the server emits `state_push` events containing `{ runtime_epoch, seq, snapshot }`, where `snapshot` is exactly the `/poll` payload shape built by `helpers/state_snapshot.py`.
 - **Coalescing**: the backend `StateMonitor` coalesces dirties per SID (25ms window) so streaming updates stay smooth without unbounded trailing-edge debounce.
 - **Degraded fallback**: if the WebSocket handshake/push path is unhealthy, the UI enters `DEGRADED` and uses `/poll` as a fallback; while degraded, push snapshots are ignored to avoid racey double-writes.
 
@@ -137,16 +137,16 @@ These expanded flows complement the operation matrix later in the guide, ensurin
 
 ### 1. Handler Discovery & Setup
 
-Handlers are discovered deterministically from `python/websocket_handlers/`:
+Handlers are discovered deterministically from `websocket_handlers/`:
 
-- **File entry**: `python/websocket_handlers/state_sync_handler.py` → namespace `/state_sync`
-- **Folder entry**: `python/websocket_handlers/orders/` or `python/websocket_handlers/orders_handler/` → namespace `/orders` (loads `*.py` one level deep; ignores `__init__.py` and deeper nesting)
-- **Reserved root**: `python/websocket_handlers/_default.py` → namespace `/` (diagnostics-only by default)
+- **File entry**: `websocket_handlers/state_sync_handler.py` → namespace `/state_sync`
+- **Folder entry**: `websocket_handlers/orders/` or `websocket_handlers/orders_handler/` → namespace `/orders` (loads `*.py` one level deep; ignores `__init__.py` and deeper nesting)
+- **Reserved root**: `websocket_handlers/_default.py` → namespace `/` (diagnostics-only by default)
 
 Create handler modules under the appropriate namespace entry and inherit from `WebSocketHandler`.
 
 ```python
-from python.helpers.websocket import WebSocketHandler
+from helpers.websocket import WebSocketHandler
 
 class DashboardHandler(WebSocketHandler):
     @classmethod
@@ -550,7 +550,7 @@ The manager validates the payload, resolves/creates `correlationId`, and passes 
 
 ```json
 {
-  "handlerId": "python.websocket_handlers.notifications.NotificationHandler",
+  "handlerId": "websocket_handlers.notifications.NotificationHandler",
   "eventId": "b7e2a9cd-2857-4f7a-8bf4-12a736cb6720",
   "correlationId": "caller-supplied-or-generated",
   "ts": "2025-10-31T13:13:37.123Z",
@@ -661,7 +661,7 @@ The manager validates the payload, resolves/creates `correlationId`, and passes 
   - [`frontend-api.md`](../specs/003-websocket-event-handlers/contracts/frontend-api.md)
   - [`event-schemas.md`](../specs/003-websocket-event-handlers/contracts/event-schemas.md)
   - [`security-contract.md`](../specs/003-websocket-event-handlers/contracts/security-contract.md)
-- **Implementation Reference** – Inspect `python/helpers/websocket_manager.py`, `python/helpers/websocket.py`, `webui/js/websocket.js`, and the developer harness in `webui/components/settings/developer/websocket-test-store.js` for concrete examples.
+- **Implementation Reference** – Inspect `helpers/websocket_manager.py`, `helpers/websocket.py`, `webui/js/websocket.js`, and the developer harness in `webui/components/settings/developer/websocket-test-store.js` for concrete examples.
 
 > **Tip:** When extending the infrastructure (new metadata) start by updating the contracts, sync the manager/frontend helpers, and then document the change here so producers and consumers stay in lockstep.
 
@@ -674,7 +674,7 @@ The WebSocket stack standardizes backend error codes returned in `RequestResultI
 | `NO_HANDLERS` | Manager routing | No handler is registered for the requested `eventType`. | Register a handler for the event or correct the event name. | `{ "handlerId": "WebSocketManager", "ok": false, "error": { "code": "NO_HANDLERS", "error": "No handler for 'missing'" } }` |
 | `TIMEOUT` | Aggregated or single request | The request exceeded `timeoutMs`. | Increase `timeoutMs`, reduce handler processing time, or split work. | `{ "handlerId": "ExampleHandler", "ok": false, "error": { "code": "TIMEOUT", "error": "Request timeout" } }` |
 | `CONNECTION_NOT_FOUND` | Single‑sid request | Target `sid` is not connected/known. | Use an active `sid` or retry after reconnect. | `{ "handlerId": "WebSocketManager", "ok": false, "error": { "code": "CONNECTION_NOT_FOUND", "error": "Connection 'sid-123' not found" } }` |
-| `HARNESS_UNKNOWN_EVENT` | Developer harness | Harness test handler received an unsupported event name. | Update harness sources or disable the step before running automation. | `{ "handlerId": "python.websocket_handlers.dev_websocket_test_handler.DevWebsocketTestHandler", "ok": false, "error": { "code": "HARNESS_UNKNOWN_EVENT", "error": "Unhandled event", "details": "ws_tester_foo" } }` |
+| `HARNESS_UNKNOWN_EVENT` | Developer harness | Harness test handler received an unsupported event name. | Update harness sources or disable the step before running automation. | `{ "handlerId": "websocket_handlers.dev_websocket_test_handler.DevWebsocketTestHandler", "ok": false, "error": { "code": "HARNESS_UNKNOWN_EVENT", "error": "Unhandled event", "details": "ws_tester_foo" } }` |
 
 Notes
 - Error payload shape follows the contract documented in `contracts/event-schemas.md` (`RequestResultItem.error`).

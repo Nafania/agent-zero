@@ -99,7 +99,7 @@ Fallback durability requirement:
 ### 1) Settings schema and defaults
 
 Remove keys from:
-- `python/helpers/settings.py` type definitions
+- `helpers/settings.py` type definitions
 - defaults in `get_default_settings()`
 - conversions and runtime application paths that reference removed keys
 
@@ -117,7 +117,7 @@ Update `webui/components/settings/agent/memory.html`:
 
 ### 3) Recall extension cleanup
 
-Update `python/extensions/message_loop_prompts_after/_50_recall_memories.py`:
+Update `extensions/python/message_loop_prompts_after/_50_recall_memories.py`:
 - Remove query-prep branch and post-filter branch.
 - Remove references to removed thresholds.
 - Keep retrieval limits and extras injection behavior.
@@ -130,8 +130,8 @@ Similarity threshold policy:
 ### 4) Memorize extension cleanup
 
 Update:
-- `python/extensions/monologue_end/_50_memorize_fragments.py`
-- `python/extensions/monologue_end/_51_memorize_solutions.py`
+- `extensions/python/monologue_end/_50_memorize_fragments.py`
+- `extensions/python/monologue_end/_51_memorize_solutions.py`
 
 Changes:
 - remove replacement-threshold behavior and related logic paths.

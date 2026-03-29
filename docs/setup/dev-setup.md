@@ -97,7 +97,7 @@ After inserting my API key in settings, my Agent Zero instance works. I can send
 
 ## Debugging
 - You can try out the debugger already by placing a breakpoint somewhere in the python code.
-- Let's open `python/api/message.py` for example and place a breakpoint at the beginning of the `communicate` function by clicking on the left of the row number. A red dot should appear showing a breakpoint is set.
+- Let's open `api/message.py` for example and place a breakpoint at the beginning of the `communicate` function by clicking on the left of the row number. A red dot should appear showing a breakpoint is set.
 
 ![Debugging](res/dev/devinst-9.png)
 

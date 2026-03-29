@@ -30,7 +30,7 @@
 
 ### A. OAuth Provider Framework
 
-New module `python/helpers/oauth.py` with strategy pattern:
+New module `helpers/oauth.py` with strategy pattern:
 
 **Base class:**
 - `OAuthProvider` ABC with `provider_id`, `authorize_url`, `token_url`, `scopes`, `supports_pkce`
@@ -85,7 +85,7 @@ Providers without an `oauth` block behave as before — API key only.
 
 ### B. Connected Provider Pool
 
-New module `python/helpers/connected_providers.py`:
+New module `helpers/connected_providers.py`:
 
 **`ConnectedProvider`** — represents a provider with either (or both) API key and OAuth credentials:
 - `provider_id`, `auth_method` (api_key | oauth), `is_active`, `oauth_tokens`, `api_key`
@@ -145,7 +145,7 @@ Stored in chat metadata (existing `context.json`). Only the chat model is overri
 
 ## API Endpoints
 
-New file `python/api/oauth.py`:
+New file `api/oauth.py`:
 
 ### OAuth Flow
 | Method | Path | Purpose |
@@ -206,9 +206,9 @@ UI auto-detects which flow to use based on whether the callback was received wit
 
 | File | Purpose |
 |------|---------|
-| `python/helpers/oauth.py` | `OAuthProvider` ABC + `GoogleOAuth`, `OpenAIOAuth`, `AnthropicOAuth` strategies |
-| `python/helpers/connected_providers.py` | `ProviderPool` singleton, `ConnectedProvider`, credential resolution |
-| `python/api/oauth.py` | REST endpoints for OAuth flow, model list, chat override |
+| `helpers/oauth.py` | `OAuthProvider` ABC + `GoogleOAuth`, `OpenAIOAuth`, `AnthropicOAuth` strategies |
+| `helpers/connected_providers.py` | `ProviderPool` singleton, `ConnectedProvider`, credential resolution |
+| `api/oauth.py` | REST endpoints for OAuth flow, model list, chat override |
 | `webui/js/oauth.js` | Frontend OAuth flow logic, model picker |
 
 ### Modified Files
@@ -217,8 +217,8 @@ UI auto-detects which flow to use based on whether the callback was received wit
 |------|--------|
 | `models.py` | `get_api_key()` delegates to `ProviderPool.get_credential()` |
 | `initialize.py` | Apply per-chat model override from chat metadata |
-| `python/helpers/settings.py` | OAuth client credentials as sensitive settings (load/save to `.env`) |
-| `python/helpers/providers.py` | Parse `oauth` block from `model_providers.yaml` |
+| `helpers/settings.py` | OAuth client credentials as sensitive settings (load/save to `.env`) |
+| `helpers/providers.py` | Parse `oauth` block from `model_providers.yaml` |
 | `conf/model_providers.yaml` | Add `oauth` sections to google, openai, anthropic |
 | `webui/components/settings/agent/agent.html` | OAuth connect/disconnect buttons per provider |
 | Chat UI (header/sidebar) | Model picker dropdown |

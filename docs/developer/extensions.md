@@ -30,7 +30,7 @@ Agent Zero provides several extension points where custom code can be injected:
 #### Extension Mechanism
 The extension mechanism in Agent Zero works through the `call_extensions` function in `agent.py`, which:
 
-1. Loads default extensions from `/python/extensions/{extension_point}/`
+1. Loads default extensions from `/extensions/python/{extension_point}/`
 2. Loads agent-specific extensions from `/agents/{agent_profile}/extensions/{extension_point}/`
 3. Merges them, with agent-specific extensions overriding default ones based on filename
 4. Executes each extension in order
@@ -41,14 +41,14 @@ To create a custom extension:
 1. Create a Python class that inherits from the `Extension` base class
 2. Implement the `execute` method
 3. Place the file in the appropriate extension point directory:
-   - Default extensions: `/python/extensions/{extension_point}/`
+   - Default extensions: `/extensions/python/{extension_point}/`
    - Agent-specific extensions: `/agents/{agent_profile}/extensions/{extension_point}/`
 
 **Example extension:**
 
 ```python
 # File: /agents/_example/extensions/agent_init/_10_example_extension.py
-from python.helpers.extension import Extension
+from helpers.extension import Extension
 
 class ExampleExtension(Extension):
     async def execute(self, **kwargs):
@@ -60,7 +60,7 @@ class ExampleExtension(Extension):
 When an extension with the same filename exists in both the default location and an agent-specific location, the agent-specific version takes precedence. This allows for selective overriding of extensions while inheriting the rest of the default behavior.
 
 For example, if both these files exist:
-- `/python/extensions/agent_init/example.py`
+- `/extensions/python/agent_init/example.py`
 - `/agents/my_agent/extensions/agent_init/example.py`
 
 The version in `/agents/my_agent/extensions/agent_init/example.py` will be used, completely replacing the default version.
@@ -70,7 +70,7 @@ Tools are modular components that provide specific functionality to agents. They
 
 #### Tool Structure
 Each tool is implemented as a Python class that inherits from the base `Tool` class. Tools are located in:
-- Default tools: `/python/tools/`
+- Default tools: `/tools/`
 - Agent-specific tools: `/agents/{agent_profile}/tools/`
 
 #### Tool Override Logic
@@ -80,10 +80,10 @@ When a tool with the same name is requested, Agent Zero first checks for its exi
 
 ```python
 # File: /agents/_example/tools/response.py
-from python.helpers.tool import Tool, Response
+from helpers.tool import Tool, Response
 
 # example of a tool redefinition
-# the original response tool is in python/tools/response.py
+# the original response tool is in tools/response.py
 # for the example agent this version will be used instead
 
 class ResponseTool(Tool):
@@ -103,7 +103,7 @@ When a tool is called, it goes through the following lifecycle:
 API endpoints expose Agent Zero functionality to external systems or the user interface. They are modular and can be extended or replaced.
 
 API endpoints are located in:
-- Default endpoints: `/python/api/`
+- Default endpoints: `/api/`
 
 Each endpoint is a separate Python file that handles a specific API request.
 
@@ -111,7 +111,7 @@ Each endpoint is a separate Python file that handles a specific API request.
 Helper modules provide utility functions and shared logic used across the framework. They support the extensibility of other components by providing common functionality.
 
 Helpers are located in:
-- Default helpers: `/python/helpers/`
+- Default helpers: `/helpers/`
 
 ### Prompts
 Prompts define the instructions and context provided to the LLM. They are highly extensible and can be customized for different agents.
@@ -145,8 +145,8 @@ When a prompt file is processed, Agent Zero automatically looks for a correspond
 If you have a prompt file `agent.system.tools.md`, you can create `agent.system.tools.py` alongside it:
 
 ```python
-from python.helpers.files import VariablesPlugin
-from python.helpers import files
+from helpers.files import VariablesPlugin
+from helpers import files
 
 class Tools(VariablesPlugin):
     def get_variables(self, file: str, backup_dirs: list[str] | None = None) -> dict[str, Any]:

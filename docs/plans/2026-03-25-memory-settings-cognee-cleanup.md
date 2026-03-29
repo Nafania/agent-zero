@@ -15,7 +15,7 @@
 ### Task 1: Remove obsolete memory settings from backend schema
 
 **Files:**
-- Modify: `python/helpers/settings.py`
+- Modify: `helpers/settings.py`
 - Test: `tests/helpers/test_settings_memory_cleanup.py`
 
 - [ ] **Step 1: Write failing settings compatibility tests**
@@ -32,7 +32,7 @@ Expected: FAIL because removed keys still exist and are emitted.
 
 - [ ] **Step 3: Remove keys from `Settings` TypedDict and defaults**
 
-In `python/helpers/settings.py`:
+In `helpers/settings.py`:
 - remove:
   - `agent_memory_subdir`
   - `memory_recall_query_prep`
@@ -51,7 +51,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add python/helpers/settings.py tests/helpers/test_settings_memory_cleanup.py
+git add helpers/settings.py tests/helpers/test_settings_memory_cleanup.py
 git commit -m "refactor: remove obsolete memory settings from backend schema"
 ```
 
@@ -99,8 +99,8 @@ git commit -m "feat: simplify memory settings UI by removing obsolete controls"
 ### Task 3: Simplify recall extension (remove query prep/post-filter/threshold logic)
 
 **Files:**
-- Modify: `python/extensions/message_loop_prompts_after/_50_recall_memories.py`
-- Modify: `python/extensions/message_loop_prompts_after/_91_recall_wait.py`
+- Modify: `extensions/python/message_loop_prompts_after/_50_recall_memories.py`
+- Modify: `extensions/python/message_loop_prompts_after/_91_recall_wait.py`
 - Test: `tests/extensions/test_recall_memories_cleanup.py`
 
 - [ ] **Step 1: Write failing recall behavior tests**
@@ -135,7 +135,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add python/extensions/message_loop_prompts_after/_50_recall_memories.py python/extensions/message_loop_prompts_after/_91_recall_wait.py tests/extensions/test_recall_memories_cleanup.py
+git add extensions/python/message_loop_prompts_after/_50_recall_memories.py extensions/python/message_loop_prompts_after/_91_recall_wait.py tests/extensions/test_recall_memories_cleanup.py
 git commit -m "refactor: remove legacy recall query prep and post-filter logic"
 ```
 
@@ -144,8 +144,8 @@ git commit -m "refactor: remove legacy recall query prep and post-filter logic"
 ### Task 4: Simplify memorize extensions (remove consolidation/replacement toggles)
 
 **Files:**
-- Modify: `python/extensions/monologue_end/_50_memorize_fragments.py`
-- Modify: `python/extensions/monologue_end/_51_memorize_solutions.py`
+- Modify: `extensions/python/monologue_end/_50_memorize_fragments.py`
+- Modify: `extensions/python/monologue_end/_51_memorize_solutions.py`
 - Test: `tests/extensions/test_memorize_cleanup.py`
 
 - [ ] **Step 1: Write failing memorize tests**
@@ -175,7 +175,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add python/extensions/monologue_end/_50_memorize_fragments.py python/extensions/monologue_end/_51_memorize_solutions.py tests/extensions/test_memorize_cleanup.py
+git add extensions/python/monologue_end/_50_memorize_fragments.py extensions/python/monologue_end/_51_memorize_solutions.py tests/extensions/test_memorize_cleanup.py
 git commit -m "refactor: simplify auto-memorize flow to cognee-native behavior"
 ```
 
@@ -184,9 +184,9 @@ git commit -m "refactor: simplify auto-memorize flow to cognee-native behavior"
 ### Task 5: Implement Cognee feedback backend (API + adapter + durable fallback)
 
 **Files:**
-- Create: `python/api/memory_feedback.py`
-- Create: `python/helpers/cognee_feedback.py`
-- Modify: `python/helpers/memory.py`
+- Create: `api/memory_feedback.py`
+- Create: `helpers/cognee_feedback.py`
+- Modify: `helpers/memory.py`
 - Test: `tests/api/test_memory_feedback.py`
 - Test: `tests/helpers/test_cognee_feedback.py`
 
@@ -217,7 +217,7 @@ If no native feedback API exists, define adapter mode as:
 
 - [ ] **Step 4: Add Cognee feedback helper**
 
-Implement `python/helpers/cognee_feedback.py`:
+Implement `helpers/cognee_feedback.py`:
 - payload validation (`context_id`, `dataset`, `memory_id`, `feedback`, optional `reason`)
 - adapter call into Cognee feedback surface
 - disk-backed queue file in `usr/` for fallback
@@ -225,15 +225,15 @@ Implement `python/helpers/cognee_feedback.py`:
 
 - [ ] **Step 5: Add feedback API handler**
 
-Implement `python/api/memory_feedback.py`:
+Implement `api/memory_feedback.py`:
 - inherits `ApiHandler`
 - enforces existing auth + CSRF behavior
 - exposes action to submit feedback and action to retry queue (optional admin/internal)
-- follows auto-discovery convention from `run_ui.py` (`python/api/*.py` -> `/<module_name>`)
+- follows auto-discovery convention from `run_ui.py` (`api/*.py` -> `/<module_name>`)
 
 - [ ] **Step 6: Ensure recall path carries stable memory IDs**
 
-Update `python/helpers/memory.py` and/or recall extension path so recalled entries provide stable IDs suitable for feedback submission.
+Update `helpers/memory.py` and/or recall extension path so recalled entries provide stable IDs suitable for feedback submission.
 
 - [ ] **Step 7: Run tests to verify pass**
 
@@ -243,7 +243,7 @@ Expected: PASS.
 - [ ] **Step 8: Commit**
 
 ```bash
-git add python/api/memory_feedback.py python/helpers/cognee_feedback.py python/helpers/memory.py tests/api/test_memory_feedback.py tests/helpers/test_cognee_feedback.py
+git add api/memory_feedback.py helpers/cognee_feedback.py helpers/memory.py tests/api/test_memory_feedback.py tests/helpers/test_cognee_feedback.py
 git commit -m "feat: add cognee feedback api with durable fallback queue"
 ```
 
@@ -294,11 +294,11 @@ git commit -m "feat: add user feedback controls for recalled cognee memories"
 ### Task 7: End-to-end regression and cleanup sweep
 
 **Files:**
-- Verify: `python/helpers/settings.py`
-- Verify: `python/extensions/message_loop_prompts_after/_50_recall_memories.py`
-- Verify: `python/extensions/monologue_end/_50_memorize_fragments.py`
-- Verify: `python/extensions/monologue_end/_51_memorize_solutions.py`
-- Verify: `python/api/memory_dashboard.py`
+- Verify: `helpers/settings.py`
+- Verify: `extensions/python/message_loop_prompts_after/_50_recall_memories.py`
+- Verify: `extensions/python/monologue_end/_50_memorize_fragments.py`
+- Verify: `extensions/python/monologue_end/_51_memorize_solutions.py`
+- Verify: `api/memory_dashboard.py`
 - Verify: `webui/components/settings/agent/memory.html`
 
 - [ ] **Step 1: Grep for removed keys and dead references**

@@ -18,17 +18,17 @@
 
 | File | Responsibility |
 |------|---------------|
-| `python/helpers/oauth.py` | `OAuthProvider` ABC, `OAuthTokens`, `GoogleOAuth`, `OpenAIOAuth`, `AnthropicOAuth` strategies |
-| `python/helpers/connected_providers.py` | `ConnectedProvider`, `ProviderPool` singleton, credential resolution, model list caching |
-| `python/helpers/oauth_store.py` | Token persistence: read/write `usr/oauth_tokens.json`, atomic file ops |
-| `python/api/oauth_authorize.py` | `POST /oauth_authorize` — start OAuth flow |
-| `python/api/oauth_callback.py` | `GET /oauth_callback` — redirect handler |
-| `python/api/oauth_exchange.py` | `POST /oauth_exchange` — manual code exchange |
-| `python/api/oauth_disconnect.py` | `POST /oauth_disconnect` — revoke + remove |
-| `python/api/oauth_providers.py` | `GET /oauth_providers` — list providers with status |
-| `python/api/oauth_status.py` | `GET /oauth_status` — single provider detail |
-| `python/api/provider_models.py` | `GET /provider_models` — dynamic model list |
-| `python/api/chat_model_override.py` | `POST/GET /chat_model_override` — per-chat model |
+| `helpers/oauth.py` | `OAuthProvider` ABC, `OAuthTokens`, `GoogleOAuth`, `OpenAIOAuth`, `AnthropicOAuth` strategies |
+| `helpers/connected_providers.py` | `ConnectedProvider`, `ProviderPool` singleton, credential resolution, model list caching |
+| `helpers/oauth_store.py` | Token persistence: read/write `usr/oauth_tokens.json`, atomic file ops |
+| `api/oauth_authorize.py` | `POST /oauth_authorize` — start OAuth flow |
+| `api/oauth_callback.py` | `GET /oauth_callback` — redirect handler |
+| `api/oauth_exchange.py` | `POST /oauth_exchange` — manual code exchange |
+| `api/oauth_disconnect.py` | `POST /oauth_disconnect` — revoke + remove |
+| `api/oauth_providers.py` | `GET /oauth_providers` — list providers with status |
+| `api/oauth_status.py` | `GET /oauth_status` — single provider detail |
+| `api/provider_models.py` | `GET /provider_models` — dynamic model list |
+| `api/chat_model_override.py` | `POST/GET /chat_model_override` — per-chat model |
 | `webui/js/oauth.js` | OAuth flow frontend logic |
 | `webui/js/model-picker.js` | Chat model picker dropdown logic |
 | `tests/helpers/test_oauth.py` | OAuth strategy unit tests |
@@ -43,8 +43,8 @@
 | File | Change |
 |------|--------|
 | `conf/model_providers.yaml` | Add `oauth` blocks to google, openai, anthropic |
-| `python/helpers/providers.py` | Parse `oauth` config from YAML, expose `get_oauth_config()` |
-| `python/helpers/settings.py` | OAuth client credentials in sensitive settings load/save |
+| `helpers/providers.py` | Parse `oauth` config from YAML, expose `get_oauth_config()` |
+| `helpers/settings.py` | OAuth client credentials in sensitive settings load/save |
 | `models.py:280-293` | `get_api_key()` delegates to `ProviderPool.get_credential()` |
 | `initialize.py:31-43` | Apply per-chat model override for chat_llm |
 | `webui/components/settings/agent/agent.html` | OAuth connect/disconnect UI per provider |
@@ -54,7 +54,7 @@
 ### Task 1: OAuthProvider ABC + GoogleOAuth Strategy
 
 **Files:**
-- Create: `python/helpers/oauth.py`
+- Create: `helpers/oauth.py`
 - Test: `tests/helpers/test_oauth.py`
 
 - [ ] **Step 1: Write failing tests for GoogleOAuth**
@@ -64,7 +64,7 @@ Create `tests/helpers/test_oauth.py`:
 ```python
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
-from python.helpers.oauth import GoogleOAuth, OAuthTokens
+from helpers.oauth import GoogleOAuth, OAuthTokens
 
 
 class TestGoogleOAuth:
@@ -178,11 +178,11 @@ class TestGoogleOAuth:
 - [ ] **Step 2: Run tests to verify failure**
 
 Run: `pytest tests/helpers/test_oauth.py -v`
-Expected: FAIL — `python.helpers.oauth` module not found.
+Expected: FAIL — `helpers.oauth` module not found.
 
 - [ ] **Step 3: Implement OAuthProvider ABC + OAuthTokens + GoogleOAuth**
 
-Create `python/helpers/oauth.py`:
+Create `helpers/oauth.py`:
 
 ```python
 from abc import ABC, abstractmethod
@@ -347,7 +347,7 @@ Expected: PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add python/helpers/oauth.py tests/helpers/test_oauth.py
+git add helpers/oauth.py tests/helpers/test_oauth.py
 git commit -m "feat(oauth): add OAuthProvider ABC and GoogleOAuth strategy"
 ```
 
@@ -356,7 +356,7 @@ git commit -m "feat(oauth): add OAuthProvider ABC and GoogleOAuth strategy"
 ### Task 2: OpenAIOAuth + AnthropicOAuth Strategies
 
 **Files:**
-- Modify: `python/helpers/oauth.py`
+- Modify: `helpers/oauth.py`
 - Modify: `tests/helpers/test_oauth.py`
 
 - [ ] **Step 1: Write failing tests for OpenAI and Anthropic**
@@ -365,7 +365,7 @@ Append to `tests/helpers/test_oauth.py`:
 
 ```python
 import hashlib, base64, secrets
-from python.helpers.oauth import OpenAIOAuth, AnthropicOAuth
+from helpers.oauth import OpenAIOAuth, AnthropicOAuth
 
 
 class TestOpenAIOAuth:
@@ -468,7 +468,7 @@ Expected: FAIL — `OpenAIOAuth` and `AnthropicOAuth` not defined.
 
 - [ ] **Step 3: Implement OpenAIOAuth and AnthropicOAuth**
 
-Append to `python/helpers/oauth.py`:
+Append to `helpers/oauth.py`:
 
 ```python
 import hashlib
@@ -649,7 +649,7 @@ Expected: PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add python/helpers/oauth.py tests/helpers/test_oauth.py
+git add helpers/oauth.py tests/helpers/test_oauth.py
 git commit -m "feat(oauth): add OpenAI and Anthropic OAuth strategies"
 ```
 
@@ -658,7 +658,7 @@ git commit -m "feat(oauth): add OpenAI and Anthropic OAuth strategies"
 ### Task 3: Token Storage
 
 **Files:**
-- Create: `python/helpers/oauth_store.py`
+- Create: `helpers/oauth_store.py`
 - Test: `tests/helpers/test_oauth_store.py`
 
 - [ ] **Step 1: Write failing tests for token persistence**
@@ -670,8 +670,8 @@ import pytest
 import json
 from datetime import datetime, timezone, timedelta
 from unittest.mock import patch
-from python.helpers.oauth import OAuthTokens
-from python.helpers.oauth_store import OAuthTokenStore
+from helpers.oauth import OAuthTokens
+from helpers.oauth_store import OAuthTokenStore
 
 
 @pytest.fixture
@@ -731,11 +731,11 @@ class TestOAuthTokenStore:
 - [ ] **Step 2: Run tests to verify failure**
 
 Run: `pytest tests/helpers/test_oauth_store.py -v`
-Expected: FAIL — `python.helpers.oauth_store` not found.
+Expected: FAIL — `helpers.oauth_store` not found.
 
 - [ ] **Step 3: Implement OAuthTokenStore**
 
-Create `python/helpers/oauth_store.py`:
+Create `helpers/oauth_store.py`:
 
 ```python
 import json
@@ -745,7 +745,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Optional
 
-from python.helpers.oauth import OAuthTokens
+from helpers.oauth import OAuthTokens
 
 logger = logging.getLogger(__name__)
 
@@ -824,7 +824,7 @@ Expected: PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add python/helpers/oauth_store.py tests/helpers/test_oauth_store.py
+git add helpers/oauth_store.py tests/helpers/test_oauth_store.py
 git commit -m "feat(oauth): add token storage with atomic writes"
 ```
 
@@ -833,7 +833,7 @@ git commit -m "feat(oauth): add token storage with atomic writes"
 ### Task 4: ProviderPool + Credential Resolution
 
 **Files:**
-- Create: `python/helpers/connected_providers.py`
+- Create: `helpers/connected_providers.py`
 - Test: `tests/helpers/test_connected_providers.py`
 
 - [ ] **Step 1: Write failing tests for ProviderPool**
@@ -844,8 +844,8 @@ Create `tests/helpers/test_connected_providers.py`:
 import pytest
 from datetime import datetime, timezone, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
-from python.helpers.oauth import OAuthTokens
-from python.helpers.connected_providers import ProviderPool, ConnectedProvider
+from helpers.oauth import OAuthTokens
+from helpers.connected_providers import ProviderPool, ConnectedProvider
 
 
 @pytest.fixture
@@ -878,13 +878,13 @@ def pool(tmp_path):
 
 class TestProviderPool:
     def test_get_credential_returns_api_key_when_no_oauth(self, pool):
-        with patch("python.helpers.connected_providers._get_api_key", return_value="sk-test"):
+        with patch("helpers.connected_providers._get_api_key", return_value="sk-test"):
             cred = pool.get_credential("openrouter")
         assert cred == "sk-test"
 
     def test_get_credential_prefers_oauth_over_api_key(self, pool, valid_tokens):
         pool.store.save("google", valid_tokens)
-        with patch("python.helpers.connected_providers._get_api_key", return_value="api-key"):
+        with patch("helpers.connected_providers._get_api_key", return_value="api-key"):
             cred = pool.get_credential("google")
         assert cred == "test-access"
 
@@ -896,14 +896,14 @@ class TestProviderPool:
             expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
             token_type="Bearer", scope="test",
         )
-        with patch("python.helpers.connected_providers._get_oauth_client_creds", return_value=("cid", "cs")):
+        with patch("helpers.connected_providers._get_oauth_client_creds", return_value=("cid", "cs")):
             with patch.object(pool, "_refresh_provider", new_callable=AsyncMock, return_value=refreshed):
                 cred = pool.get_credential("google")
                 # Falls back to expired token synchronously; refresh happens async
                 assert cred in ("old-access", "new-access")
 
     def test_get_credential_falls_back_to_api_key_on_missing_oauth(self, pool):
-        with patch("python.helpers.connected_providers._get_api_key", return_value="fallback-key"):
+        with patch("helpers.connected_providers._get_api_key", return_value="fallback-key"):
             cred = pool.get_credential("google")
         assert cred == "fallback-key"
 
@@ -912,17 +912,17 @@ class TestProviderPool:
         assert pool.is_connected("google") is True
 
     def test_is_connected_true_with_api_key(self, pool):
-        with patch("python.helpers.connected_providers._get_api_key", return_value="sk-test"):
+        with patch("helpers.connected_providers._get_api_key", return_value="sk-test"):
             assert pool.is_connected("openrouter") is True
 
     def test_is_connected_false_when_nothing(self, pool):
-        with patch("python.helpers.connected_providers._get_api_key", return_value="None"):
+        with patch("helpers.connected_providers._get_api_key", return_value="None"):
             assert pool.is_connected("google") is False
 
     def test_get_connected_lists_all(self, pool, valid_tokens):
         pool.store.save("google", valid_tokens)
-        with patch("python.helpers.connected_providers._get_api_key", side_effect=lambda p: "sk-test" if p == "openai" else "None"):
-            with patch("python.helpers.connected_providers._get_all_provider_ids", return_value=["google", "openai", "anthropic"]):
+        with patch("helpers.connected_providers._get_api_key", side_effect=lambda p: "sk-test" if p == "openai" else "None"):
+            with patch("helpers.connected_providers._get_all_provider_ids", return_value=["google", "openai", "anthropic"]):
                 connected = pool.get_connected()
         ids = [c.provider_id for c in connected]
         assert "google" in ids
@@ -942,7 +942,7 @@ Expected: FAIL — module not found.
 
 - [ ] **Step 3: Implement ProviderPool**
 
-Create `python/helpers/connected_providers.py`:
+Create `helpers/connected_providers.py`:
 
 ```python
 import asyncio
@@ -952,9 +952,9 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from python.helpers.oauth import OAuthProvider, OAuthTokens, ModelInfo, get_oauth_provider
-from python.helpers.oauth_store import OAuthTokenStore
-from python.helpers import files
+from helpers.oauth import OAuthProvider, OAuthTokens, ModelInfo, get_oauth_provider
+from helpers.oauth_store import OAuthTokenStore
+from helpers import files
 
 logger = logging.getLogger(__name__)
 
@@ -965,7 +965,7 @@ _DEFAULT_TOKEN_PATH = "usr/oauth_tokens.json"
 
 
 def _get_api_key(provider_id: str) -> str:
-    from python.helpers import dotenv
+    from helpers import dotenv
     return (
         dotenv.get_dotenv_value(f"API_KEY_{provider_id.upper()}")
         or dotenv.get_dotenv_value(f"{provider_id.upper()}_API_KEY")
@@ -975,14 +975,14 @@ def _get_api_key(provider_id: str) -> str:
 
 
 def _get_oauth_client_creds(provider_id: str) -> tuple[str, str]:
-    from python.helpers import dotenv
+    from helpers import dotenv
     cid = dotenv.get_dotenv_value(f"OAUTH_CLIENT_ID_{provider_id.upper()}") or ""
     cs = dotenv.get_dotenv_value(f"OAUTH_CLIENT_SECRET_{provider_id.upper()}") or ""
     return cid, cs
 
 
 def _get_all_provider_ids() -> list[str]:
-    from python.helpers.providers import get_providers
+    from helpers.providers import get_providers
     providers = get_providers("chat") + get_providers("embedding")
     seen = set()
     result = []
@@ -1138,7 +1138,7 @@ Expected: PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add python/helpers/connected_providers.py tests/helpers/test_connected_providers.py
+git add helpers/connected_providers.py tests/helpers/test_connected_providers.py
 git commit -m "feat(oauth): add ProviderPool with credential resolution and model caching"
 ```
 
@@ -1148,7 +1148,7 @@ git commit -m "feat(oauth): add ProviderPool with credential resolution and mode
 
 **Files:**
 - Modify: `conf/model_providers.yaml`
-- Modify: `python/helpers/providers.py`
+- Modify: `helpers/providers.py`
 - Test: `tests/helpers/test_providers_oauth.py`
 
 - [ ] **Step 1: Write failing test for oauth config parsing**
@@ -1156,7 +1156,7 @@ git commit -m "feat(oauth): add ProviderPool with credential resolution and mode
 Create `tests/helpers/test_providers_oauth.py`:
 
 ```python
-from python.helpers.providers import get_provider_config
+from helpers.providers import get_provider_config
 
 
 class TestProviderOAuthConfig:
@@ -1220,7 +1220,7 @@ In `conf/model_providers.yaml`, add `oauth` to google, openai, anthropic under `
 
 - [ ] **Step 4: Add `get_oauth_providers()` to providers.py**
 
-Add to `python/helpers/providers.py` after the existing convenience functions (after line 101):
+Add to `helpers/providers.py` after the existing convenience functions (after line 101):
 
 ```python
 def get_oauth_providers() -> list[dict]:
@@ -1246,7 +1246,7 @@ Expected: PASS
 - [ ] **Step 6: Commit**
 
 ```bash
-git add conf/model_providers.yaml python/helpers/providers.py tests/helpers/test_providers_oauth.py
+git add conf/model_providers.yaml helpers/providers.py tests/helpers/test_providers_oauth.py
 git commit -m "feat(oauth): add OAuth config to provider YAML and expose get_oauth_providers()"
 ```
 
@@ -1256,7 +1256,7 @@ git commit -m "feat(oauth): add OAuth config to provider YAML and expose get_oau
 
 **Files:**
 - Modify: `models.py:280-293` (`get_api_key`)
-- Modify: `python/helpers/settings.py:447-515` (sensitive settings)
+- Modify: `helpers/settings.py:447-515` (sensitive settings)
 - Test: `tests/helpers/test_oauth_integration.py`
 
 - [ ] **Step 1: Write failing tests**
@@ -1266,7 +1266,7 @@ Create `tests/helpers/test_oauth_integration.py`:
 ```python
 import pytest
 from unittest.mock import patch, MagicMock
-from python.helpers.connected_providers import ProviderPool
+from helpers.connected_providers import ProviderPool
 
 
 class TestModelsGetApiKeyDelegation:
@@ -1285,7 +1285,7 @@ class TestModelsGetApiKeyDelegation:
 class TestSettingsOAuthClientCreds:
     def test_load_sensitive_loads_oauth_creds(self):
         settings = {"api_keys": {}, "oauth_client_credentials": {}}
-        with patch("python.helpers.dotenv.get_dotenv_value") as mock_dotenv:
+        with patch("helpers.dotenv.get_dotenv_value") as mock_dotenv:
             def side_effect(key):
                 mapping = {
                     "OAUTH_CLIENT_ID_GOOGLE": "google-cid",
@@ -1293,7 +1293,7 @@ class TestSettingsOAuthClientCreds:
                 }
                 return mapping.get(key, "")
             mock_dotenv.side_effect = side_effect
-            from python.helpers.settings import _load_oauth_client_credentials
+            from helpers.settings import _load_oauth_client_credentials
             _load_oauth_client_credentials(settings)
 
         assert settings["oauth_client_credentials"]["google"]["client_id"] == "google-cid"
@@ -1310,7 +1310,7 @@ In `models.py`, replace the `get_api_key` function (lines 280–293):
 
 ```python
 def get_api_key(service: str) -> str:
-    from python.helpers.connected_providers import ProviderPool
+    from helpers.connected_providers import ProviderPool
     pool = ProviderPool.get_instance()
     key = pool.get_credential(service)
     if key and key not in ("None", "NA"):
@@ -1335,7 +1335,7 @@ Add `_load_oauth_client_credentials()` and `_write_oauth_client_credentials()` f
 
 ```python
 def _load_oauth_client_credentials(settings: Settings):
-    from python.helpers.providers import get_oauth_providers
+    from helpers.providers import get_oauth_providers
     creds = {}
     for p in get_oauth_providers():
         pid = p["provider_id"]
@@ -1371,7 +1371,7 @@ Expected: No new failures.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add models.py python/helpers/settings.py tests/helpers/test_oauth_integration.py
+git add models.py helpers/settings.py tests/helpers/test_oauth_integration.py
 git commit -m "feat(oauth): integrate ProviderPool into models.py and OAuth creds into settings"
 ```
 
@@ -1380,12 +1380,12 @@ git commit -m "feat(oauth): integrate ProviderPool into models.py and OAuth cred
 ### Task 7: OAuth API Endpoints
 
 **Files:**
-- Create: `python/api/oauth_authorize.py`
-- Create: `python/api/oauth_callback.py`
-- Create: `python/api/oauth_exchange.py`
-- Create: `python/api/oauth_disconnect.py`
-- Create: `python/api/oauth_providers.py`
-- Create: `python/api/oauth_status.py`
+- Create: `api/oauth_authorize.py`
+- Create: `api/oauth_callback.py`
+- Create: `api/oauth_exchange.py`
+- Create: `api/oauth_disconnect.py`
+- Create: `api/oauth_providers.py`
+- Create: `api/oauth_status.py`
 - Test: `tests/api/test_oauth_endpoints.py`
 
 - [ ] **Step 1: Write failing tests for OAuth endpoints**
@@ -1395,17 +1395,17 @@ Create `tests/api/test_oauth_endpoints.py`:
 ```python
 import pytest
 from unittest.mock import patch, MagicMock, AsyncMock
-from python.api.oauth_authorize import OAuthAuthorize
-from python.api.oauth_callback import OAuthCallback
-from python.api.oauth_disconnect import OAuthDisconnect
-from python.api.oauth_providers import OAuthProviders
+from api.oauth_authorize import OAuthAuthorize
+from api.oauth_callback import OAuthCallback
+from api.oauth_disconnect import OAuthDisconnect
+from api.oauth_providers import OAuthProviders
 
 
 class TestOAuthAuthorize:
     @pytest.mark.asyncio
     async def test_returns_authorization_url(self):
         handler = OAuthAuthorize()
-        with patch("python.api.oauth_authorize.get_oauth_provider") as mock_get:
+        with patch("api.oauth_authorize.get_oauth_provider") as mock_get:
             mock_provider = MagicMock()
             mock_provider.get_authorization_url.return_value = "https://accounts.google.com/auth?client_id=test"
             mock_provider.supports_pkce = False
@@ -1426,11 +1426,11 @@ class TestOAuthProviders:
     @pytest.mark.asyncio
     async def test_returns_provider_list_with_status(self):
         handler = OAuthProviders()
-        with patch("python.api.oauth_providers.get_oauth_providers") as mock_providers:
+        with patch("api.oauth_providers.get_oauth_providers") as mock_providers:
             mock_providers.return_value = [
                 {"provider_id": "google", "name": "Google", "enabled": True, "strategy": "google"},
             ]
-            with patch("python.api.oauth_providers.ProviderPool") as mock_pool_cls:
+            with patch("api.oauth_providers.ProviderPool") as mock_pool_cls:
                 mock_pool = MagicMock()
                 mock_pool.is_connected.return_value = True
                 mock_pool_cls.get_instance.return_value = mock_pool
@@ -1445,7 +1445,7 @@ class TestOAuthDisconnect:
     @pytest.mark.asyncio
     async def test_disconnect_calls_pool(self):
         handler = OAuthDisconnect()
-        with patch("python.api.oauth_disconnect.ProviderPool") as mock_pool_cls:
+        with patch("api.oauth_disconnect.ProviderPool") as mock_pool_cls:
             mock_pool = MagicMock()
             mock_pool_cls.get_instance.return_value = mock_pool
 
@@ -1462,16 +1462,16 @@ Expected: FAIL — modules not found.
 
 - [ ] **Step 3: Implement OAuth API endpoints**
 
-Create each file following the `ApiHandler` pattern from `python/helpers/api.py`. Each handler subclasses `ApiHandler` and implements `async def process(self, input, request)`.
+Create each file following the `ApiHandler` pattern from `helpers/api.py`. Each handler subclasses `ApiHandler` and implements `async def process(self, input, request)`.
 
-**`python/api/oauth_authorize.py`** — generates authorization URL, stores state + PKCE verifier in module-level dict with TTL:
+**`api/oauth_authorize.py`** — generates authorization URL, stores state + PKCE verifier in module-level dict with TTL:
 
 ```python
 import secrets
 import time
-from python.helpers.api import ApiHandler, Request, Response
-from python.helpers.oauth import get_oauth_provider
-from python.helpers import dotenv
+from helpers.api import ApiHandler, Request, Response
+from helpers.oauth import get_oauth_provider
+from helpers import dotenv
 
 _pending_states: dict[str, dict] = {}
 _STATE_TTL = 600  # 10 minutes
@@ -1525,15 +1525,15 @@ class OAuthAuthorize(ApiHandler):
         return {"authorization_url": auth_url, "state": state, "flow": flow}
 ```
 
-**`python/api/oauth_callback.py`** — handles redirect, validates state, exchanges code:
+**`api/oauth_callback.py`** — handles redirect, validates state, exchanges code:
 
 ```python
 from flask import Response as FlaskResponse
-from python.helpers.api import ApiHandler, Request, Response
-from python.helpers.oauth import get_oauth_provider
-from python.helpers.connected_providers import ProviderPool
-from python.helpers import dotenv
-from python.api.oauth_authorize import _pending_states
+from helpers.api import ApiHandler, Request, Response
+from helpers.oauth import get_oauth_provider
+from helpers.connected_providers import ProviderPool
+from helpers import dotenv
+from api.oauth_authorize import _pending_states
 
 
 class OAuthCallback(ApiHandler):
@@ -1580,14 +1580,14 @@ class OAuthCallback(ApiHandler):
         return ["GET"]
 ```
 
-**`python/api/oauth_exchange.py`** — manual code exchange for copy-paste flow:
+**`api/oauth_exchange.py`** — manual code exchange for copy-paste flow:
 
 ```python
-from python.helpers.api import ApiHandler, Request, Response
-from python.helpers.oauth import get_oauth_provider
-from python.helpers.connected_providers import ProviderPool
-from python.helpers import dotenv
-from python.api.oauth_authorize import _pending_states
+from helpers.api import ApiHandler, Request, Response
+from helpers.oauth import get_oauth_provider
+from helpers.connected_providers import ProviderPool
+from helpers import dotenv
+from api.oauth_authorize import _pending_states
 
 
 class OAuthExchange(ApiHandler):
@@ -1619,11 +1619,11 @@ class OAuthExchange(ApiHandler):
         return {"status": "connected", "provider_id": provider_id}
 ```
 
-**`python/api/oauth_disconnect.py`:**
+**`api/oauth_disconnect.py`:**
 
 ```python
-from python.helpers.api import ApiHandler, Request, Response
-from python.helpers.connected_providers import ProviderPool
+from helpers.api import ApiHandler, Request, Response
+from helpers.connected_providers import ProviderPool
 
 
 class OAuthDisconnect(ApiHandler):
@@ -1633,12 +1633,12 @@ class OAuthDisconnect(ApiHandler):
         return {"status": "disconnected", "provider_id": provider_id}
 ```
 
-**`python/api/oauth_providers.py`:**
+**`api/oauth_providers.py`:**
 
 ```python
-from python.helpers.api import ApiHandler, Request, Response
-from python.helpers.providers import get_oauth_providers
-from python.helpers.connected_providers import ProviderPool
+from helpers.api import ApiHandler, Request, Response
+from helpers.providers import get_oauth_providers
+from helpers.connected_providers import ProviderPool
 
 
 class OAuthProviders(ApiHandler):
@@ -1657,11 +1657,11 @@ class OAuthProviders(ApiHandler):
         return ["GET", "POST"]
 ```
 
-**`python/api/oauth_status.py`:**
+**`api/oauth_status.py`:**
 
 ```python
-from python.helpers.api import ApiHandler, Request, Response
-from python.helpers.connected_providers import ProviderPool
+from helpers.api import ApiHandler, Request, Response
+from helpers.connected_providers import ProviderPool
 
 
 class OAuthStatus(ApiHandler):
@@ -1685,7 +1685,7 @@ Expected: PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add python/api/oauth_*.py tests/api/test_oauth_endpoints.py
+git add api/oauth_*.py tests/api/test_oauth_endpoints.py
 git commit -m "feat(oauth): add OAuth API endpoints (authorize, callback, exchange, disconnect, providers, status)"
 ```
 
@@ -1694,7 +1694,7 @@ git commit -m "feat(oauth): add OAuth API endpoints (authorize, callback, exchan
 ### Task 8: Dynamic Model List Endpoint
 
 **Files:**
-- Create: `python/api/provider_models.py`
+- Create: `api/provider_models.py`
 - Test: `tests/api/test_provider_models.py`
 
 - [ ] **Step 1: Write failing test**
@@ -1704,8 +1704,8 @@ Create `tests/api/test_provider_models.py`:
 ```python
 import pytest
 from unittest.mock import patch, MagicMock, AsyncMock
-from python.api.provider_models import ProviderModels
-from python.helpers.oauth import ModelInfo
+from api.provider_models import ProviderModels
+from helpers.oauth import ModelInfo
 
 
 class TestProviderModels:
@@ -1716,7 +1716,7 @@ class TestProviderModels:
             ModelInfo(id="gemini-2.5-pro", name="Gemini 2.5 Pro", context_length=1048576, supports_vision=True),
             ModelInfo(id="gemini-2.0-flash", name="Gemini 2.0 Flash", context_length=1048576, supports_vision=True),
         ]
-        with patch("python.api.provider_models.ProviderPool") as mock_pool_cls:
+        with patch("api.provider_models.ProviderPool") as mock_pool_cls:
             mock_pool = MagicMock()
             mock_pool.list_models = AsyncMock(return_value=mock_models)
             mock_pool_cls.get_instance.return_value = mock_pool
@@ -1729,7 +1729,7 @@ class TestProviderModels:
     @pytest.mark.asyncio
     async def test_returns_empty_for_disconnected(self):
         handler = ProviderModels()
-        with patch("python.api.provider_models.ProviderPool") as mock_pool_cls:
+        with patch("api.provider_models.ProviderPool") as mock_pool_cls:
             mock_pool = MagicMock()
             mock_pool.list_models = AsyncMock(return_value=[])
             mock_pool_cls.get_instance.return_value = mock_pool
@@ -1746,11 +1746,11 @@ Expected: FAIL
 
 - [ ] **Step 3: Implement endpoint**
 
-Create `python/api/provider_models.py`:
+Create `api/provider_models.py`:
 
 ```python
-from python.helpers.api import ApiHandler, Request, Response
-from python.helpers.connected_providers import ProviderPool
+from helpers.api import ApiHandler, Request, Response
+from helpers.connected_providers import ProviderPool
 
 
 class ProviderModels(ApiHandler):
@@ -1784,7 +1784,7 @@ Expected: PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add python/api/provider_models.py tests/api/test_provider_models.py
+git add api/provider_models.py tests/api/test_provider_models.py
 git commit -m "feat(oauth): add dynamic model list endpoint"
 ```
 
@@ -1793,7 +1793,7 @@ git commit -m "feat(oauth): add dynamic model list endpoint"
 ### Task 9: Per-Chat Model Override
 
 **Files:**
-- Create: `python/api/chat_model_override.py`
+- Create: `api/chat_model_override.py`
 - Modify: `initialize.py:31-43`
 - Test: `tests/api/test_chat_model_override.py`
 
@@ -1805,14 +1805,14 @@ Create `tests/api/test_chat_model_override.py`:
 import pytest
 import json
 from unittest.mock import patch, MagicMock, AsyncMock
-from python.api.chat_model_override import ChatModelOverride
+from api.chat_model_override import ChatModelOverride
 
 
 class TestChatModelOverride:
     @pytest.mark.asyncio
     async def test_set_override(self):
         handler = ChatModelOverride()
-        with patch("python.api.chat_model_override._save_override") as mock_save:
+        with patch("api.chat_model_override._save_override") as mock_save:
             result = await handler.process({
                 "chat_id": "abc-123",
                 "provider": "google",
@@ -1824,14 +1824,14 @@ class TestChatModelOverride:
     @pytest.mark.asyncio
     async def test_get_override_returns_null_when_unset(self):
         handler = ChatModelOverride()
-        with patch("python.api.chat_model_override._load_override", return_value=None):
+        with patch("api.chat_model_override._load_override", return_value=None):
             result = await handler.process({"chat_id": "abc-123"}, MagicMock())
         assert result["override"] is None
 
     @pytest.mark.asyncio
     async def test_get_override_returns_saved_value(self):
         handler = ChatModelOverride()
-        with patch("python.api.chat_model_override._load_override", return_value={"provider": "google", "model": "gemini-2.5-pro"}):
+        with patch("api.chat_model_override._load_override", return_value={"provider": "google", "model": "gemini-2.5-pro"}):
             result = await handler.process({"chat_id": "abc-123"}, MagicMock())
         assert result["override"]["provider"] == "google"
 ```
@@ -1843,13 +1843,13 @@ Expected: FAIL
 
 - [ ] **Step 3: Implement chat model override endpoint**
 
-Create `python/api/chat_model_override.py`:
+Create `api/chat_model_override.py`:
 
 ```python
 import json
 import os
-from python.helpers.api import ApiHandler, Request, Response
-from python.helpers import files
+from helpers.api import ApiHandler, Request, Response
+from helpers import files
 
 
 def _override_path(chat_id: str) -> str:
@@ -1906,7 +1906,7 @@ In `initialize.py`, after building `chat_llm` from settings (line 43), add overr
         override_provider = chat_override.get("provider")
         override_model = chat_override.get("model")
         if override_provider and override_model:
-            from python.helpers.connected_providers import ProviderPool
+            from helpers.connected_providers import ProviderPool
             pool = ProviderPool.get_instance()
             if pool.is_connected(override_provider):
                 chat_llm = models.ModelConfig(
@@ -1923,8 +1923,8 @@ In `initialize.py`, after building `chat_llm` from settings (line 43), add overr
 ```
 
 The `initialize_agent()` function is called from two key locations:
-- `python/helpers/settings.py:619` — global re-initialization on settings change (no chat context, no override needed)
-- `python/extensions/agent_init/_15_load_profile_settings.py:37` — per-agent profile override
+- `helpers/settings.py:619` — global re-initialization on settings change (no chat context, no override needed)
+- `extensions/python/agent_init/_15_load_profile_settings.py:37` — per-agent profile override
 
 Add `chat_id` as an optional parameter to `initialize_agent()`:
 
@@ -1936,10 +1936,10 @@ At the top of the function (after building `chat_llm`), load and apply override:
 
 ```python
     if chat_id:
-        from python.api.chat_model_override import _load_override
+        from api.chat_model_override import _load_override
         chat_override = _load_override(chat_id)
         if chat_override:
-            from python.helpers.connected_providers import ProviderPool
+            from helpers.connected_providers import ProviderPool
             pool = ProviderPool.get_instance()
             if pool.is_connected(chat_override["provider"]):
                 chat_llm = models.ModelConfig(
@@ -1955,7 +1955,7 @@ At the top of the function (after building `chat_llm`), load and apply override:
                 )
 ```
 
-Then find where agent is created for a chat (search for `AgentContext` creation in `run_ui.py` or `python/api/chat_*.py`) and pass `chat_id` to `initialize_agent()` there. The agent context likely has a `chat_id` field — use it.
+Then find where agent is created for a chat (search for `AgentContext` creation in `run_ui.py` or `api/chat_*.py`) and pass `chat_id` to `initialize_agent()` there. The agent context likely has a `chat_id` field — use it.
 
 - [ ] **Step 5: Run tests to verify pass**
 
@@ -1970,7 +1970,7 @@ Expected: No new failures.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add python/api/chat_model_override.py initialize.py tests/api/test_chat_model_override.py
+git add api/chat_model_override.py initialize.py tests/api/test_chat_model_override.py
 git commit -m "feat(oauth): add per-chat model override endpoint and initialize.py integration"
 ```
 
@@ -2294,7 +2294,7 @@ Expected: All tests pass, no regressions.
 
 - [ ] **Step 3: Run linting if configured**
 
-Run: `ruff check python/helpers/oauth.py python/helpers/oauth_store.py python/helpers/connected_providers.py python/api/oauth_*.py python/api/provider_models.py python/api/chat_model_override.py`
+Run: `ruff check helpers/oauth.py helpers/oauth_store.py helpers/connected_providers.py api/oauth_*.py api/provider_models.py api/chat_model_override.py`
 Fix any issues.
 
 - [ ] **Step 4: Final commit**

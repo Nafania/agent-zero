@@ -89,7 +89,7 @@ One commit. Mix of minor bumps and several major bumps. Some require code invest
   - `answers()`, `maps()`, `suggestions()`, `translate()` removed — NOT USED ✓
   - Multithreading removed from `text()` — performance change only
   - Package potentially renamed to `ddgs` on PyPI
-- **Codebase impact:** `python/helpers/duckduckgo_search.py` uses `from duckduckgo_search import DDGS` and `DDGS().text(query, region=..., safesearch=..., timelimit=..., max_results=...)`.
+- **Codebase impact:** `helpers/duckduckgo_search.py` uses `from duckduckgo_search import DDGS` and `DDGS().text(query, region=..., safesearch=..., timelimit=..., max_results=...)`.
 - **Action:**
   1. Verify `from duckduckgo_search import DDGS` still works in 8.x (or if import path changed to `ddgs`)
   2. Verify `text()` method signature unchanged
@@ -103,7 +103,7 @@ One commit. Mix of minor bumps and several major bumps. Some require code invest
   - `get_tools/get_resources/get_prompts` → `list_tools/list_resources/list_prompts`
   - `ctx.set_state/get_state` now async
   - `PromptMessage` → `fastmcp.prompts.Message`
-- **Codebase impact** (`python/helpers/mcp_server.py`, 489 lines, tracked in git):
+- **Codebase impact** (`helpers/mcp_server.py`, 489 lines, tracked in git):
   - `FastMCP(name=..., instructions=...)` — safe, only uses non-removed params ✓
   - `@mcp_server.tool(name=..., description=..., tags=..., annotations=...)` — decorator, should work ✓
   - `from fastmcp.server.http import create_sse_app, create_base_app, build_resource_metadata_url` — **RISK: internal imports may have moved**
