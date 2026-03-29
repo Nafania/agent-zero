@@ -91,19 +91,10 @@ class TestCallExtensions:
 
     @pytest.mark.asyncio
     async def test_call_extensions_splits_override_and_default_paths(self):
-        """get_paths must be called with include_default=False so profile/user
-        override paths don't include 'python/'. The default path
-        (extensions/python/<ext_point>) is appended separately."""
+        """get_paths is called with the combined 'extensions/python' prefix
+        and the extension point name."""
         with patch("helpers.subagents.get_paths", return_value=[]) as mock_gp, \
-             patch("helpers.extension.files") as mock_files, \
              patch("helpers.extension._get_extensions", return_value=[]):
-            mock_files.get_abs_path.return_value = "/abs/extensions/python/agent_init"
-            mock_files.exists.return_value = True
             await call_extensions("agent_init", agent=None)
 
-        mock_gp.assert_called_once_with(
-            None, "extensions", "agent_init",
-            default_root="", include_default=False,
-        )
-        mock_files.get_abs_path.assert_called_with("extensions", "python", "agent_init")
-        mock_files.exists.assert_called_with("/abs/extensions/python/agent_init")
+        mock_gp.assert_called_once_with(None, "extensions/python", "agent_init")

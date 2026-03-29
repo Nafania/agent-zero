@@ -238,7 +238,7 @@ class TestInitializeJobLoop:
     def test_initialize_job_loop_returns_deferred_task(self):
         from initialize import initialize_job_loop
 
-        with patch("helpers.job_loop.run_loop", AsyncMock()):
+        with patch("plugins.scheduler.helpers.job_loop.run_loop", AsyncMock()):
             result = initialize_job_loop()
             assert result is not None
             assert hasattr(result, "start_task")

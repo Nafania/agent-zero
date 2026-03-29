@@ -23,7 +23,7 @@ if str(PROJECT_ROOT) not in sys.path:
 @pytest.fixture(autouse=True)
 def _reset_module_state():
     """Reset module-level state before each test."""
-    import helpers.cognee_init as ci
+    import plugins.memory.helpers.cognee_init as ci
     old = ci._configured, ci._cognee_module, ci._search_type_class
     ci._configured = False
     ci._cognee_module = None
@@ -34,7 +34,7 @@ def _reset_module_state():
 
 def _setup_cognee_mock():
     """Simulate initialized cognee by setting cognee_init globals to mocks."""
-    import helpers.cognee_init as ci
+    import plugins.memory.helpers.cognee_init as ci
 
     mock_cognee = MagicMock()
     mock_cognee.search = AsyncMock(return_value=[])
@@ -61,7 +61,7 @@ def _setup_cognee_mock():
 @pytest.mark.regression
 def test_get_cognee_raises_before_configure():
     """get_cognee() raises RuntimeError if configure_cognee() hasn't been called."""
-    from helpers.memory import _get_cognee
+    from plugins.memory.helpers.memory import _get_cognee
     with pytest.raises(RuntimeError, match="not initialized"):
         _get_cognee()
 
@@ -71,14 +71,14 @@ def test_configure_cognee_alone_makes_get_cognee_work():
     """THE FIX: configure_cognee() sets _cognee_module so get_cognee() works.
     Server process calls configure_cognee() but NOT init_cognee(). Before the fix,
     _cognee_module was only set in init_cognee(), leaving the server broken."""
-    import helpers.cognee_init as ci
+    import plugins.memory.helpers.cognee_init as ci
 
     mock_cognee = MagicMock()
     mock_search_type = MagicMock()
     mock_cognee.SearchType = mock_search_type
 
-    with patch("helpers.cognee_init.dotenv") as mock_dotenv, \
-         patch("helpers.cognee_init.get_settings", return_value={
+    with patch("plugins.memory.helpers.cognee_init.dotenv") as mock_dotenv, \
+         patch("plugins.memory.helpers.cognee_init.get_settings", return_value={
              "util_model_provider": "openai",
              "util_model_name": "gpt-4o-mini",
              "util_model_api_base": "",
@@ -87,7 +87,7 @@ def test_configure_cognee_alone_makes_get_cognee_work():
              "embed_model_api_base": "",
              "api_keys": {"openai": "sk-test", "huggingface": "hf-test"},
          }), \
-         patch("helpers.cognee_init.files") as mock_files, \
+         patch("plugins.memory.helpers.cognee_init.files") as mock_files, \
          patch.dict("sys.modules", {"cognee": mock_cognee}):
         mock_files.get_abs_path.return_value = "/tmp/test_cognee"
         mock_dotenv.load_dotenv.return_value = None
@@ -103,12 +103,12 @@ def test_configure_cognee_alone_makes_get_cognee_work():
 def test_configure_cognee_retryable_after_failure():
     """configure_cognee() can be retried after failure because _configured
     is only set to True after successful completion."""
-    import helpers.cognee_init as ci
+    import plugins.memory.helpers.cognee_init as ci
 
-    with patch("helpers.cognee_init.dotenv") as mock_dotenv, \
-         patch("helpers.cognee_init.get_settings",
+    with patch("plugins.memory.helpers.cognee_init.dotenv") as mock_dotenv, \
+         patch("plugins.memory.helpers.cognee_init.get_settings",
                side_effect=Exception("settings not ready")), \
-         patch("helpers.cognee_init.files") as mock_files:
+         patch("plugins.memory.helpers.cognee_init.files") as mock_files:
         mock_dotenv.load_dotenv.return_value = None
         mock_dotenv.get_dotenv_value.return_value = None
         mock_files.get_abs_path.return_value = "/tmp/test_cognee"
@@ -126,16 +126,16 @@ def test_configure_cognee_retryable_after_failure():
 async def test_init_cognee_succeeds_on_retry_after_failure():
     """init_cognee() fails first (bad settings), reload() resets state,
     second call succeeds — this is what prepare.py's retry loop does."""
-    import helpers.cognee_init as ci
-    from helpers.memory import reload
+    import plugins.memory.helpers.cognee_init as ci
+    from plugins.memory.helpers.memory import reload
 
     mock_cognee = MagicMock()
     mock_search_type = MagicMock()
     mock_cognee.SearchType = mock_search_type
     mock_create_tables = AsyncMock()
 
-    with patch("helpers.cognee_init.dotenv") as mock_dotenv, \
-         patch("helpers.cognee_init.files") as mock_files, \
+    with patch("plugins.memory.helpers.cognee_init.dotenv") as mock_dotenv, \
+         patch("plugins.memory.helpers.cognee_init.files") as mock_files, \
          patch.dict("sys.modules", {
              "cognee": mock_cognee,
              "cognee.infrastructure.databases.relational": MagicMock(
@@ -146,7 +146,7 @@ async def test_init_cognee_succeeds_on_retry_after_failure():
         mock_dotenv.get_dotenv_value.return_value = None
         mock_files.get_abs_path.return_value = "/tmp/test_cognee"
 
-        with patch("helpers.cognee_init.get_settings",
+        with patch("plugins.memory.helpers.cognee_init.get_settings",
                    side_effect=Exception("settings not ready")):
             with pytest.raises(Exception, match="settings not ready"):
                 await ci.init_cognee()
@@ -155,7 +155,7 @@ async def test_init_cognee_succeeds_on_retry_after_failure():
 
         reload()
 
-        with patch("helpers.cognee_init.get_settings", return_value={
+        with patch("plugins.memory.helpers.cognee_init.get_settings", return_value={
             "util_model_provider": "openai",
             "util_model_name": "gpt-4o-mini",
             "util_model_api_base": "",
@@ -179,7 +179,7 @@ async def test_init_cognee_succeeds_on_retry_after_failure():
 async def test_search_handles_sqlite_operational_error():
     """When cognee database doesn't exist, search_similarity_threshold returns [] instead of crashing."""
     import sqlite3
-    from helpers.memory import Memory
+    from plugins.memory.helpers.memory import Memory
 
     mock_cognee, _ = _setup_cognee_mock()
     mock_cognee.search = AsyncMock(
@@ -203,7 +203,7 @@ async def test_search_handles_database_not_created_error():
     class DatabaseNotCreatedError(Exception):
         pass
 
-    from helpers.memory import Memory
+    from plugins.memory.helpers.memory import Memory
 
     mock_cognee, _ = _setup_cognee_mock()
     mock_cognee.search = AsyncMock(
@@ -226,7 +226,7 @@ async def test_delete_data_by_id_handles_database_not_created():
     class DatabaseNotCreatedError(Exception):
         pass
 
-    from helpers.memory import _delete_data_by_id
+    from plugins.memory.helpers.memory import _delete_data_by_id
 
     mock_cognee, _ = _setup_cognee_mock()
     mock_cognee.datasets.list_datasets = AsyncMock(
@@ -277,10 +277,10 @@ async def test_memory_dashboard_handles_db_error_gracefully():
 @pytest.mark.asyncio
 async def test_init_cognee_propagates_configure_failure():
     """When configure_cognee() raises during init_cognee(), the error propagates."""
-    from helpers.cognee_init import init_cognee
+    from plugins.memory.helpers.cognee_init import init_cognee
 
     with patch(
-        "helpers.cognee_init.configure_cognee",
+        "plugins.memory.helpers.cognee_init.configure_cognee",
         side_effect=ValueError("bad config"),
     ):
         with pytest.raises(ValueError, match="bad config"):
@@ -290,7 +290,7 @@ async def test_init_cognee_propagates_configure_failure():
 @pytest.mark.regression
 def test_get_cognee_returns_modules_after_setup():
     """After initialization, get_cognee() returns the cognee module and SearchType."""
-    from helpers.cognee_init import get_cognee
+    from plugins.memory.helpers.cognee_init import get_cognee
 
     mock_cognee, mock_search_type = _setup_cognee_mock()
 

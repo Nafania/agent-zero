@@ -20,7 +20,7 @@ def mock_agent():
 
 @pytest.fixture
 def tool(mock_agent):
-    from tools.memory_load import MemoryLoad
+    from plugins.memory.tools.memory_load import MemoryLoad
     return MemoryLoad(
         agent=mock_agent,
         name="memory_load",
@@ -36,7 +36,7 @@ class TestMemoryLoadExecute:
     async def test_no_results_returns_not_found_message(self, tool):
         mock_db = MagicMock()
         mock_db.search_similarity_threshold = AsyncMock(return_value=[])
-        with patch("tools.memory_load.Memory.get", new_callable=AsyncMock, return_value=mock_db):
+        with patch("plugins.memory.tools.memory_load.Memory.get", new_callable=AsyncMock, return_value=mock_db):
             resp = await tool.execute(query="nonexistent")
         assert "Not found" in resp.message or "not found" in resp.message.lower()
         assert resp.break_loop is False
@@ -46,8 +46,8 @@ class TestMemoryLoadExecute:
         mock_docs = [{"content": "Doc 1", "metadata": {}}, {"content": "Doc 2", "metadata": {}}]
         mock_db = MagicMock()
         mock_db.search_similarity_threshold = AsyncMock(return_value=mock_docs)
-        with patch("tools.memory_load.Memory.get", new_callable=AsyncMock, return_value=mock_db):
-            with patch("tools.memory_load.Memory.format_docs_plain", return_value=["Doc 1", "Doc 2"]):
+        with patch("plugins.memory.tools.memory_load.Memory.get", new_callable=AsyncMock, return_value=mock_db):
+            with patch("plugins.memory.tools.memory_load.Memory.format_docs_plain", return_value=["Doc 1", "Doc 2"]):
                 resp = await tool.execute(query="test", threshold=0.7, limit=10)
         assert "Doc 1" in resp.message
         assert "Doc 2" in resp.message

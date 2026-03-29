@@ -18,11 +18,11 @@ class TestMemoryInit:
     @pytest.mark.asyncio
     async def test_initializes_memory(self, mock_agent, mock_loop_data):
         with patch(
-            "extensions.python.monologue_start._10_memory_init.memory.Memory.get",
+            "plugins.memory.extensions.python.monologue_start._10_memory_init.memory.Memory.get",
             new_callable=AsyncMock,
             return_value=MagicMock(),
         ):
-            from extensions.python.monologue_start._10_memory_init import MemoryInit
+            from plugins.memory.extensions.python.monologue_start._10_memory_init import MemoryInit
 
             ext = MemoryInit(agent=mock_agent)
             await ext.execute(loop_data=mock_loop_data)
@@ -113,10 +113,10 @@ class TestMemorizeMemories:
     @pytest.mark.asyncio
     async def test_returns_early_when_disabled(self, mock_agent, mock_loop_data):
         with patch(
-            "extensions.python.monologue_end._50_memorize_fragments.settings.get_settings",
+            "plugins.memory.extensions.python.monologue_end._50_memorize_fragments.settings.get_settings",
             return_value={"memory_memorize_enabled": False},
         ):
-            from extensions.python.monologue_end._50_memorize_fragments import (
+            from plugins.memory.extensions.python.monologue_end._50_memorize_fragments import (
                 MemorizeMemories,
             )
 
@@ -133,15 +133,15 @@ class TestMemorizeMemories:
         mock_agent.context.log.log = MagicMock(return_value=MagicMock(update=MagicMock()))
 
         with patch(
-            "extensions.python.monologue_end._50_memorize_fragments.settings.get_settings",
+            "plugins.memory.extensions.python.monologue_end._50_memorize_fragments.settings.get_settings",
             return_value={"memory_memorize_enabled": True, "memory_memorize_replace_threshold": 0},
         ):
             with patch(
-                "extensions.python.monologue_end._50_memorize_fragments.Memory.get",
+                "plugins.memory.extensions.python.monologue_end._50_memorize_fragments.Memory.get",
                 new_callable=AsyncMock,
                 return_value=MagicMock(insert_text=AsyncMock(), delete_documents_by_query=AsyncMock(return_value=[])),
             ):
-                from extensions.python.monologue_end._50_memorize_fragments import (
+                from plugins.memory.extensions.python.monologue_end._50_memorize_fragments import (
                     MemorizeMemories,
                     DeferredTask,
                 )
@@ -162,15 +162,15 @@ class TestMemorizeMemories:
 
         mock_db = MagicMock(insert_text=AsyncMock(), delete_documents_by_query=AsyncMock(return_value=[]))
         with patch(
-            "extensions.python.monologue_end._50_memorize_fragments.settings.get_settings",
+            "plugins.memory.extensions.python.monologue_end._50_memorize_fragments.settings.get_settings",
             return_value={"memory_memorize_enabled": True, "memory_memorize_replace_threshold": 0},
         ):
             with patch(
-                "extensions.python.monologue_end._50_memorize_fragments.Memory.get",
+                "plugins.memory.extensions.python.monologue_end._50_memorize_fragments.Memory.get",
                 new_callable=AsyncMock,
                 return_value=MagicMock(),
             ):
-                from extensions.python.monologue_end._50_memorize_fragments import MemorizeMemories
+                from plugins.memory.extensions.python.monologue_end._50_memorize_fragments import MemorizeMemories
 
                 ext = MemorizeMemories(agent=mock_agent)
                 # Call memorize directly to test empty response handling
@@ -187,10 +187,10 @@ class TestMemorizeSolutions:
     @pytest.mark.asyncio
     async def test_returns_early_when_disabled(self, mock_agent, mock_loop_data):
         with patch(
-            "extensions.python.monologue_end._51_memorize_solutions.settings.get_settings",
+            "plugins.memory.extensions.python.monologue_end._51_memorize_solutions.settings.get_settings",
             return_value={"memory_memorize_enabled": False},
         ):
-            from extensions.python.monologue_end._51_memorize_solutions import (
+            from plugins.memory.extensions.python.monologue_end._51_memorize_solutions import (
                 MemorizeSolutions,
             )
 
@@ -207,15 +207,15 @@ class TestMemorizeSolutions:
         mock_agent.context.log.log = MagicMock(return_value=MagicMock(update=MagicMock()))
 
         with patch(
-            "extensions.python.monologue_end._51_memorize_solutions.settings.get_settings",
+            "plugins.memory.extensions.python.monologue_end._51_memorize_solutions.settings.get_settings",
             return_value={"memory_memorize_enabled": True, "memory_memorize_replace_threshold": 0},
         ):
             with patch(
-                "extensions.python.monologue_end._51_memorize_solutions.Memory.get",
+                "plugins.memory.extensions.python.monologue_end._51_memorize_solutions.Memory.get",
                 new_callable=AsyncMock,
                 return_value=MagicMock(insert_text=AsyncMock(), delete_documents_by_query=AsyncMock(return_value=[])),
             ):
-                from extensions.python.monologue_end._51_memorize_solutions import MemorizeSolutions
+                from plugins.memory.extensions.python.monologue_end._51_memorize_solutions import MemorizeSolutions
 
                 ext = MemorizeSolutions(agent=mock_agent)
                 result = await ext.execute(loop_data=mock_loop_data)
@@ -232,19 +232,19 @@ class TestMemorizeSolutions:
 
         mock_db = MagicMock(insert_text=AsyncMock(), delete_documents_by_query=AsyncMock(return_value=[]))
         with patch(
-            "extensions.python.monologue_end._51_memorize_solutions.settings.get_settings",
+            "plugins.memory.extensions.python.monologue_end._51_memorize_solutions.settings.get_settings",
             return_value={"memory_memorize_enabled": True, "memory_memorize_replace_threshold": 0},
         ):
             with patch(
-                "extensions.python.monologue_end._51_memorize_solutions.Memory.get",
+                "plugins.memory.extensions.python.monologue_end._51_memorize_solutions.Memory.get",
                 new_callable=AsyncMock,
                 return_value=MagicMock(insert_text=AsyncMock(), delete_documents_by_query=AsyncMock(return_value=[])),
             ):
                 with patch(
-                    "extensions.python.monologue_end._51_memorize_solutions.DirtyJson.parse_string",
+                    "plugins.memory.extensions.python.monologue_end._51_memorize_solutions.DirtyJson.parse_string",
                     side_effect=ValueError("Parse error"),
                 ):
-                    from extensions.python.monologue_end._51_memorize_solutions import MemorizeSolutions
+                    from plugins.memory.extensions.python.monologue_end._51_memorize_solutions import MemorizeSolutions
 
                     ext = MemorizeSolutions(agent=mock_agent)
                     await ext.memorize(mock_loop_data, mock_log, mock_db)

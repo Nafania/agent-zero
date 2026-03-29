@@ -17,14 +17,14 @@ from werkzeug.wrappers.response import Response as BaseResponse
 from werkzeug.wrappers.request import Request as WerkzeugRequest
 
 import initialize
-from helpers import files, git, mcp_server, fasta2a_server, settings as settings_helper
+from helpers import files, git, mcp_server, fasta2a_server, settings as settings_helper, extension
 from helpers.files import get_abs_path
 from helpers import runtime, dotenv, process
 from helpers.websocket import WebSocketHandler, validate_ws_origin
-from helpers.extract_tools import load_classes_from_folder
+from helpers.extract_tools import load_classes_from_folder, load_classes_from_file
 from helpers.api import ApiHandler
 from helpers.print_style import PrintStyle
-from helpers import login
+from helpers import login, plugins
 import socketio  # type: ignore[import-untyped]
 from socketio import ASGIApp, packet
 from starlette.applications import Starlette
@@ -290,6 +290,56 @@ async def serve_index():
     return index
 
 
+from flask import send_file
+
+
+@webapp.route("/plugins/<plugin_name>/<path:asset_path>", methods=["GET"])
+@requires_auth
+async def serve_builtin_plugin_asset(plugin_name, asset_path):
+    return await _serve_plugin_asset(plugin_name, asset_path)
+
+
+@webapp.route("/usr/plugins/<plugin_name>/<path:asset_path>", methods=["GET"])
+@requires_auth
+async def serve_user_plugin_asset(plugin_name, asset_path):
+    return await _serve_plugin_asset(plugin_name, asset_path)
+
+
+@webapp.route("/extensions/webui/<path:asset_path>", methods=["GET"])
+@requires_auth
+async def serve_extension_asset(asset_path):
+    path = files.get_abs_path("extensions/webui", asset_path)
+    if not files.is_in_dir(path, files.get_abs_path("extensions/webui")):
+        return Response("Access denied", 403)
+    if not files.is_file(path):
+        return Response("Not found", 404)
+    return send_file(path)
+
+
+async def _serve_plugin_asset(plugin_name, asset_path):
+    plugin_dir = plugins.find_plugin_dir(plugin_name)
+    if not plugin_dir:
+        return Response("Plugin not found", 404)
+
+    try:
+        asset_file = files.get_abs_path(plugin_dir, asset_path)
+        webui_dir = files.get_abs_path(plugin_dir, "webui")
+        webui_extensions_dir = files.get_abs_path(plugin_dir, "extensions/webui")
+
+        if not files.is_in_dir(str(asset_file), str(webui_dir)) and not files.is_in_dir(
+            str(asset_file), str(webui_extensions_dir)
+        ):
+            return Response("Access denied", 403)
+
+        if not files.is_file(asset_file):
+            return Response("Asset not found", 404)
+
+        return send_file(str(asset_file))
+    except Exception as e:
+        PrintStyle.error(f"Error serving plugin asset: {e}")
+        return Response("Error serving asset", 500)
+
+
 def _build_websocket_handlers_by_namespace(
     socketio_server: socketio.AsyncServer,
     lock: threading.RLock,
@@ -512,6 +562,41 @@ def run():
     handlers = load_classes_from_folder("api", "*.py", ApiHandler)
     for handler in handlers:
         register_api_handler(webapp, handler)
+
+    for plugin_name in plugins.get_enabled_plugins(None):
+        plugin_dir = plugins.find_plugin_dir(plugin_name)
+        if not plugin_dir:
+            continue
+        api_dir = os.path.join(plugin_dir, "api")
+        if not os.path.isdir(api_dir):
+            continue
+        plugin_handlers = load_classes_from_folder(api_dir, "*.py", ApiHandler)
+        for handler in plugin_handlers:
+            name = handler.__module__.split(".")[-1]
+            instance = handler(webapp, lock)
+
+            def make_wrap(inst):
+                def handler_wrap() -> BaseResponse:
+                    return inst.handle_request_sync(request=request)
+                return handler_wrap
+
+            handler_wrap = make_wrap(instance)
+            if handler.requires_loopback():
+                handler_wrap = requires_loopback(handler_wrap)
+            if handler.requires_auth():
+                handler_wrap = requires_auth(handler_wrap)
+            if handler.requires_api_key():
+                handler_wrap = requires_api_key(handler_wrap)
+            if handler.requires_csrf():
+                handler_wrap = csrf_protect(handler_wrap)
+
+            route = f"/plugins/{plugin_name}/{name}"
+            webapp.add_url_rule(
+                route,
+                route,
+                handler_wrap,
+                methods=handler.get_methods(),
+            )
 
     handlers_by_namespace = _build_websocket_handlers_by_namespace(socketio_server, lock)
     configure_websocket_namespaces(

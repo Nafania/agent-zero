@@ -1,6 +1,6 @@
 import re
 from helpers.extension import Extension
-from tools.skills_tool import DATA_NAME_LOADED_SKILLS, max_loaded_skills
+from plugins.skills.tools.skills_tool import DATA_NAME_LOADED_SKILLS, max_loaded_skills
 
 _SKILL_PREFIX_RE = re.compile(
     r"^\[Load and use skill:\s*([^\]]+)\]\s*", re.IGNORECASE

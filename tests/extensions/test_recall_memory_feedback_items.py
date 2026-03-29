@@ -13,7 +13,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from agent import LoopData
-from extensions.python.message_loop_prompts_after._50_recall_memories import RecallMemories
+from plugins.memory.extensions.python.message_loop_prompts_after._50_recall_memories import RecallMemories
 
 
 @pytest.fixture
@@ -102,7 +102,7 @@ async def test_recall_log_includes_feedback_items_with_ids(_fake_cognee_node_set
     ext = RecallMemories(agent)
     with (
         patch("helpers.settings.get_settings", return_value=settings),
-        patch("helpers.memory.Memory.get", new_callable=AsyncMock, return_value=db),
+        patch("plugins.memory.helpers.memory.Memory.get", new_callable=AsyncMock, return_value=db),
         patch("helpers.cognee_init.get_cognee", return_value=(mock_cognee, MagicMock())),
     ):
         await ext.search_memories(log_item=log_item, loop_data=loop_data)

@@ -12,7 +12,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from helpers.cognee_background import CogneeBackgroundWorker
+from plugins.memory.helpers.cognee_background import CogneeBackgroundWorker
 
 
 @pytest.fixture
@@ -65,7 +65,7 @@ class TestGetStatus:
 
 class TestGetConfig:
     def test_uses_get_cognee_setting(self, worker):
-        with patch("helpers.cognee_background.get_cognee_setting") as mock_setting:
+        with patch("plugins.memory.helpers.cognee_background.get_cognee_setting") as mock_setting:
             mock_setting.side_effect = lambda name, default: {
                 "cognee_cognify_interval": 10,
                 "cognee_cognify_after_n_inserts": 20,
@@ -89,7 +89,7 @@ class TestShouldRun:
 
     @pytest.mark.asyncio
     async def test_true_on_insert_threshold(self, worker):
-        with patch("helpers.cognee_background.get_cognee_setting") as mock_setting:
+        with patch("plugins.memory.helpers.cognee_background.get_cognee_setting") as mock_setting:
             mock_setting.side_effect = lambda name, default: {
                 "cognee_cognify_interval": 999,
                 "cognee_cognify_after_n_inserts": 3,
@@ -103,7 +103,7 @@ class TestShouldRun:
 
     @pytest.mark.asyncio
     async def test_true_on_time_threshold(self, worker):
-        with patch("helpers.cognee_background.get_cognee_setting") as mock_setting:
+        with patch("plugins.memory.helpers.cognee_background.get_cognee_setting") as mock_setting:
             mock_setting.side_effect = lambda name, default: {
                 "cognee_cognify_interval": 0,
                 "cognee_cognify_after_n_inserts": 999,
@@ -117,7 +117,7 @@ class TestShouldRun:
 
     @pytest.mark.asyncio
     async def test_false_when_below_both_thresholds(self, worker):
-        with patch("helpers.cognee_background.get_cognee_setting") as mock_setting:
+        with patch("plugins.memory.helpers.cognee_background.get_cognee_setting") as mock_setting:
             mock_setting.side_effect = lambda name, default: {
                 "cognee_cognify_interval": 999,
                 "cognee_cognify_after_n_inserts": 999,
@@ -141,7 +141,7 @@ class TestRunPipeline:
 
         worker.mark_dirty("ds1")
         with patch.dict("sys.modules", {"cognee": mock_cognee}), \
-             patch("helpers.cognee_background.get_cognee_setting") as mock_setting:
+             patch("plugins.memory.helpers.cognee_background.get_cognee_setting") as mock_setting:
             mock_setting.side_effect = lambda name, default: {
                 "cognee_cognify_interval": 5,
                 "cognee_cognify_after_n_inserts": 10,
@@ -164,7 +164,7 @@ class TestRunPipeline:
 
         worker.mark_dirty("ds1")
         with patch.dict("sys.modules", {"cognee": mock_cognee}), \
-             patch("helpers.cognee_background.get_cognee_setting") as mock_setting:
+             patch("plugins.memory.helpers.cognee_background.get_cognee_setting") as mock_setting:
             mock_setting.side_effect = lambda name, default: {
                 "cognee_cognify_interval": 5,
                 "cognee_cognify_after_n_inserts": 10,
@@ -186,7 +186,7 @@ class TestRunPipeline:
         worker.mark_dirty("ds1")
         worker.mark_dirty("ds2")
         with patch.dict("sys.modules", {"cognee": mock_cognee}), \
-             patch("helpers.cognee_background.get_cognee_setting") as mock_setting:
+             patch("plugins.memory.helpers.cognee_background.get_cognee_setting") as mock_setting:
             mock_setting.side_effect = lambda name, default: {
                 "cognee_cognify_interval": 5,
                 "cognee_cognify_after_n_inserts": 10,
@@ -207,7 +207,7 @@ class TestRunPipeline:
 
         worker.mark_dirty("ds1")
         with patch.dict("sys.modules", {"cognee": mock_cognee}), \
-             patch("helpers.cognee_background.get_cognee_setting") as mock_setting:
+             patch("plugins.memory.helpers.cognee_background.get_cognee_setting") as mock_setting:
             mock_setting.side_effect = lambda name, default: {
                 "cognee_cognify_interval": 5,
                 "cognee_cognify_after_n_inserts": 10,

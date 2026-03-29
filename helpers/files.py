@@ -17,6 +17,10 @@ import glob
 import mimetypes
 from simpleeval import simple_eval
 
+AGENTS_DIR = "agents"
+PLUGINS_DIR = "plugins"
+USER_DIR = "usr"
+
 
 class VariablesPlugin(ABC):
     @abstractmethod
@@ -212,11 +216,23 @@ def read_file(relative_path: str, encoding="utf-8"):
         return f.read()
 
 
+def read_file_json(relative_path: str, encoding="utf-8"):
+    absolute_path = get_abs_path(relative_path)
+    with open(absolute_path, "r", encoding=encoding) as f:
+        return json.load(f)
+
+
+def read_file_yaml(relative_path: str, encoding="utf-8"):
+    from helpers import yaml as yaml_helper
+
+    absolute_path = get_abs_path(relative_path)
+    with open(absolute_path, "r", encoding=encoding) as f:
+        return yaml_helper.loads(f.read())
+
+
 def read_file_bin(relative_path: str):
-    # Try to get the absolute path for the file from the original directory or backup directories
     absolute_path = get_abs_path(relative_path)
 
-    # read binary content
     with open(absolute_path, "rb") as f:
         return f.read()
 
@@ -422,6 +438,22 @@ def write_file_base64(relative_path: str, content: str):
     os.makedirs(os.path.dirname(abs_path), exist_ok=True)
     with open(abs_path, "wb") as f:
         f.write(data)
+
+
+def delete_file(relative_path: str):
+    abs_path = get_abs_path(relative_path)
+    if os.path.exists(abs_path):
+        os.remove(abs_path)
+
+
+def is_file(*relative_paths):
+    path = get_abs_path(*relative_paths)
+    return os.path.isfile(path)
+
+
+def is_dir(*relative_paths):
+    path = get_abs_path(*relative_paths)
+    return os.path.isdir(path)
 
 
 def delete_dir(relative_path: str):

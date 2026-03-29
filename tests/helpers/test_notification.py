@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-import helpers.notification as _notification_mod
+import plugins.notifications.helpers.notification as _notification_mod
 
 
 @pytest.fixture(autouse=True)
@@ -26,7 +26,7 @@ def patch_mark_dirty():
 
 class TestNotificationEnums:
     def test_notification_type_values(self):
-        from helpers.notification import NotificationType
+        from plugins.notifications.helpers.notification import NotificationType
 
         assert NotificationType.INFO.value == "info"
         assert NotificationType.SUCCESS.value == "success"
@@ -35,7 +35,7 @@ class TestNotificationEnums:
         assert NotificationType.PROGRESS.value == "progress"
 
     def test_notification_priority_values(self):
-        from helpers.notification import NotificationPriority
+        from plugins.notifications.helpers.notification import NotificationPriority
 
         assert NotificationPriority.NORMAL.value == 10
         assert NotificationPriority.HIGH.value == 20
@@ -46,7 +46,7 @@ class TestNotificationEnums:
 
 class TestNotificationItem:
     def test_notification_item_auto_generates_id(self):
-        from helpers.notification import NotificationItem, NotificationManager, NotificationType, NotificationPriority
+        from plugins.notifications.helpers.notification import NotificationItem, NotificationManager, NotificationType, NotificationPriority
 
         manager = NotificationManager()
         item = NotificationItem(
@@ -63,7 +63,7 @@ class TestNotificationItem:
         assert len(item.id) == 36  # UUID format
 
     def test_notification_item_accepts_custom_id(self):
-        from helpers.notification import NotificationItem, NotificationManager, NotificationType, NotificationPriority
+        from plugins.notifications.helpers.notification import NotificationItem, NotificationManager, NotificationType, NotificationPriority
 
         manager = NotificationManager()
         item = NotificationItem(
@@ -80,7 +80,7 @@ class TestNotificationItem:
         assert item.id == "custom-id-123"
 
     def test_notification_item_coerces_type_from_str(self):
-        from helpers.notification import NotificationItem, NotificationManager, NotificationPriority
+        from plugins.notifications.helpers.notification import NotificationItem, NotificationManager, NotificationPriority
 
         manager = NotificationManager()
         item = NotificationItem(
@@ -96,7 +96,7 @@ class TestNotificationItem:
         assert item.type.value == "info"
 
     def test_notification_item_output_shape(self):
-        from helpers.notification import NotificationItem, NotificationManager, NotificationType, NotificationPriority
+        from plugins.notifications.helpers.notification import NotificationItem, NotificationManager, NotificationType, NotificationPriority
 
         manager = NotificationManager()
         ts = datetime.now(timezone.utc)
@@ -130,7 +130,7 @@ class TestNotificationItem:
 
 class TestNotificationManager:
     def test_add_notification(self):
-        from helpers.notification import NotificationManager, NotificationType, NotificationPriority
+        from plugins.notifications.helpers.notification import NotificationManager, NotificationType, NotificationPriority
 
         mgr = NotificationManager()
         item = mgr.add_notification(
@@ -146,7 +146,7 @@ class TestNotificationManager:
         assert mgr.updates == [0]
 
     def test_add_notification_with_group(self):
-        from helpers.notification import NotificationManager, NotificationType, NotificationPriority
+        from plugins.notifications.helpers.notification import NotificationManager, NotificationType, NotificationPriority
 
         mgr = NotificationManager()
         mgr.add_notification(
@@ -164,7 +164,7 @@ class TestNotificationManager:
         assert all(n.group == "batch" for n in mgr.notifications)
 
     def test_enforce_limit_removes_oldest(self):
-        from helpers.notification import NotificationManager, NotificationType, NotificationPriority
+        from plugins.notifications.helpers.notification import NotificationManager, NotificationType, NotificationPriority
 
         mgr = NotificationManager(max_notifications=3)
         for i in range(5):
@@ -178,7 +178,7 @@ class TestNotificationManager:
         assert mgr.notifications[0].no == 0
 
     def test_get_recent_notifications(self):
-        from helpers.notification import NotificationManager, NotificationType, NotificationPriority
+        from plugins.notifications.helpers.notification import NotificationManager, NotificationType, NotificationPriority
 
         mgr = NotificationManager()
         mgr.add_notification(
@@ -191,7 +191,7 @@ class TestNotificationManager:
         assert recent[0].message == "Recent"
 
     def test_output_returns_updates_slice(self):
-        from helpers.notification import NotificationManager, NotificationType, NotificationPriority
+        from plugins.notifications.helpers.notification import NotificationManager, NotificationType, NotificationPriority
 
         mgr = NotificationManager()
         mgr.add_notification(NotificationType.INFO, NotificationPriority.NORMAL, "A")
@@ -200,7 +200,7 @@ class TestNotificationManager:
         assert len(out) == 2
 
     def test_output_all_returns_all_notifications(self):
-        from helpers.notification import NotificationManager, NotificationType, NotificationPriority
+        from plugins.notifications.helpers.notification import NotificationManager, NotificationType, NotificationPriority
 
         mgr = NotificationManager()
         mgr.add_notification(NotificationType.INFO, NotificationPriority.NORMAL, "A")
@@ -209,7 +209,7 @@ class TestNotificationManager:
         assert len(out) == 2
 
     def test_mark_read_by_ids(self):
-        from helpers.notification import NotificationManager, NotificationType, NotificationPriority
+        from plugins.notifications.helpers.notification import NotificationManager, NotificationType, NotificationPriority
 
         mgr = NotificationManager()
         item1 = mgr.add_notification(NotificationType.INFO, NotificationPriority.NORMAL, "A")
@@ -219,7 +219,7 @@ class TestNotificationManager:
         assert mgr.notifications[0].read is True
 
     def test_mark_read_by_ids_returns_zero_for_empty(self):
-        from helpers.notification import NotificationManager, NotificationType, NotificationPriority
+        from plugins.notifications.helpers.notification import NotificationManager, NotificationType, NotificationPriority
 
         mgr = NotificationManager()
         mgr.add_notification(NotificationType.INFO, NotificationPriority.NORMAL, "A")
@@ -227,7 +227,7 @@ class TestNotificationManager:
         assert count == 0
 
     def test_update_item(self):
-        from helpers.notification import NotificationManager, NotificationType, NotificationPriority
+        from plugins.notifications.helpers.notification import NotificationManager, NotificationType, NotificationPriority
 
         mgr = NotificationManager()
         mgr.add_notification(NotificationType.INFO, NotificationPriority.NORMAL, "A")
@@ -235,7 +235,7 @@ class TestNotificationManager:
         assert mgr.notifications[0].read is True
 
     def test_mark_all_read(self):
-        from helpers.notification import NotificationManager, NotificationType, NotificationPriority
+        from plugins.notifications.helpers.notification import NotificationManager, NotificationType, NotificationPriority
 
         mgr = NotificationManager()
         mgr.add_notification(NotificationType.INFO, NotificationPriority.NORMAL, "A")
@@ -244,7 +244,7 @@ class TestNotificationManager:
         assert all(n.read for n in mgr.notifications)
 
     def test_clear_all(self):
-        from helpers.notification import NotificationManager, NotificationType, NotificationPriority
+        from plugins.notifications.helpers.notification import NotificationManager, NotificationType, NotificationPriority
 
         mgr = NotificationManager()
         mgr.add_notification(NotificationType.INFO, NotificationPriority.NORMAL, "A")
@@ -255,7 +255,7 @@ class TestNotificationManager:
         assert mgr.guid != old_guid
 
     def test_get_notifications_by_type(self):
-        from helpers.notification import NotificationManager, NotificationType, NotificationPriority
+        from plugins.notifications.helpers.notification import NotificationManager, NotificationType, NotificationPriority
 
         mgr = NotificationManager()
         mgr.add_notification(NotificationType.INFO, NotificationPriority.NORMAL, "Info")

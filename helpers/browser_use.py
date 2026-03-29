@@ -1,4 +1,1 @@
-from helpers import dotenv
-dotenv.save_dotenv_value("ANONYMIZED_TELEMETRY", "false")
-import browser_use
-import browser_use.utils
+from plugins.browser.helpers.browser_use import *  # noqa: F401,F403

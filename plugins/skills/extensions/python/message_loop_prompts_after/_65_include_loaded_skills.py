@@ -1,6 +1,6 @@
 from helpers.extension import Extension
 from helpers import skills
-from tools.skills_tool import DATA_NAME_LOADED_SKILLS
+from plugins.skills.tools.skills_tool import DATA_NAME_LOADED_SKILLS
 from agent import LoopData
 
 

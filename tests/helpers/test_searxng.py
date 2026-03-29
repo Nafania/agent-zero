@@ -18,7 +18,7 @@ class TestSearxngSearch:
 
         mock_result = {"results": [{"title": "Hit", "url": "https://example.com"}]}
 
-        with patch("helpers.searxng.runtime") as mock_runtime:
+        with patch("plugins.search.helpers.searxng.runtime") as mock_runtime:
             mock_runtime.call_development_function = AsyncMock(return_value=mock_result)
 
             result = await searxng.search("test query")
@@ -34,7 +34,7 @@ class TestSearxngSearch:
 
         expected = {"results": [], "query": "foo"}
 
-        with patch("helpers.searxng.runtime") as mock_runtime:
+        with patch("plugins.search.helpers.searxng.runtime") as mock_runtime:
             mock_runtime.call_development_function = AsyncMock(return_value=expected)
 
             result = await searxng.search("foo")
