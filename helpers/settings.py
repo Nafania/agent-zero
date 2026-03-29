@@ -7,13 +7,13 @@ import subprocess
 from typing import Any, Literal, TypedDict, cast, TypeVar
 
 import models
-from python.helpers import runtime, whisper, defer, git
+from helpers import runtime, whisper, defer, git
 from . import files, dotenv
-from python.helpers.print_style import PrintStyle
-from python.helpers.providers import get_providers, FieldOption as ProvidersFO
-from python.helpers.secrets import get_default_secrets_manager
-from python.helpers import dirty_json
-from python.helpers.notification import NotificationManager, NotificationType, NotificationPriority
+from helpers.print_style import PrintStyle
+from helpers.providers import get_providers, FieldOption as ProvidersFO
+from helpers.secrets import get_default_secrets_manager
+from helpers import dirty_json
+from helpers.notification import NotificationManager, NotificationType, NotificationPriority
 
 
 T = TypeVar('T')
@@ -519,7 +519,7 @@ def _write_sensitive_settings(settings: Settings):
 
 
 def _load_oauth_client_credentials(settings: Settings):
-    from python.helpers.providers import get_oauth_providers
+    from helpers.providers import get_oauth_providers
     creds = {}
     for p in get_oauth_providers():
         pid = p["provider_id"]
@@ -665,13 +665,13 @@ def _apply_settings(previous: Settings | None):
             or _settings.get("util_model_api_base") != previous.get("util_model_api_base")
             or _settings.get("api_keys") != previous.get("api_keys")
         ):
-            from python.helpers.memory import reload as memory_reload
+            from helpers.memory import reload as memory_reload
 
             memory_reload()
 
         # update mcp settings if necessary
         if not previous or _settings["mcp_servers"] != previous["mcp_servers"]:
-            from python.helpers.mcp_handler import MCPConfig
+            from helpers.mcp_handler import MCPConfig
 
             async def update_mcp_settings(mcp_servers: str):
                 PrintStyle(
@@ -733,7 +733,7 @@ def _apply_settings(previous: Settings | None):
         if not previous or current_token != previous["mcp_server_token"]:
 
             async def update_mcp_token(token: str):
-                from python.helpers.mcp_server import DynamicMcpProxy
+                from helpers.mcp_server import DynamicMcpProxy
 
                 DynamicMcpProxy.get_instance().reconfigure(token=token)
 
@@ -745,7 +745,7 @@ def _apply_settings(previous: Settings | None):
         if not previous or current_token != previous["mcp_server_token"]:
 
             async def update_a2a_token(token: str):
-                from python.helpers.fasta2a_server import DynamicA2AProxy
+                from helpers.fasta2a_server import DynamicA2AProxy
 
                 DynamicA2AProxy.get_instance().reconfigure(token=token)
 

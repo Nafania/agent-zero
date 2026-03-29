@@ -9,7 +9,7 @@
 #     BrowserContext,
 # )
 
-# from python.helpers import files
+# from helpers import files
 
 
 # class NoPageError(Exception):

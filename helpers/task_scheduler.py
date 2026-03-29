@@ -17,13 +17,13 @@ from pydantic import BaseModel, Field, PrivateAttr
 
 from agent import Agent, AgentContext, UserMessage
 from initialize import initialize_agent
-from python.helpers.persist_chat import save_tmp_chat
-from python.helpers.print_style import PrintStyle
-from python.helpers.defer import DeferredTask
-from python.helpers.files import get_abs_path, make_dirs, read_file, write_file
-from python.helpers.localization import Localization
-from python.helpers import projects, guids
-from python.helpers.settings import get_default_value
+from helpers.persist_chat import save_tmp_chat
+from helpers.print_style import PrintStyle
+from helpers.defer import DeferredTask
+from helpers.files import get_abs_path, make_dirs, read_file, write_file
+from helpers.localization import Localization
+from helpers import projects, guids
+from helpers.settings import get_default_value
 import pytz
 from typing import Annotated
 
@@ -682,19 +682,19 @@ class TaskScheduler:
     async def add_task(self, task: Union[ScheduledTask, AdHocTask, PlannedTask]) -> "TaskScheduler":
         await self._tasks.add_task(task)
         ctx = await self._get_chat_context(task)  # invoke context creation
-        from python.helpers.state_monitor_integration import mark_dirty_all
+        from helpers.state_monitor_integration import mark_dirty_all
         mark_dirty_all(reason="task_scheduler.TaskScheduler.add_task")
         return self
 
     async def remove_task_by_uuid(self, task_uuid: str) -> "TaskScheduler":
         await self._tasks.remove_task_by_uuid(task_uuid)
-        from python.helpers.state_monitor_integration import mark_dirty_all
+        from helpers.state_monitor_integration import mark_dirty_all
         mark_dirty_all(reason="task_scheduler.TaskScheduler.remove_task_by_uuid")
         return self
 
     async def remove_task_by_name(self, name: str) -> "TaskScheduler":
         await self._tasks.remove_task_by_name(name)
-        from python.helpers.state_monitor_integration import mark_dirty_all
+        from helpers.state_monitor_integration import mark_dirty_all
         mark_dirty_all(reason="task_scheduler.TaskScheduler.remove_task_by_name")
         return self
 
@@ -797,7 +797,7 @@ class TaskScheduler:
 
         updated = await self._tasks.update_task_by_uuid(task_uuid, _update_task, verify_func)
         if updated is not None:
-            from python.helpers.state_monitor_integration import mark_dirty_all
+            from helpers.state_monitor_integration import mark_dirty_all
             mark_dirty_all(reason="task_scheduler.TaskScheduler.update_task_checked")
         return updated
 

@@ -1,9 +1,9 @@
-from python.helpers.api import ApiHandler, Input, Output, Request, Response
-from python.helpers import subagents
+from helpers.api import ApiHandler, Input, Output, Request, Response
+from helpers import subagents
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from python.helpers import projects
+    from helpers import projects
 
 class Subagents(ApiHandler):
     async def process(self, input: Input, request: Request) -> Output:

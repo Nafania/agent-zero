@@ -10,11 +10,11 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.extensions.message_loop_prompts_after._50_recall_memories import (
+from extensions.python.message_loop_prompts_after._50_recall_memories import (
     _write_extras,
     SEARCH_TIMEOUT,
 )
-from python.helpers.memory import recall_text_and_feedback_items
+from helpers.memory import recall_text_and_feedback_items
 
 _FB_KW = {"context_id": "ctx", "fallback_dataset": "fd", "kind": "memory"}
 

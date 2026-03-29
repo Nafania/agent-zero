@@ -1,6 +1,6 @@
-from python.helpers.api import ApiHandler, Request, Response
-from python.helpers import files
-from python.helpers.security import safe_filename
+from helpers.api import ApiHandler, Request, Response
+from helpers import files
+from helpers.security import safe_filename
 
 
 class UploadFile(ApiHandler):

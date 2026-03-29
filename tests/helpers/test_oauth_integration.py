@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch, MagicMock
-from python.helpers.connected_providers import ProviderPool
+from helpers.connected_providers import ProviderPool
 
 
 class TestModelsGetApiKeyDelegation:

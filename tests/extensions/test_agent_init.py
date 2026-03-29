@@ -20,7 +20,7 @@ class TestInitialMessage:
         mock_agent.context.log.logs = []
         mock_agent.read_prompt.return_value = '{"tool_args":{"text":"Hi"}}'
 
-        from python.extensions.agent_init._10_initial_message import InitialMessage
+        from extensions.python.agent_init._10_initial_message import InitialMessage
 
         ext = InitialMessage(agent=mock_agent)
         await ext.execute()
@@ -31,7 +31,7 @@ class TestInitialMessage:
         mock_agent.number = 0
         mock_agent.context.log.logs = [MagicMock()]
 
-        from python.extensions.agent_init._10_initial_message import InitialMessage
+        from extensions.python.agent_init._10_initial_message import InitialMessage
 
         ext = InitialMessage(agent=mock_agent)
         await ext.execute()
@@ -43,7 +43,7 @@ class TestInitialMessage:
         mock_agent.context.log.logs = []
         mock_agent.read_prompt.return_value = '{"tool_args":{"text":"Hello! How can I help?"}}'
 
-        from python.extensions.agent_init._10_initial_message import InitialMessage
+        from extensions.python.agent_init._10_initial_message import InitialMessage
 
         ext = InitialMessage(agent=mock_agent)
         await ext.execute()
@@ -62,7 +62,7 @@ class TestLoadProfileSettings:
 
     @pytest.mark.asyncio
     async def test_returns_early_without_agent(self):
-        from python.extensions.agent_init._15_load_profile_settings import LoadProfileSettings
+        from extensions.python.agent_init._15_load_profile_settings import LoadProfileSettings
 
         ext = LoadProfileSettings(agent=None)
         await ext.execute()
@@ -71,7 +71,7 @@ class TestLoadProfileSettings:
     async def test_returns_early_without_profile(self, mock_agent):
         mock_agent.config.profile = None
 
-        from python.extensions.agent_init._15_load_profile_settings import LoadProfileSettings
+        from extensions.python.agent_init._15_load_profile_settings import LoadProfileSettings
 
         ext = LoadProfileSettings(agent=mock_agent)
         await ext.execute()
@@ -84,10 +84,10 @@ class TestLoadProfileSettings:
         mock_agent.config.browser_http_headers = {}
 
         with patch(
-            "python.extensions.agent_init._15_load_profile_settings.subagents.get_paths",
+            "extensions.python.agent_init._15_load_profile_settings.subagents.get_paths",
             return_value=[],
         ):
-            from python.extensions.agent_init._15_load_profile_settings import LoadProfileSettings
+            from extensions.python.agent_init._15_load_profile_settings import LoadProfileSettings
 
             ext = LoadProfileSettings(agent=mock_agent)
             await ext.execute()

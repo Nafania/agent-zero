@@ -1,4 +1,4 @@
-from python.helpers import dotenv
+from helpers import dotenv
 import hashlib
 
 

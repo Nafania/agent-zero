@@ -1,6 +1,6 @@
-from python.helpers.api import ApiHandler, Request, Response
+from helpers.api import ApiHandler, Request, Response
 
-from python.helpers.state_snapshot import build_snapshot
+from helpers.state_snapshot import build_snapshot
 
 
 class Poll(ApiHandler):

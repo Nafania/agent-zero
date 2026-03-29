@@ -1,7 +1,7 @@
 import re
 import sys
 import time
-from python.helpers import files
+from helpers import files
 
 def sanitize_string(s: str, encoding: str = "utf-8") -> str:
     # Replace surrogates and invalid unicode with replacement character

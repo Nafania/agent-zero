@@ -13,7 +13,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from flask import Response
 
-from python.api.restart import Restart
+from api.restart import Restart
 
 
 def _make_handler(app=None, lock=None):
@@ -24,7 +24,7 @@ class TestRestart:
     @pytest.mark.asyncio
     async def test_process_calls_reload(self):
         handler = _make_handler()
-        with patch("python.api.restart.process.reload") as mock_reload:
+        with patch("api.restart.process.reload") as mock_reload:
             result = await handler.process({}, MagicMock())
         mock_reload.assert_called_once()
         assert isinstance(result, Response)

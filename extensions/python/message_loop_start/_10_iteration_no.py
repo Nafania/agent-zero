@@ -1,4 +1,4 @@
-from python.helpers.extension import Extension
+from helpers.extension import Extension
 from agent import Agent, LoopData
 
 DATA_NAME_ITER_NO = "iteration_no"

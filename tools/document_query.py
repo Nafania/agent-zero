@@ -1,7 +1,7 @@
 import asyncio
 
-from python.helpers.tool import Tool, Response
-from python.helpers.document_query import DocumentQueryHelper
+from helpers.tool import Tool, Response
+from helpers.document_query import DocumentQueryHelper
 
 
 class DocumentQueryTool(Tool):

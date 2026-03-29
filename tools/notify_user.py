@@ -1,6 +1,6 @@
-from python.helpers.tool import Tool, Response
+from helpers.tool import Tool, Response
 from agent import AgentContext
-from python.helpers.notification import NotificationPriority, NotificationType
+from helpers.notification import NotificationPriority, NotificationType
 
 class NotifyUserTool(Tool):
 

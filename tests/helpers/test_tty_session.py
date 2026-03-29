@@ -27,8 +27,8 @@ class TestTTYSessionInit:
 
     def test_init_with_string_cmd(self):
         """__init__ accepts string command."""
-        with patch("python.helpers.tty_session.sys"):
-            from python.helpers.tty_session import TTYSession
+        with patch("helpers.tty_session.sys"):
+            from helpers.tty_session import TTYSession
 
             session = TTYSession("/bin/bash")
             assert session.cmd == "/bin/bash"
@@ -36,16 +36,16 @@ class TestTTYSessionInit:
 
     def test_init_with_list_cmd_joins_with_space(self):
         """__init__ with list joins cmd with space."""
-        with patch("python.helpers.tty_session.sys"):
-            from python.helpers.tty_session import TTYSession
+        with patch("helpers.tty_session.sys"):
+            from helpers.tty_session import TTYSession
 
             session = TTYSession(["python", "-c", "print(1)"])
             assert session.cmd == "python -c print(1)"
 
     def test_init_stores_cwd_env_encoding_echo(self):
         """__init__ stores cwd, env, encoding, echo."""
-        with patch("python.helpers.tty_session.sys"):
-            from python.helpers.tty_session import TTYSession
+        with patch("helpers.tty_session.sys"):
+            from helpers.tty_session import TTYSession
 
             env = {"FOO": "bar"}
             session = TTYSession("cmd", cwd="/tmp", env=env, encoding="utf-8", echo=True)
@@ -65,10 +65,10 @@ class TestTTYSessionStart:
         mock_proc.stdout = MagicMock()
         mock_proc.stdout.read = AsyncMock(side_effect=[b"data", b""])
 
-        with patch("python.helpers.tty_session.sys"):
-            with patch("python.helpers.tty_session._spawn_posix_pty", AsyncMock(return_value=mock_proc)):
-                with patch("python.helpers.tty_session._IS_WIN", False):
-                    from python.helpers.tty_session import TTYSession
+        with patch("helpers.tty_session.sys"):
+            with patch("helpers.tty_session._spawn_posix_pty", AsyncMock(return_value=mock_proc)):
+                with patch("helpers.tty_session._IS_WIN", False):
+                    from helpers.tty_session import TTYSession
 
                     session = TTYSession("/bin/bash")
                     await session.start()
@@ -86,8 +86,8 @@ class TestTTYSessionClose:
         mock_proc = MagicMock()
         mock_proc.wait = AsyncMock(return_value=0)
 
-        with patch("python.helpers.tty_session.sys"):
-            from python.helpers.tty_session import TTYSession
+        with patch("helpers.tty_session.sys"):
+            from helpers.tty_session import TTYSession
 
             session = TTYSession("/bin/bash")
             session._proc = mock_proc
@@ -105,8 +105,8 @@ class TestTTYSessionSend:
     @pytest.mark.asyncio
     async def test_send_raises_when_not_started(self):
         """send raises when not started."""
-        with patch("python.helpers.tty_session.sys"):
-            from python.helpers.tty_session import TTYSession
+        with patch("helpers.tty_session.sys"):
+            from helpers.tty_session import TTYSession
 
             session = TTYSession("/bin/bash")
             with pytest.raises(RuntimeError, match="TTYSpawn is not started"):
@@ -122,8 +122,8 @@ class TestTTYSessionSend:
         mock_proc = MagicMock()
         mock_proc.stdin = mock_stdin
 
-        with patch("python.helpers.tty_session.sys"):
-            from python.helpers.tty_session import TTYSession
+        with patch("helpers.tty_session.sys"):
+            from helpers.tty_session import TTYSession
 
             session = TTYSession("/bin/bash")
             session._proc = mock_proc
@@ -138,8 +138,8 @@ class TestTTYSessionKill:
 
     def test_kill_noop_when_proc_none(self):
         """kill does nothing when _proc is None."""
-        with patch("python.helpers.tty_session.sys"):
-            from python.helpers.tty_session import TTYSession
+        with patch("helpers.tty_session.sys"):
+            from helpers.tty_session import TTYSession
 
             session = TTYSession("/bin/bash")
             session._proc = None
@@ -151,8 +151,8 @@ class TestTTYSessionKill:
         mock_proc = MagicMock()
         mock_proc.returncode = None
 
-        with patch("python.helpers.tty_session.sys"):
-            from python.helpers.tty_session import TTYSession
+        with patch("helpers.tty_session.sys"):
+            from helpers.tty_session import TTYSession
 
             session = TTYSession("/bin/bash")
             session._proc = mock_proc
@@ -165,8 +165,8 @@ class TestTTYSessionKill:
         mock_proc.returncode = None
         mock_proc.kill.side_effect = ProcessLookupError
 
-        with patch("python.helpers.tty_session.sys"):
-            from python.helpers.tty_session import TTYSession
+        with patch("helpers.tty_session.sys"):
+            from helpers.tty_session import TTYSession
 
             session = TTYSession("/bin/bash")
             session._proc = mock_proc
@@ -180,8 +180,8 @@ class TestTTYSessionRead:
     @pytest.mark.asyncio
     async def test_read_returns_from_queue(self):
         """read returns data from queue."""
-        with patch("python.helpers.tty_session.sys"):
-            from python.helpers.tty_session import TTYSession
+        with patch("helpers.tty_session.sys"):
+            from helpers.tty_session import TTYSession
 
             session = TTYSession("/bin/bash")
             session._buf = asyncio.Queue()
@@ -193,8 +193,8 @@ class TestTTYSessionRead:
     @pytest.mark.asyncio
     async def test_read_returns_none_on_timeout(self):
         """read returns None on timeout."""
-        with patch("python.helpers.tty_session.sys"):
-            from python.helpers.tty_session import TTYSession
+        with patch("helpers.tty_session.sys"):
+            from helpers.tty_session import TTYSession
 
             session = TTYSession("/bin/bash")
             session._buf = asyncio.Queue()
@@ -213,8 +213,8 @@ class TestTTYSessionReadFullUntilIdle:
             yield "a"
             yield "b"
 
-        with patch("python.helpers.tty_session.sys"):
-            from python.helpers.tty_session import TTYSession
+        with patch("helpers.tty_session.sys"):
+            from helpers.tty_session import TTYSession
 
             session = TTYSession("/bin/bash")
             with patch.object(session, "read_chunks_until_idle", mock_chunks):

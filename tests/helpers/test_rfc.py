@@ -17,7 +17,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 class TestRFCTypes:
     def test_rfc_input_structure(self):
-        from python.helpers.rfc import RFCInput
+        from helpers.rfc import RFCInput
 
         inp: RFCInput = {
             "module": "mymod",
@@ -31,7 +31,7 @@ class TestRFCTypes:
         assert inp["kwargs"] == {"x": "y"}
 
     def test_rfc_call_structure(self):
-        from python.helpers.rfc import RFCCall
+        from helpers.rfc import RFCCall
 
         call: RFCCall = {"rfc_input": "{}", "hash": "abc123"}
         assert call["rfc_input"] == "{}"
@@ -44,9 +44,9 @@ class TestRFCTypes:
 @pytest.mark.asyncio
 class TestCallRfc:
     async def test_call_rfc_sends_correct_payload(self):
-        from python.helpers.rfc import call_rfc
+        from helpers.rfc import call_rfc
 
-        with patch("python.helpers.rfc._send_json_data", new_callable=AsyncMock) as mock_send:
+        with patch("helpers.rfc._send_json_data", new_callable=AsyncMock) as mock_send:
             mock_send.return_value = {"result": 42}
             result = await call_rfc(
                 "http://localhost:3000",
@@ -68,12 +68,12 @@ class TestCallRfc:
             assert inp["kwargs"] == {"k": "v"}
 
     async def test_call_rfc_raises_on_non_200(self):
-        from python.helpers.rfc import call_rfc
+        from helpers.rfc import call_rfc
 
         async def mock_send_fail(*args, **kwargs):
             raise Exception("Internal server error")
 
-        with patch("python.helpers.rfc._send_json_data", side_effect=mock_send_fail):
+        with patch("helpers.rfc._send_json_data", side_effect=mock_send_fail):
             with pytest.raises(Exception, match="Internal server error"):
                 await call_rfc("http://x", "p", "m", "f", [], {})
 
@@ -84,30 +84,30 @@ class TestCallRfc:
 @pytest.mark.asyncio
 class TestHandleRfc:
     async def test_handle_rfc_raises_on_invalid_hash(self):
-        from python.helpers.rfc import handle_rfc, RFCCall
+        from helpers.rfc import handle_rfc, RFCCall
 
         call: RFCCall = {
             "rfc_input": json.dumps({"module": "m", "function_name": "f", "args": [], "kwargs": {}}),
             "hash": "invalid",
         }
-        with patch("python.helpers.rfc.crypto.verify_data", return_value=False):
+        with patch("helpers.rfc.crypto.verify_data", return_value=False):
             with pytest.raises(Exception, match="Invalid RFC hash"):
                 await handle_rfc(call, "password")
 
     async def test_handle_rfc_calls_function_on_valid_hash(self):
-        from python.helpers.rfc import handle_rfc, RFCCall
+        from helpers.rfc import handle_rfc, RFCCall
 
         call: RFCCall = {
             "rfc_input": json.dumps({
-                "module": "python.helpers.rfc",
+                "module": "helpers.rfc",
                 "function_name": "_get_function",
                 "args": [],
                 "kwargs": {"module": "json", "function_name": "dumps"},
             }),
             "hash": "will_be_verified",
         }
-        with patch("python.helpers.rfc.crypto.verify_data", return_value=True):
-            with patch("python.helpers.rfc._call_function") as mock_call:
+        with patch("helpers.rfc.crypto.verify_data", return_value=True):
+            with patch("helpers.rfc._call_function") as mock_call:
                 mock_call.return_value = "result"
                 result = await handle_rfc(call, "password")
                 assert result == "result"
@@ -118,19 +118,19 @@ class TestHandleRfc:
 
 class TestGetFunction:
     def test_get_function_returns_imported_function(self):
-        from python.helpers.rfc import _get_function
+        from helpers.rfc import _get_function
 
         func = _get_function("json", "dumps")
         assert func == json.dumps
 
     def test_get_function_raises_for_nonexistent_module(self):
-        from python.helpers.rfc import _get_function
+        from helpers.rfc import _get_function
 
         with pytest.raises(ModuleNotFoundError):
             _get_function("nonexistent_module_xyz", "func")
 
     def test_get_function_raises_for_nonexistent_attr(self):
-        from python.helpers.rfc import _get_function
+        from helpers.rfc import _get_function
 
         with pytest.raises(AttributeError):
             _get_function("json", "nonexistent_func")
@@ -142,13 +142,13 @@ class TestGetFunction:
 @pytest.mark.asyncio
 class TestCallFunction:
     async def test_call_function_calls_sync(self):
-        from python.helpers.rfc import _call_function
+        from helpers.rfc import _call_function
 
         result = await _call_function("json", "dumps", {"a": 1})
         assert result == '{"a": 1}'
 
     async def test_call_function_awaits_async(self):
-        from python.helpers.rfc import _call_function
+        from helpers.rfc import _call_function
 
         async def async_func():
             return "async_result"

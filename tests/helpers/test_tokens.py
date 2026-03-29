@@ -18,7 +18,7 @@ def mock_tiktoken():
     # Default: ~4 chars per token for English
     mock_encoding.encode.side_effect = lambda text, **kw: list(range(len(text) // 4 + 1))
 
-    with patch("python.helpers.tokens.tiktoken") as mock_tiktoken_mod:
+    with patch("helpers.tokens.tiktoken") as mock_tiktoken_mod:
         mock_tiktoken_mod.get_encoding.return_value = mock_encoding
         yield mock_tiktoken_mod
 
@@ -30,14 +30,14 @@ class TestCountTokens:
     """Tests for count_tokens()."""
 
     def test_empty_string(self, mock_tiktoken):
-        from python.helpers.tokens import count_tokens
+        from helpers.tokens import count_tokens
 
         result = count_tokens("")
         assert result == 0
         mock_tiktoken.get_encoding.assert_not_called()
 
     def test_short_text(self, mock_tiktoken):
-        from python.helpers.tokens import count_tokens
+        from helpers.tokens import count_tokens
 
         mock_encoding = mock_tiktoken.get_encoding.return_value
         mock_encoding.encode.side_effect = None
@@ -49,7 +49,7 @@ class TestCountTokens:
         mock_encoding.encode.assert_called_once_with("hello world", disallowed_special=())
 
     def test_single_char(self, mock_tiktoken):
-        from python.helpers.tokens import count_tokens
+        from helpers.tokens import count_tokens
 
         mock_encoding = mock_tiktoken.get_encoding.return_value
         mock_encoding.encode.side_effect = None
@@ -59,7 +59,7 @@ class TestCountTokens:
         assert result == 1
 
     def test_long_text(self, mock_tiktoken):
-        from python.helpers.tokens import count_tokens
+        from helpers.tokens import count_tokens
 
         long_text = "a" * 1000
         mock_encoding = mock_tiktoken.get_encoding.return_value
@@ -70,7 +70,7 @@ class TestCountTokens:
         assert result == 250
 
     def test_custom_encoding(self, mock_tiktoken):
-        from python.helpers.tokens import count_tokens
+        from helpers.tokens import count_tokens
 
         mock_encoding = mock_tiktoken.get_encoding.return_value
         mock_encoding.encode.side_effect = None
@@ -87,13 +87,13 @@ class TestApproximateTokens:
     """Tests for approximate_tokens()."""
 
     def test_empty_string(self, mock_tiktoken):
-        from python.helpers.tokens import approximate_tokens
+        from helpers.tokens import approximate_tokens
 
         result = approximate_tokens("")
         assert result == 0
 
     def test_buffered_count(self, mock_tiktoken):
-        from python.helpers.tokens import approximate_tokens
+        from helpers.tokens import approximate_tokens
 
         mock_encoding = mock_tiktoken.get_encoding.return_value
         mock_encoding.encode.side_effect = None
@@ -104,7 +104,7 @@ class TestApproximateTokens:
         assert result == 11
 
     def test_rounds_down(self, mock_tiktoken):
-        from python.helpers.tokens import approximate_tokens
+        from helpers.tokens import approximate_tokens
 
         mock_encoding = mock_tiktoken.get_encoding.return_value
         mock_encoding.encode.side_effect = None
@@ -121,7 +121,7 @@ class TestTrimToTokens:
     """Tests for trim_to_tokens()."""
 
     def test_within_limit(self, mock_tiktoken):
-        from python.helpers.tokens import trim_to_tokens
+        from helpers.tokens import trim_to_tokens
 
         mock_encoding = mock_tiktoken.get_encoding.return_value
         mock_encoding.encode.side_effect = None
@@ -135,7 +135,7 @@ class TestTrimToTokens:
         assert result == "short"
 
     def test_exceeds_limit_start(self, mock_tiktoken):
-        from python.helpers.tokens import trim_to_tokens
+        from helpers.tokens import trim_to_tokens
 
         # 100 chars, 25 tokens -> exceeds 10 tokens
         text = "a" * 100
@@ -149,7 +149,7 @@ class TestTrimToTokens:
         assert len(result) < len(text)
 
     def test_exceeds_limit_end(self, mock_tiktoken):
-        from python.helpers.tokens import trim_to_tokens
+        from helpers.tokens import trim_to_tokens
 
         text = "a" * 100
         mock_encoding = mock_tiktoken.get_encoding.return_value
@@ -161,7 +161,7 @@ class TestTrimToTokens:
         assert not result.endswith("...")
 
     def test_custom_ellipsis(self, mock_tiktoken):
-        from python.helpers.tokens import trim_to_tokens
+        from helpers.tokens import trim_to_tokens
 
         text = "a" * 100
         mock_encoding = mock_tiktoken.get_encoding.return_value
@@ -171,7 +171,7 @@ class TestTrimToTokens:
         assert result.endswith(" […] ")
 
     def test_zero_max_tokens(self, mock_tiktoken):
-        from python.helpers.tokens import trim_to_tokens
+        from helpers.tokens import trim_to_tokens
 
         text = "hello"
         mock_encoding = mock_tiktoken.get_encoding.return_value

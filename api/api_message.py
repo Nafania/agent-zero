@@ -2,11 +2,11 @@ import base64
 import os
 from datetime import datetime, timedelta
 from agent import AgentContext, UserMessage, AgentContextType
-from python.helpers.api import ApiHandler, Request, Response
-from python.helpers import files, projects
-from python.helpers.print_style import PrintStyle
-from python.helpers.projects import activate_project
-from python.helpers.security import safe_filename
+from helpers.api import ApiHandler, Request, Response
+from helpers import files, projects
+from helpers.print_style import PrintStyle
+from helpers.projects import activate_project
+from helpers.security import safe_filename
 from initialize import initialize_agent
 import threading
 

@@ -4,7 +4,7 @@ import fnmatch
 import base64
 import tempfile
 import zipfile
-from python.helpers import runtime
+from helpers import runtime
 
 
 def get_abs_path(*relative_paths):

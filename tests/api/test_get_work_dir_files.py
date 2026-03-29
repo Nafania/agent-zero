@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.get_work_dir_files import GetWorkDirFiles
+from api.get_work_dir_files import GetWorkDirFiles
 
 
 def _make_handler(app=None, lock=None):
@@ -32,7 +32,7 @@ class TestGetWorkDirFiles:
         request.args = {"path": "/a0/subdir"}
 
         with patch(
-            "python.api.get_work_dir_files.runtime.call_development_function",
+            "api.get_work_dir_files.runtime.call_development_function",
             new_callable=AsyncMock,
             return_value=mock_files,
         ):
@@ -49,7 +49,7 @@ class TestGetWorkDirFiles:
         request.args = {"path": "$WORK_DIR"}
 
         with patch(
-            "python.api.get_work_dir_files.runtime.call_development_function",
+            "api.get_work_dir_files.runtime.call_development_function",
             new_callable=AsyncMock,
             return_value=mock_files,
         ) as mock_call:
@@ -67,7 +67,7 @@ class TestGetWorkDirFiles:
         request.args = {}
 
         with patch(
-            "python.api.get_work_dir_files.runtime.call_development_function",
+            "api.get_work_dir_files.runtime.call_development_function",
             new_callable=AsyncMock,
             return_value=[],
         ) as mock_call:

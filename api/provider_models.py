@@ -1,5 +1,5 @@
-from python.helpers.api import ApiHandler, Input, Output, Request
-from python.helpers.connected_providers import ProviderPool
+from helpers.api import ApiHandler, Input, Output, Request
+from helpers.connected_providers import ProviderPool
 
 
 class ProviderModels(ApiHandler):

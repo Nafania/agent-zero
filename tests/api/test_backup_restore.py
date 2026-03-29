@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.backup_restore import BackupRestore
+from api.backup_restore import BackupRestore
 
 
 def _make_handler():
@@ -71,8 +71,8 @@ class TestBackupRestore:
             "clean_before_restore": False,
         }
 
-        with patch("python.api.backup_restore.BackupService") as MockBackup, \
-             patch("python.api.backup_restore.load_tmp_chats"):
+        with patch("api.backup_restore.BackupService") as MockBackup, \
+             patch("api.backup_restore.load_tmp_chats"):
             mock_svc = MagicMock()
             mock_svc.restore_backup = AsyncMock(return_value=restore_result)
             MockBackup.return_value = mock_svc

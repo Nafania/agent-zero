@@ -1,6 +1,6 @@
 from agent import AgentContext
-from python.helpers.api import ApiHandler, Request, Response
-from python.helpers.metrics_collector import collector
+from helpers.api import ApiHandler, Request, Response
+from helpers.metrics_collector import collector
 
 
 class MetricsDashboard(ApiHandler):

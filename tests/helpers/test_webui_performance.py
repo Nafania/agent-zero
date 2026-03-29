@@ -28,9 +28,9 @@ def mock_secrets_manager():
 
 @pytest.fixture
 def patch_log_deps(mock_secrets_manager):
-    with patch("python.helpers.log.get_secrets_manager", return_value=mock_secrets_manager), \
-         patch("python.helpers.log._lazy_mark_dirty_all"), \
-         patch("python.helpers.log._lazy_mark_dirty_for_context"):
+    with patch("helpers.log.get_secrets_manager", return_value=mock_secrets_manager), \
+         patch("helpers.log._lazy_mark_dirty_all"), \
+         patch("helpers.log._lazy_mark_dirty_for_context"):
         yield
 
 
@@ -41,7 +41,7 @@ def patch_log_deps(mock_secrets_manager):
 class TestLogOutputTail:
 
     def _make_log_with_items(self, n):
-        from python.helpers.log import Log, LogItem
+        from helpers.log import Log, LogItem
 
         log = Log()
         log.context = MagicMock()
@@ -133,7 +133,7 @@ class TestLogOutputTail:
 class TestConditionalChatList:
 
     def test_touch_updates_timestamp(self):
-        from python.helpers.state_snapshot import touch_chat_list, get_chat_list_updated_at
+        from helpers.state_snapshot import touch_chat_list, get_chat_list_updated_at
 
         before = time.time()
         touch_chat_list()
@@ -143,7 +143,7 @@ class TestConditionalChatList:
 
     def test_stale_timestamp_gets_full_list(self):
         """When chat_list_since is 0 (stale), snapshot includes contexts."""
-        from python.helpers.state_snapshot import get_chat_list_updated_at
+        from helpers.state_snapshot import get_chat_list_updated_at
 
         ts = get_chat_list_updated_at()
         assert isinstance(ts, float)
@@ -166,7 +166,7 @@ class TestLazyDeserialization:
 
     def test_hydrate_noop_when_already_hydrated(self):
         """hydrate_context_agents is a no-op when _raw_agents is None."""
-        from python.helpers.persist_chat import hydrate_context_agents
+        from helpers.persist_chat import hydrate_context_agents
 
         ctx = MagicMock()
         ctx._raw_agents = None
@@ -176,14 +176,14 @@ class TestLazyDeserialization:
 
     def test_hydrate_deserializes_agents(self):
         """hydrate_context_agents deserializes stored raw agents data."""
-        from python.helpers.persist_chat import hydrate_context_agents
+        from helpers.persist_chat import hydrate_context_agents
 
         ctx = MagicMock()
         ctx._raw_agents = [{"number": 0, "data": {}, "history": ""}]
         ctx._raw_streaming_agent_no = 0
         ctx.config = MagicMock()
 
-        with patch("python.helpers.persist_chat._deserialize_agents") as mock_deser:
+        with patch("helpers.persist_chat._deserialize_agents") as mock_deser:
             mock_agent = MagicMock()
             mock_agent.number = 0
             mock_agent.data = {}
@@ -203,17 +203,17 @@ class TestChatLogsEndpoint:
 
     def test_chat_logs_import(self):
         """ChatLogs endpoint can be imported."""
-        from python.api.chat_logs import ChatLogs
+        from api.chat_logs import ChatLogs
         assert ChatLogs is not None
 
     def test_get_items_before_basic(self, patch_log_deps):
         """get_items_before returns correct slice and has_more flag."""
-        from python.helpers.log import Log
+        from helpers.log import Log
 
         log = Log()
         log.context = MagicMock()
         for i in range(20):
-            from python.helpers.log import LogItem
+            from helpers.log import LogItem
             log.logs.append(LogItem(
                 log=log, no=i, type="info",
                 heading=f"Item {i}", content=f"Content {i}",
@@ -227,12 +227,12 @@ class TestChatLogsEndpoint:
 
     def test_get_items_before_from_start(self, patch_log_deps):
         """get_items_before with before=5, limit=10 returns first 5 items."""
-        from python.helpers.log import Log
+        from helpers.log import Log
 
         log = Log()
         log.context = MagicMock()
         for i in range(20):
-            from python.helpers.log import LogItem
+            from helpers.log import LogItem
             log.logs.append(LogItem(
                 log=log, no=i, type="info",
                 heading=f"Item {i}", content=f"Content {i}",
@@ -245,12 +245,12 @@ class TestChatLogsEndpoint:
 
     def test_get_items_before_zero_defaults_to_end(self, patch_log_deps):
         """get_items_before with before=0 returns items from the end."""
-        from python.helpers.log import Log
+        from helpers.log import Log
 
         log = Log()
         log.context = MagicMock()
         for i in range(10):
-            from python.helpers.log import LogItem
+            from helpers.log import LogItem
             log.logs.append(LogItem(
                 log=log, no=i, type="info",
                 heading=f"Item {i}", content=f"Content {i}",
@@ -263,12 +263,12 @@ class TestChatLogsEndpoint:
 
     def test_get_items_before_clamps_limit(self, patch_log_deps):
         """get_items_before clamps limit to 1-200."""
-        from python.helpers.log import Log
+        from helpers.log import Log
 
         log = Log()
         log.context = MagicMock()
         for i in range(5):
-            from python.helpers.log import LogItem
+            from helpers.log import LogItem
             log.logs.append(LogItem(
                 log=log, no=i, type="info",
                 heading=f"Item {i}", content=f"Content {i}",
@@ -286,15 +286,15 @@ class TestScopedDirtySignals:
 
     def test_notify_uses_context_scoped_dirty(self, patch_log_deps):
         """Log._notify_state_monitor uses mark_dirty_for_context, not mark_dirty_all."""
-        from python.helpers.log import Log
+        from helpers.log import Log
 
         log = Log()
         ctx = MagicMock()
         ctx.id = "test-ctx-123"
         log.context = ctx
 
-        with patch("python.helpers.log._lazy_mark_dirty_for_context") as mock_ctx_dirty, \
-             patch("python.helpers.log._lazy_mark_dirty_all") as mock_all_dirty:
+        with patch("helpers.log._lazy_mark_dirty_for_context") as mock_ctx_dirty, \
+             patch("helpers.log._lazy_mark_dirty_all") as mock_all_dirty:
             log._notify_state_monitor()
             mock_ctx_dirty.assert_called_once_with("test-ctx-123", reason="log.Log._notify_state_monitor")
             mock_all_dirty.assert_not_called()
@@ -308,7 +308,7 @@ class TestChatRenameRefresh:
 
     def test_rename_calls_touch_and_dirty(self):
         """RenameChat.change_name calls touch_chat_list + mark_dirty_all after rename."""
-        from python.extensions.monologue_start._60_rename_chat import RenameChat
+        from extensions.python.monologue_start._60_rename_chat import RenameChat
         import asyncio
 
         async def fake_call_utility_model(**kwargs):
@@ -323,10 +323,10 @@ class TestChatRenameRefresh:
         ext.agent.read_prompt = MagicMock(return_value="prompt")
         ext.agent.call_utility_model = fake_call_utility_model
 
-        with patch("python.extensions.monologue_start._60_rename_chat.persist_chat") as mock_persist, \
-             patch("python.extensions.monologue_start._60_rename_chat.tokens") as mock_tokens, \
-             patch("python.helpers.state_snapshot.touch_chat_list") as mock_touch, \
-             patch("python.helpers.state_monitor_integration.mark_dirty_all") as mock_dirty:
+        with patch("extensions.python.monologue_start._60_rename_chat.persist_chat") as mock_persist, \
+             patch("extensions.python.monologue_start._60_rename_chat.tokens") as mock_tokens, \
+             patch("helpers.state_snapshot.touch_chat_list") as mock_touch, \
+             patch("helpers.state_monitor_integration.mark_dirty_all") as mock_dirty:
             mock_tokens.trim_to_tokens.return_value = "hi"
             asyncio.get_event_loop().run_until_complete(
                 RenameChat.change_name(ext)
@@ -357,7 +357,7 @@ class TestHistAddMessageUpdatesContext:
         agent.history.add_message = MagicMock(return_value=MagicMock())
 
         with patch("agent.asyncio") as mock_asyncio, \
-             patch("python.helpers.state_snapshot.touch_chat_list"):
+             patch("helpers.state_snapshot.touch_chat_list"):
             mock_asyncio.run = MagicMock()
             Agent.hist_add_message(agent, ai=False, content="test")
 
@@ -374,7 +374,7 @@ class TestHistAddMessageUpdatesContext:
         agent.history.add_message = MagicMock(return_value=MagicMock())
 
         with patch("agent.asyncio") as mock_asyncio, \
-             patch("python.helpers.state_snapshot.touch_chat_list") as mock_touch:
+             patch("helpers.state_snapshot.touch_chat_list") as mock_touch:
             mock_asyncio.run = MagicMock()
             Agent._last_msg_touch = 0.0
             Agent.hist_add_message(agent, ai=False, content="msg1")
@@ -393,7 +393,7 @@ class TestHistAddMessageUpdatesContext:
         agent.history.add_message = MagicMock(return_value=MagicMock())
 
         with patch("agent.asyncio") as mock_asyncio, \
-             patch("python.helpers.state_snapshot.touch_chat_list") as mock_touch:
+             patch("helpers.state_snapshot.touch_chat_list") as mock_touch:
             mock_asyncio.run = MagicMock()
             Agent._last_msg_touch = 0.0
             Agent.hist_add_message(agent, ai=False, content="msg1")
@@ -428,8 +428,8 @@ class TestProcessChainCompletion:
         ctx.get_agent.return_value = mock_agent
         mock_agent.call_extensions = fake_call_extensions
 
-        with patch("python.helpers.state_snapshot.touch_chat_list") as mock_touch, \
-             patch("python.helpers.state_monitor_integration.mark_dirty_all") as mock_dirty:
+        with patch("helpers.state_snapshot.touch_chat_list") as mock_touch, \
+             patch("helpers.state_monitor_integration.mark_dirty_all") as mock_dirty:
             asyncio.get_event_loop().run_until_complete(
                 AgentContext._process_chain(ctx, mock_agent, "hello", user=True)
             )
@@ -455,8 +455,8 @@ class TestProcessChainCompletion:
         ctx.get_agent.return_value = mock_agent
         mock_agent.call_extensions = fake_call_extensions
 
-        with patch("python.helpers.state_snapshot.touch_chat_list") as mock_touch, \
-             patch("python.helpers.state_monitor_integration.mark_dirty_all") as mock_dirty:
+        with patch("helpers.state_snapshot.touch_chat_list") as mock_touch, \
+             patch("helpers.state_monitor_integration.mark_dirty_all") as mock_dirty:
             asyncio.get_event_loop().run_until_complete(
                 AgentContext._process_chain(ctx, mock_agent, "result", user=False)
             )

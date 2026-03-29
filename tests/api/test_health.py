@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.health import HealthCheck
+from api.health import HealthCheck
 
 
 def _make_handler(app=None, lock=None):
@@ -32,7 +32,7 @@ class TestHealthCheck:
     async def test_process_returns_gitinfo_on_success(self):
         handler = _make_handler()
         mock_gitinfo = {"branch": "main", "commit": "abc123"}
-        with patch("python.api.health.git.get_git_info", return_value=mock_gitinfo):
+        with patch("api.health.git.get_git_info", return_value=mock_gitinfo):
             result = await handler.process({}, MagicMock())
         assert result["gitinfo"] == mock_gitinfo
         assert result["error"] is None
@@ -40,8 +40,8 @@ class TestHealthCheck:
     @pytest.mark.asyncio
     async def test_process_returns_error_when_git_fails(self):
         handler = _make_handler()
-        with patch("python.api.health.git.get_git_info", side_effect=Exception("git not found")), \
-             patch("python.api.health.errors.error_text", return_value="git not found"):
+        with patch("api.health.git.get_git_info", side_effect=Exception("git not found")), \
+             patch("api.health.errors.error_text", return_value="git not found"):
             result = await handler.process({}, MagicMock())
         assert result["gitinfo"] is None
         assert result["error"] == "git not found"

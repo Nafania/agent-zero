@@ -12,7 +12,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from langchain_core.documents import Document
 
-from python.helpers.vector_db import (
+from helpers.vector_db import (
     VectorDB,
     format_docs_plain,
     get_comparator,
@@ -55,8 +55,8 @@ class TestVectorDB:
     async def test_insert_documents_adds_to_docs(self, mock_agent):
         db = VectorDB(mock_agent)
         docs = [Document(page_content="hello", metadata={})]
-        with patch("python.helpers.vector_db.configure_cognee"):
-            with patch("python.helpers.memory._get_cognee") as m:
+        with patch("helpers.vector_db.configure_cognee"):
+            with patch("helpers.memory._get_cognee") as m:
                 cognee = MagicMock()
                 cognee.add = AsyncMock()
                 m.return_value = (cognee, MagicMock())

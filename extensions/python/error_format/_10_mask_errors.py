@@ -1,5 +1,5 @@
-from python.helpers.extension import Extension
-from python.helpers.secrets import get_secrets_manager
+from helpers.extension import Extension
+from helpers.secrets import get_secrets_manager
 
 
 class MaskErrorSecrets(Extension):

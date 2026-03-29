@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.mcp_servers_apply import McpServersApply
+from api.mcp_servers_apply import McpServersApply
 
 
 def _make_handler(app=None, lock=None):
@@ -26,12 +26,12 @@ class TestMcpServersApply:
         mock_status = [{"name": "server1", "status": "running"}]
 
         with patch(
-            "python.api.mcp_servers_apply.set_settings_delta",
+            "api.mcp_servers_apply.set_settings_delta",
         ), patch(
-            "python.api.mcp_servers_apply.asyncio.sleep",
+            "api.mcp_servers_apply.asyncio.sleep",
             new_callable=AsyncMock,
         ), patch(
-            "python.api.mcp_servers_apply.MCPConfig"
+            "api.mcp_servers_apply.MCPConfig"
         ) as MockMCP:
             mock_instance = MagicMock()
             mock_instance.get_servers_status.return_value = mock_status
@@ -50,7 +50,7 @@ class TestMcpServersApply:
         handler = _make_handler(app, lock)
 
         with patch(
-            "python.api.mcp_servers_apply.set_settings_delta",
+            "api.mcp_servers_apply.set_settings_delta",
             side_effect=Exception("Settings error"),
         ):
             result = await handler.process(

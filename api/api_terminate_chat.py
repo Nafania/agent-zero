@@ -1,7 +1,7 @@
 from agent import AgentContext
-from python.helpers.api import ApiHandler, Request, Response
-from python.helpers.persist_chat import remove_chat
-from python.helpers.print_style import PrintStyle
+from helpers.api import ApiHandler, Request, Response
+from helpers.persist_chat import remove_chat
+from helpers.print_style import PrintStyle
 import json
 
 

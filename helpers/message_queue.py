@@ -1,12 +1,12 @@
 import os
 import uuid
 from typing import TYPE_CHECKING
-from python.helpers import guids
+from helpers import guids
 
 if TYPE_CHECKING:
     from agent import AgentContext
 
-from python.helpers.print_style import PrintStyle
+from helpers.print_style import PrintStyle
 
 QUEUE_KEY = "message_queue"
 QUEUE_SEQ_KEY = "message_queue_seq"

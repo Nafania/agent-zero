@@ -1,5 +1,5 @@
-from python.helpers.api import ApiHandler, Request, Response
-from python.helpers.extension import call_extensions
+from helpers.api import ApiHandler, Request, Response
+from helpers.extension import call_extensions
 
 
 class GetBanners(ApiHandler):

@@ -1,8 +1,8 @@
 import json
 import os
 import re
-from python.helpers.api import ApiHandler, Input, Output, Request
-from python.helpers import files
+from helpers.api import ApiHandler, Input, Output, Request
+from helpers import files
 
 _SAFE_CHAT_ID = re.compile(r"^[a-zA-Z0-9_\-]+$")
 

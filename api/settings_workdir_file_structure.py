@@ -1,6 +1,6 @@
-from python.helpers.api import ApiHandler, Request, Response
+from helpers.api import ApiHandler, Request, Response
 
-from python.helpers import file_tree, files
+from helpers import file_tree, files
 
 
 class SettingsWorkdirFileStructure(ApiHandler):

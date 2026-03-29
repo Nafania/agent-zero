@@ -250,7 +250,7 @@ class TestContextHelpers:
     """Tests for set_context_data, get_context_data, delete_context_data, clear_context_data."""
 
     def test_set_and_get_context_data(self):
-        from python.helpers.context import set_context_data, get_context_data, clear_context_data
+        from helpers.context import set_context_data, get_context_data, clear_context_data
 
         clear_context_data()
         set_context_data("key1", "value1")
@@ -259,7 +259,7 @@ class TestContextHelpers:
         clear_context_data()
 
     def test_get_context_data_none_returns_full_dict(self):
-        from python.helpers.context import set_context_data, get_context_data, clear_context_data
+        from helpers.context import set_context_data, get_context_data, clear_context_data
 
         clear_context_data()
         set_context_data("a", 1)
@@ -271,7 +271,7 @@ class TestContextHelpers:
         clear_context_data()
 
     def test_delete_context_data(self):
-        from python.helpers.context import set_context_data, get_context_data, delete_context_data, clear_context_data
+        from helpers.context import set_context_data, get_context_data, delete_context_data, clear_context_data
 
         clear_context_data()
         set_context_data("k", "v")
@@ -281,7 +281,7 @@ class TestContextHelpers:
         clear_context_data()
 
     def test_clear_context_data(self):
-        from python.helpers.context import set_context_data, get_context_data, clear_context_data
+        from helpers.context import set_context_data, get_context_data, clear_context_data
 
         set_context_data("x", 1)
         clear_context_data()
@@ -290,7 +290,7 @@ class TestContextHelpers:
         assert full == {}
 
     def test_set_context_data_skips_if_same_value(self):
-        from python.helpers.context import set_context_data, get_context_data, clear_context_data
+        from helpers.context import set_context_data, get_context_data, clear_context_data
 
         clear_context_data()
         set_context_data("k", "v")

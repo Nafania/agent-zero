@@ -2,14 +2,14 @@ import asyncio
 from dataclasses import dataclass
 import shlex
 import time
-from python.helpers.tool import Tool, Response
-from python.helpers import files, rfc_exchange, projects, runtime, settings
-from python.helpers.print_style import PrintStyle
-from python.helpers.shell_local import LocalInteractiveSession
-from python.helpers.shell_ssh import SSHInteractiveSession
-from python.helpers.docker import DockerContainerManager
-from python.helpers.strings import truncate_text as truncate_text_string
-from python.helpers.messages import truncate_text as truncate_text_agent
+from helpers.tool import Tool, Response
+from helpers import files, rfc_exchange, projects, runtime, settings
+from helpers.print_style import PrintStyle
+from helpers.shell_local import LocalInteractiveSession
+from helpers.shell_ssh import SSHInteractiveSession
+from helpers.docker import DockerContainerManager
+from helpers.strings import truncate_text as truncate_text_string
+from helpers.messages import truncate_text as truncate_text_agent
 import re
 
 # Timeouts for python, nodejs, and terminal runtimes.

@@ -5,9 +5,9 @@ import io
 import warnings
 import asyncio
 import soundfile as sf
-from python.helpers import runtime
-from python.helpers.print_style import PrintStyle
-from python.helpers.notification import NotificationManager, NotificationType, NotificationPriority
+from helpers import runtime
+from helpers.print_style import PrintStyle
+from helpers.notification import NotificationManager, NotificationType, NotificationPriority
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning)

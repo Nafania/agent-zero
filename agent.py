@@ -10,7 +10,7 @@ from typing import Any, Awaitable, Coroutine, Dict, Literal
 from enum import Enum
 import models
 
-from python.helpers import (
+from helpers import (
     extract_tools,
     files,
     errors,
@@ -20,20 +20,20 @@ from python.helpers import (
     dirty_json,
     subagents
 )
-from python.helpers.print_style import PrintStyle
+from helpers.print_style import PrintStyle
 
 from langchain_core.prompts import (
     ChatPromptTemplate,
 )
 from langchain_core.messages import SystemMessage, BaseMessage
 
-import python.helpers.log as Log
-from python.helpers.dirty_json import DirtyJson
-from python.helpers.defer import DeferredTask
+import helpers.log as Log
+from helpers.dirty_json import DirtyJson
+from helpers.defer import DeferredTask
 from typing import Callable
-from python.helpers.localization import Localization
-from python.helpers.extension import call_extensions
-from python.helpers.errors import RepairableException
+from helpers.localization import Localization
+from helpers.extension import call_extensions
+from helpers.errors import RepairableException
 
 
 class AgentContextType(Enum):
@@ -171,7 +171,7 @@ class AgentContext:
     @classmethod
     def get_notification_manager(cls):
         if cls._notification_manager is None:
-            from python.helpers.notification import NotificationManager  # type: ignore
+            from helpers.notification import NotificationManager  # type: ignore
 
             cls._notification_manager = NotificationManager()
         return cls._notification_manager
@@ -263,7 +263,7 @@ class AgentContext:
     def _ensure_hydrated(self):
         """Ensure agents and history are fully deserialized (lazy hydration)."""
         if self._raw_agents is not None:
-            from python.helpers.persist_chat import hydrate_context_agents
+            from helpers.persist_chat import hydrate_context_agents
             hydrate_context_agents(self)
 
     def get_agent(self):
@@ -324,8 +324,8 @@ class AgentContext:
             agent.handle_critical_exception(e)
         finally:
             if user:
-                from python.helpers.state_snapshot import touch_chat_list
-                from python.helpers.state_monitor_integration import mark_dirty_all
+                from helpers.state_snapshot import touch_chat_list
+                from helpers.state_monitor_integration import mark_dirty_all
                 touch_chat_list()
                 mark_dirty_all(reason="process_chain_end")
 
@@ -710,7 +710,7 @@ class Agent:
         now_mono = time.time()
         if now_mono - Agent._last_msg_touch >= Agent._MSG_TOUCH_INTERVAL:
             Agent._last_msg_touch = now_mono
-            from python.helpers.state_snapshot import touch_chat_list
+            from helpers.state_snapshot import touch_chat_list
             touch_chat_list()
         # Allow extensions to process content before adding to history
         content_data = {"content": content}
@@ -928,7 +928,7 @@ class Agent:
 
             # Try getting tool from MCP first
             try:
-                import python.helpers.mcp_handler as mcp_helper
+                import helpers.mcp_handler as mcp_helper
 
                 mcp_tool_candidate = mcp_helper.MCPConfig.get_instance().get_tool(
                     self, tool_name
@@ -1037,8 +1037,8 @@ class Agent:
         loop_data: LoopData | None,
         **kwargs,
     ):
-        from python.tools.unknown import Unknown
-        from python.helpers.tool import Tool
+        from tools.unknown import Unknown
+        from helpers.tool import Tool
 
         classes = []
 

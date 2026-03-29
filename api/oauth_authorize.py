@@ -1,8 +1,8 @@
 import secrets
 import time
-from python.helpers.api import ApiHandler, Input, Output, Request
-from python.helpers.oauth import get_oauth_provider
-from python.helpers import dotenv
+from helpers.api import ApiHandler, Input, Output, Request
+from helpers.oauth import get_oauth_provider
+from helpers import dotenv
 
 _pending_states: dict[str, dict] = {}
 _STATE_TTL = 600

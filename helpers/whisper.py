@@ -3,9 +3,9 @@ import warnings
 import whisper
 import tempfile
 import asyncio
-from python.helpers import runtime, rfc, settings, files
-from python.helpers.print_style import PrintStyle
-from python.helpers.notification import NotificationManager, NotificationType, NotificationPriority
+from helpers import runtime, rfc, settings, files
+from helpers.print_style import PrintStyle
+from helpers.notification import NotificationManager, NotificationType, NotificationPriority
 
 # Suppress FutureWarning from torch.load
 warnings.filterwarnings("ignore", category=FutureWarning)

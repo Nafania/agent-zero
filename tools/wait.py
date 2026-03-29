@@ -1,9 +1,9 @@
 import asyncio
 from datetime import datetime, timedelta, timezone
-from python.helpers.tool import Tool, Response
-from python.helpers.print_style import PrintStyle
-from python.helpers.wait import managed_wait
-from python.helpers.localization import Localization
+from helpers.tool import Tool, Response
+from helpers.print_style import PrintStyle
+from helpers.wait import managed_wait
+from helpers.localization import Localization
 
 class WaitTool(Tool):
 

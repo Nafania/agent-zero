@@ -1,7 +1,7 @@
-from python.helpers.api import ApiHandler, Request, Response
+from helpers.api import ApiHandler, Request, Response
 from werkzeug.datastructures import FileStorage
-from python.helpers.backup import BackupService
-from python.helpers.persist_chat import load_tmp_chats
+from helpers.backup import BackupService
+from helpers.persist_chat import load_tmp_chats
 import json
 
 

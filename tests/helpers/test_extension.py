@@ -10,7 +10,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.helpers.extension import (
+from helpers.extension import (
     Extension,
     call_extensions,
     _get_file_from_module,
@@ -35,7 +35,7 @@ class TestExtensionBase:
 
 class TestGetFileFromModule:
     def test_returns_last_part_of_module(self):
-        assert _get_file_from_module("python.extensions.my_ext") == "my_ext"
+        assert _get_file_from_module("extensions.python.my_ext") == "my_ext"
 
     def test_handles_single_part(self):
         assert _get_file_from_module("ext") == "ext"
@@ -43,17 +43,17 @@ class TestGetFileFromModule:
 
 class TestGetExtensions:
     def test_returns_empty_when_folder_not_exists(self):
-        with patch("python.helpers.extension.files") as mf:
+        with patch("helpers.extension.files") as mf:
             mf.get_abs_path.return_value = "/nonexistent"
             mf.exists.return_value = False
             result = _get_extensions("/nonexistent")
         assert result == []
 
     def test_caches_and_returns_classes(self):
-        with patch("python.helpers.extension.files") as mf:
+        with patch("helpers.extension.files") as mf:
             mf.get_abs_path.return_value = "/ext"
             mf.exists.return_value = True
-            with patch("python.helpers.extension.extract_tools") as me:
+            with patch("helpers.extension.extract_tools") as me:
                 me.load_classes_from_folder.return_value = [ConcreteExtension]
                 result = _get_extensions("/ext")
         assert ConcreteExtension in result
@@ -62,8 +62,8 @@ class TestGetExtensions:
 class TestCallExtensions:
     @pytest.mark.asyncio
     async def test_calls_extensions_in_order(self):
-        with patch("python.helpers.subagents.get_paths", return_value=["/a0/python/extensions"]), \
-             patch("python.helpers.extension._get_extensions") as mg:
+        with patch("helpers.subagents.get_paths", return_value=["/a0/python/extensions"]), \
+             patch("helpers.extension._get_extensions") as mg:
             mg.return_value = [ConcreteExtension]
             results = []
             async def mock_execute(self, **kwargs):
@@ -85,8 +85,8 @@ class TestCallExtensions:
             async def execute(self, **kwargs):
                 return "B"
 
-        with patch("python.helpers.subagents.get_paths", return_value=["/a", "/b"]), \
-             patch("python.helpers.extension._get_extensions") as mg:
+        with patch("helpers.subagents.get_paths", return_value=["/a", "/b"]), \
+             patch("helpers.extension._get_extensions") as mg:
             mg.side_effect = [[ExtA], [ExtB]]
             await call_extensions("test", agent=None)
         assert mg.call_count >= 1

@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.helpers import runtime
+from helpers import runtime
 
 _DEFAULT_NS = argparse.Namespace(port=None, host=None, cloudflare_tunnel=False, development=False)
 
@@ -103,13 +103,13 @@ class TestGetRuntimeId:
 
 class TestGetPersistentId:
     def test_returns_from_dotenv_when_set(self):
-        with patch("python.helpers.runtime.dotenv") as m:
+        with patch("helpers.runtime.dotenv") as m:
             m.get_dotenv_value.return_value = "persistent-123"
             result = runtime.get_persistent_id()
         assert result == "persistent-123"
 
     def test_generates_and_saves_when_not_set(self):
-        with patch("python.helpers.runtime.dotenv") as m:
+        with patch("helpers.runtime.dotenv") as m:
             m.get_dotenv_value.return_value = None
             m.save_dotenv_value = MagicMock()
             result = runtime.get_persistent_id()
@@ -120,13 +120,13 @@ class TestGetPersistentId:
 class TestGetWebUiPort:
     def test_returns_arg_port(self):
         runtime.args = {"port": 8080}
-        with patch("python.helpers.runtime.dotenv") as m:
+        with patch("helpers.runtime.dotenv") as m:
             m.get_dotenv_value.return_value = 0
             assert runtime.get_web_ui_port() == 8080
 
     def test_returns_dotenv_when_no_arg(self):
         runtime.args = {}
-        with patch("python.helpers.runtime.dotenv") as m:
+        with patch("helpers.runtime.dotenv") as m:
             m.get_dotenv_value.return_value = 3000
             assert runtime.get_web_ui_port() == 3000
 
@@ -139,21 +139,21 @@ class TestGetPlatform:
 
 class TestIsWindows:
     def test_true_on_win32(self):
-        with patch("python.helpers.runtime.sys") as m:
+        with patch("helpers.runtime.sys") as m:
             m.platform = "win32"
             assert runtime.is_windows() is True
 
     def test_false_on_darwin(self):
-        with patch("python.helpers.runtime.sys") as m:
+        with patch("helpers.runtime.sys") as m:
             m.platform = "darwin"
             assert runtime.is_windows() is False
 
 
 class TestGetTerminalExecutable:
     def test_powershell_on_windows(self):
-        with patch("python.helpers.runtime.is_windows", return_value=True):
+        with patch("helpers.runtime.is_windows", return_value=True):
             assert "powershell" in runtime.get_terminal_executable().lower()
 
     def test_bash_on_unix(self):
-        with patch("python.helpers.runtime.is_windows", return_value=False):
+        with patch("helpers.runtime.is_windows", return_value=False):
             assert "bash" in runtime.get_terminal_executable()

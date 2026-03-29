@@ -19,13 +19,13 @@ class TestBrowserModule:
 
     def test_browser_module_imports(self):
         """Module can be imported without error."""
-        import python.helpers.browser as browser_module
+        import helpers.browser as browser_module
 
         assert browser_module is not None
 
     def test_browser_module_has_no_exports_when_commented(self):
         """When implementation is commented out, module has no public exports."""
-        import python.helpers.browser as browser_module
+        import helpers.browser as browser_module
 
         # Filter out dunder and private names
         public = [

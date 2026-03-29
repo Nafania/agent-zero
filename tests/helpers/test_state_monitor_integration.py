@@ -16,18 +16,18 @@ if str(PROJECT_ROOT) not in sys.path:
 
 class TestMarkDirtyAll:
     def test_mark_dirty_all_delegates_to_state_monitor(self):
-        from python.helpers.state_monitor_integration import mark_dirty_all
+        from helpers.state_monitor_integration import mark_dirty_all
 
-        with patch("python.helpers.state_monitor.get_state_monitor") as mock_get:
+        with patch("helpers.state_monitor.get_state_monitor") as mock_get:
             mock_monitor = MagicMock()
             mock_get.return_value = mock_monitor
             mark_dirty_all(reason="test_reason")
             mock_monitor.mark_dirty_all.assert_called_once_with(reason="test_reason")
 
     def test_mark_dirty_all_can_be_called_without_reason(self):
-        from python.helpers.state_monitor_integration import mark_dirty_all
+        from helpers.state_monitor_integration import mark_dirty_all
 
-        with patch("python.helpers.state_monitor.get_state_monitor") as mock_get:
+        with patch("helpers.state_monitor.get_state_monitor") as mock_get:
             mock_monitor = MagicMock()
             mock_get.return_value = mock_monitor
             mark_dirty_all()
@@ -39,9 +39,9 @@ class TestMarkDirtyAll:
 
 class TestMarkDirtyForContext:
     def test_mark_dirty_for_context_delegates_to_state_monitor(self):
-        from python.helpers.state_monitor_integration import mark_dirty_for_context
+        from helpers.state_monitor_integration import mark_dirty_for_context
 
-        with patch("python.helpers.state_monitor.get_state_monitor") as mock_get:
+        with patch("helpers.state_monitor.get_state_monitor") as mock_get:
             mock_monitor = MagicMock()
             mock_get.return_value = mock_monitor
             mark_dirty_for_context("ctx-123", reason="notification")
@@ -51,9 +51,9 @@ class TestMarkDirtyForContext:
             )
 
     def test_mark_dirty_for_context_can_be_called_without_reason(self):
-        from python.helpers.state_monitor_integration import mark_dirty_for_context
+        from helpers.state_monitor_integration import mark_dirty_for_context
 
-        with patch("python.helpers.state_monitor.get_state_monitor") as mock_get:
+        with patch("helpers.state_monitor.get_state_monitor") as mock_get:
             mock_monitor = MagicMock()
             mock_get.return_value = mock_monitor
             mark_dirty_for_context("ctx-1")

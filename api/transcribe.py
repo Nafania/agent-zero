@@ -1,6 +1,6 @@
-from python.helpers.api import ApiHandler, Request, Response
+from helpers.api import ApiHandler, Request, Response
 
-from python.helpers import runtime, settings, whisper
+from helpers import runtime, settings, whisper
 
 class Transcribe(ApiHandler):
     async def process(self, input: dict, request: Request) -> dict | Response:

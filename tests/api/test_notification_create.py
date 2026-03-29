@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.notification_create import NotificationCreate
+from api.notification_create import NotificationCreate
 
 
 def _make_handler(app=None, lock=None):
@@ -42,7 +42,7 @@ class TestNotificationCreate:
         mock_notification.id = "notif-123"
 
         with patch(
-            "python.api.notification_create.NotificationManager.send_notification",
+            "api.notification_create.NotificationManager.send_notification",
             return_value=mock_notification,
         ):
             result = await handler.process(
@@ -73,7 +73,7 @@ class TestNotificationCreate:
         mock_notification.id = "n1"
 
         with patch(
-            "python.api.notification_create.NotificationManager.send_notification",
+            "api.notification_create.NotificationManager.send_notification",
             return_value=mock_notification,
         ) as mock_send:
             await handler.process({"message": "Minimal"}, MagicMock())
@@ -89,7 +89,7 @@ class TestNotificationCreate:
         handler = _make_handler(app, lock)
 
         with patch(
-            "python.api.notification_create.NotificationManager.send_notification",
+            "api.notification_create.NotificationManager.send_notification",
             side_effect=Exception("Send failed"),
         ):
             result = await handler.process(

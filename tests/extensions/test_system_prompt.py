@@ -27,16 +27,16 @@ class TestSystemPrompt:
         mock_agent.context.get_data = MagicMock(return_value=None)
 
         with patch(
-            "python.extensions.system_prompt._10_system_prompt.MCPConfig.get_instance",
+            "extensions.python.system_prompt._10_system_prompt.MCPConfig.get_instance",
             return_value=MagicMock(servers=[]),
         ), patch(
-            "python.extensions.system_prompt._10_system_prompt.skills.list_skills",
+            "extensions.python.system_prompt._10_system_prompt.skills.list_skills",
             return_value=[],
         ), patch(
-            "python.extensions.system_prompt._10_system_prompt.get_settings",
+            "extensions.python.system_prompt._10_system_prompt.get_settings",
             return_value={"variables": {}},
         ):
-            from python.extensions.system_prompt._10_system_prompt import SystemPrompt
+            from extensions.python.system_prompt._10_system_prompt import SystemPrompt
 
             ext = SystemPrompt(agent=mock_agent)
             await ext.execute(system_prompt=system_prompt, loop_data=mock_loop_data)
@@ -55,19 +55,19 @@ class TestBehaviourPrompt:
         mock_agent.read_prompt.return_value = "behaviour rules"
 
         with patch(
-            "python.extensions.system_prompt._20_behaviour_prompt.memory.get_memory_subdir_abs",
+            "extensions.python.system_prompt._20_behaviour_prompt.memory.get_memory_subdir_abs",
             return_value="/mem",
         ), patch(
-            "python.extensions.system_prompt._20_behaviour_prompt.files.get_abs_path",
+            "extensions.python.system_prompt._20_behaviour_prompt.files.get_abs_path",
             return_value="/mem/behaviour.md",
         ), patch(
-            "python.extensions.system_prompt._20_behaviour_prompt.files.exists",
+            "extensions.python.system_prompt._20_behaviour_prompt.files.exists",
             return_value=True,
         ), patch(
-            "python.extensions.system_prompt._20_behaviour_prompt.files.read_file",
+            "extensions.python.system_prompt._20_behaviour_prompt.files.read_file",
             return_value="custom rules",
         ):
-            from python.extensions.system_prompt._20_behaviour_prompt import (
+            from extensions.python.system_prompt._20_behaviour_prompt import (
                 BehaviourPrompt,
             )
 
@@ -87,7 +87,7 @@ class TestLogForStream:
         mock_log_item = MagicMock()
         mock_agent.context.log.log.return_value = mock_log_item
 
-        from python.extensions.before_main_llm_call._10_log_for_stream import (
+        from extensions.python.before_main_llm_call._10_log_for_stream import (
             LogForStream,
             build_heading,
             build_default_heading,
@@ -99,7 +99,7 @@ class TestLogForStream:
         assert "log_item_generating" in mock_loop_data.params_temporary
 
     def test_build_heading_includes_agent_prefix(self, mock_agent):
-        from python.extensions.before_main_llm_call._10_log_for_stream import (
+        from extensions.python.before_main_llm_call._10_log_for_stream import (
             build_heading,
         )
 

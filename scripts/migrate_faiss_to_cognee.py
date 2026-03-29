@@ -22,7 +22,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from python.helpers.cognee_init import configure_cognee
+from helpers.cognee_init import configure_cognee
 
 
 def _log(msg: str):
@@ -33,7 +33,7 @@ MIGRATION_STATE_FILE = "usr/cognee_migration_state.json"
 
 
 def _abs(rel_path: str) -> str:
-    from python.helpers import files
+    from helpers import files
     return files.get_abs_path(rel_path)
 
 
@@ -158,7 +158,7 @@ def load_faiss_db(db_dir: str) -> dict | None:
         os.makedirs(em_dir, exist_ok=True)
         store = LocalFileStore(em_dir)
 
-        from python.helpers import files
+        from helpers import files
         embeddings_model_id = files.safe_file_name(provider + "_" + model_name)
         embedder = CacheBackedEmbeddings.from_bytes_store(
             embedding_model, store, namespace=embeddings_model_id
@@ -308,9 +308,9 @@ async def migrate_index(
     if not dry_run:
         knowledge_import_path = os.path.join(db_dir, "knowledge_import.json")
         if os.path.exists(knowledge_import_path):
-            from python.helpers import files
+            from helpers import files
             if memory_subdir.startswith("projects/"):
-                from python.helpers.projects import get_project_meta_folder
+                from helpers.projects import get_project_meta_folder
                 state_dir = files.get_abs_path(get_project_meta_folder(memory_subdir[9:]), "cognee_state")
             else:
                 state_dir = files.get_abs_path("usr/cognee_state", memory_subdir)
@@ -407,8 +407,8 @@ def _migration_looks_empty(state: dict) -> bool:
 
 
 def _current_data_dir() -> str:
-    from python.helpers.cognee_init import get_cognee_setting
-    from python.helpers import files
+    from helpers.cognee_init import get_cognee_setting
+    from helpers import files
     data_dir = files.get_abs_path(get_cognee_setting("cognee_data_dir", "usr/cognee"))
     return os.path.join(data_dir, "data_storage")
 
@@ -517,7 +517,7 @@ async def cleanup_backup_datasets(base_dir: str):
         return
 
     try:
-        from python.helpers.cognee_init import configure_cognee
+        from helpers.cognee_init import configure_cognee
         configure_cognee()
         import cognee
         all_datasets = await cognee.datasets.list_datasets()

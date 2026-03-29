@@ -4,7 +4,7 @@ import os
 import subprocess
 import base64
 from urllib.parse import urlparse, urlunparse
-from python.helpers import files
+from helpers import files
 
 
 def strip_auth_from_url(url: str) -> str:

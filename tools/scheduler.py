@@ -3,14 +3,14 @@ from datetime import datetime
 import json
 import random
 import re
-from python.helpers.tool import Tool, Response
-from python.helpers.task_scheduler import (
+from helpers.tool import Tool, Response
+from helpers.task_scheduler import (
     TaskScheduler, ScheduledTask, AdHocTask, PlannedTask,
     serialize_task, TaskState, TaskSchedule, TaskPlan, parse_datetime, serialize_datetime
 )
 from agent import AgentContext
-from python.helpers import persist_chat
-from python.helpers.projects import get_context_project_name, load_basic_project_data
+from helpers import persist_chat
+from helpers.projects import get_context_project_name, load_basic_project_data
 
 DEFAULT_WAIT_TIMEOUT = 300
 

@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.chat_remove import RemoveChat
+from api.chat_remove import RemoveChat
 
 
 def _make_handler(app=None, lock=None):
@@ -30,10 +30,10 @@ class TestRemoveChat:
         mock_scheduler.get_tasks_by_context_id = MagicMock(return_value=[])
         mock_scheduler.remove_task_by_uuid = AsyncMock()
 
-        with patch("python.api.chat_remove.TaskScheduler") as MockScheduler, \
-             patch("python.api.chat_remove.AgentContext") as MockCtx, \
-             patch("python.api.chat_remove.persist_chat"), \
-             patch("python.helpers.state_monitor_integration.mark_dirty_all"):
+        with patch("api.chat_remove.TaskScheduler") as MockScheduler, \
+             patch("api.chat_remove.AgentContext") as MockCtx, \
+             patch("api.chat_remove.persist_chat"), \
+             patch("helpers.state_monitor_integration.mark_dirty_all"):
             MockScheduler.get.return_value = mock_scheduler
             MockCtx.use.return_value = mock_ctx
             MockCtx.remove = MagicMock()
@@ -52,10 +52,10 @@ class TestRemoveChat:
         mock_scheduler.reload = AsyncMock()
         mock_scheduler.get_tasks_by_context_id = MagicMock(return_value=[])
 
-        with patch("python.api.chat_remove.TaskScheduler") as MockScheduler, \
-             patch("python.api.chat_remove.AgentContext") as MockCtx, \
-             patch("python.api.chat_remove.persist_chat") as mock_persist, \
-             patch("python.helpers.state_monitor_integration.mark_dirty_all"):
+        with patch("api.chat_remove.TaskScheduler") as MockScheduler, \
+             patch("api.chat_remove.AgentContext") as MockCtx, \
+             patch("api.chat_remove.persist_chat") as mock_persist, \
+             patch("helpers.state_monitor_integration.mark_dirty_all"):
             MockScheduler.get.return_value = mock_scheduler
             MockCtx.use.return_value = MagicMock()
 
@@ -73,10 +73,10 @@ class TestRemoveChat:
         mock_scheduler.reload = AsyncMock()
         mock_scheduler.get_tasks_by_context_id = MagicMock(return_value=[])
 
-        with patch("python.api.chat_remove.TaskScheduler") as MockScheduler, \
-             patch("python.api.chat_remove.AgentContext") as MockCtx, \
-             patch("python.api.chat_remove.persist_chat"), \
-             patch("python.helpers.state_monitor_integration.mark_dirty_all"):
+        with patch("api.chat_remove.TaskScheduler") as MockScheduler, \
+             patch("api.chat_remove.AgentContext") as MockCtx, \
+             patch("api.chat_remove.persist_chat"), \
+             patch("helpers.state_monitor_integration.mark_dirty_all"):
             MockScheduler.get.return_value = mock_scheduler
             MockCtx.use.return_value = MagicMock()
 

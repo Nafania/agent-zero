@@ -13,9 +13,9 @@ import html2text
 from bs4 import BeautifulSoup
 from imapclient import IMAPClient
 
-from python.helpers import files
-from python.helpers.errors import RepairableException, format_error
-from python.helpers.print_style import PrintStyle
+from helpers import files
+from helpers.errors import RepairableException, format_error
+from helpers.print_style import PrintStyle
 
 
 @dataclass
@@ -560,7 +560,7 @@ async def read_messages(
         List of Message objects
 
     Example:
-        from python.helpers.email_client import read_messages
+        from helpers.email_client import read_messages
         messages = await read_messages(
             server="imap.gmail.com",
             port=993,

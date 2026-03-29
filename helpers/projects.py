@@ -1,8 +1,8 @@
 import os
 from typing import Literal, TypedDict, TYPE_CHECKING, cast
 
-from python.helpers import files, dirty_json, persist_chat, file_tree
-from python.helpers.print_style import PrintStyle
+from helpers import files, dirty_json, persist_chat, file_tree
+from helpers.print_style import PrintStyle
 
 
 if TYPE_CHECKING:
@@ -90,7 +90,7 @@ def create_project(name: str, data: BasicProjectData):
 
 def clone_git_project(name: str, git_url: str, git_token: str, data: BasicProjectData):
     """Clone a git repository as a new A0 project. Token is used only for cloning via http header."""
-    from python.helpers import git
+    from helpers import git
     
     abs_path = files.create_dir_safe(
         files.get_abs_path(PROJECTS_PARENT_DIR, name), rename_format="{name}_{number}"
@@ -236,7 +236,7 @@ def load_basic_project_data(name: str) -> BasicProjectData:
 
 
 def load_edit_project_data(name: str) -> EditProjectData:
-    from python.helpers import git
+    from helpers import git
     
     data = load_basic_project_data(name)
     additional_instructions = get_additional_instructions_files(name)
@@ -321,7 +321,7 @@ def activate_project(context_id: str, name: str, *, mark_dirty: bool = True):
     persist_chat.save_tmp_chat(context)
 
     if mark_dirty:
-        from python.helpers.state_monitor_integration import mark_dirty_all
+        from helpers.state_monitor_integration import mark_dirty_all
         mark_dirty_all(reason="projects.activate_project")
 
 
@@ -338,7 +338,7 @@ def deactivate_project(context_id: str, *, mark_dirty: bool = True):
     persist_chat.save_tmp_chat(context)
 
     if mark_dirty:
-        from python.helpers.state_monitor_integration import mark_dirty_all
+        from helpers.state_monitor_integration import mark_dirty_all
         mark_dirty_all(reason="projects.deactivate_project")
 
 
@@ -350,7 +350,7 @@ def reactivate_project_in_chats(name: str):
             activate_project(context.id, name, mark_dirty=False)
         persist_chat.save_tmp_chat(context)
 
-    from python.helpers.state_monitor_integration import mark_dirty_all
+    from helpers.state_monitor_integration import mark_dirty_all
     mark_dirty_all(reason="projects.reactivate_project_in_chats")
 
 
@@ -362,7 +362,7 @@ def deactivate_project_in_chats(name: str):
             deactivate_project(context.id, mark_dirty=False)
         persist_chat.save_tmp_chat(context)
 
-    from python.helpers.state_monitor_integration import mark_dirty_all
+    from helpers.state_monitor_integration import mark_dirty_all
     mark_dirty_all(reason="projects.deactivate_project_in_chats")
 
 
@@ -430,7 +430,7 @@ def save_project_subagents(name: str, subagents_data: dict[str, SubAgentSettings
 def _normalize_subagents(
     subagents_data: dict[str, SubAgentSettings]
 ) -> dict[str, SubAgentSettings]:
-    from python.helpers import subagents
+    from helpers import subagents
 
     agents_dict = subagents.get_agents_dict()
 
@@ -450,14 +450,14 @@ def _normalize_subagents(
 
 
 def load_project_secrets_masked(name: str, merge_with_global=False):
-    from python.helpers import secrets
+    from helpers import secrets
 
     mgr = secrets.get_project_secrets_manager(name, merge_with_global)
     return mgr.get_masked_secrets()
 
 
 def save_project_secrets(name: str, secrets: str):
-    from python.helpers.secrets import get_project_secrets_manager
+    from helpers.secrets import get_project_secrets_manager
 
     secrets_manager = get_project_secrets_manager(name)
     secrets_manager.save_secrets_with_merge(secrets)
@@ -479,7 +479,7 @@ def create_project_meta_folders(name: str):
 
     # create knowledge folders
     files.create_dir(get_project_meta_folder(name, PROJECT_KNOWLEDGE_DIR))
-    from python.helpers import memory
+    from helpers import memory
 
     for memory_type in memory.Memory.Area:
         files.create_dir(

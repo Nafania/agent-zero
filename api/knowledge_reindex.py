@@ -1,5 +1,5 @@
-from python.helpers.api import ApiHandler, Request, Response
-from python.helpers import files, memory, notification, projects, notification
+from helpers.api import ApiHandler, Request, Response
+from helpers import files, memory, notification, projects, notification
 import os
 
 

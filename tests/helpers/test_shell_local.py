@@ -26,12 +26,12 @@ class TestLocalInteractiveSession:
         mock_session.read_full_until_idle = AsyncMock(return_value="")
         mock_session.kill = MagicMock()
 
-        with patch("python.helpers.shell_local.tty_session") as mock_ttm:
+        with patch("helpers.shell_local.tty_session") as mock_ttm:
             mock_ttm.TTYSession.return_value = mock_session
-            with patch("python.helpers.shell_local.runtime") as mock_runtime:
+            with patch("helpers.shell_local.runtime") as mock_runtime:
                 mock_runtime.get_terminal_executable.return_value = "/bin/bash"
 
-                from python.helpers.shell_local import LocalInteractiveSession
+                from helpers.shell_local import LocalInteractiveSession
 
                 session = LocalInteractiveSession(cwd="/tmp")
                 await session.connect()
@@ -46,12 +46,12 @@ class TestLocalInteractiveSession:
         mock_session = MagicMock()
         mock_session.kill = MagicMock()
 
-        with patch("python.helpers.shell_local.tty_session") as mock_ttm:
+        with patch("helpers.shell_local.tty_session") as mock_ttm:
             mock_ttm.TTYSession.return_value = mock_session
-            with patch("python.helpers.shell_local.runtime") as mock_runtime:
+            with patch("helpers.shell_local.runtime") as mock_runtime:
                 mock_runtime.get_terminal_executable.return_value = "/bin/bash"
 
-                from python.helpers.shell_local import LocalInteractiveSession
+                from helpers.shell_local import LocalInteractiveSession
 
                 session = LocalInteractiveSession()
                 session.session = mock_session
@@ -62,7 +62,7 @@ class TestLocalInteractiveSession:
     @pytest.mark.asyncio
     async def test_send_command_raises_when_not_connected(self):
         """send_command raises when shell not connected."""
-        from python.helpers.shell_local import LocalInteractiveSession
+        from helpers.shell_local import LocalInteractiveSession
 
         session = LocalInteractiveSession()
         session.session = None
@@ -76,7 +76,7 @@ class TestLocalInteractiveSession:
         mock_session = MagicMock()
         mock_session.sendline = AsyncMock()
 
-        from python.helpers.shell_local import LocalInteractiveSession
+        from helpers.shell_local import LocalInteractiveSession
 
         session = LocalInteractiveSession()
         session.session = mock_session
@@ -87,7 +87,7 @@ class TestLocalInteractiveSession:
     @pytest.mark.asyncio
     async def test_read_output_raises_when_not_connected(self):
         """read_output raises when shell not connected."""
-        from python.helpers.shell_local import LocalInteractiveSession
+        from helpers.shell_local import LocalInteractiveSession
 
         session = LocalInteractiveSession()
         session.session = None
@@ -101,8 +101,8 @@ class TestLocalInteractiveSession:
         mock_session = MagicMock()
         mock_session.read_full_until_idle = AsyncMock(return_value="output\n")
 
-        with patch("python.helpers.shell_local.clean_string", side_effect=lambda x: x.strip()):
-            from python.helpers.shell_local import LocalInteractiveSession
+        with patch("helpers.shell_local.clean_string", side_effect=lambda x: x.strip()):
+            from helpers.shell_local import LocalInteractiveSession
 
             session = LocalInteractiveSession()
             session.session = mock_session
@@ -115,7 +115,7 @@ class TestLocalInteractiveSession:
     @pytest.mark.asyncio
     async def test_init_stores_cwd(self):
         """__init__ stores cwd."""
-        from python.helpers.shell_local import LocalInteractiveSession
+        from helpers.shell_local import LocalInteractiveSession
 
         session = LocalInteractiveSession(cwd="/home/user")
         assert session.cwd == "/home/user"

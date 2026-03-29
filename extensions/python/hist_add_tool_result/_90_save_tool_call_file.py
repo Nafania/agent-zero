@@ -1,6 +1,6 @@
 from typing import Any
-from python.helpers.extension import Extension
-from python.helpers import files, persist_chat
+from helpers.extension import Extension
+from helpers import files, persist_chat
 import os, re
 
 LEN_MIN = 500

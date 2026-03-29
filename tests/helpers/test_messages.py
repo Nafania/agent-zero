@@ -16,7 +16,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 class TestTruncateText:
     def test_truncate_text_returns_unchanged_when_under_threshold(self):
-        from python.helpers import messages
+        from helpers import messages
 
         mock_agent = MagicMock()
         mock_agent.read_prompt = MagicMock(return_value="[...truncated...]")
@@ -26,7 +26,7 @@ class TestTruncateText:
         mock_agent.read_prompt.assert_not_called()
 
     def test_truncate_text_returns_unchanged_when_zero_threshold(self):
-        from python.helpers import messages
+        from helpers import messages
 
         mock_agent = MagicMock()
         output = "x" * 500
@@ -34,7 +34,7 @@ class TestTruncateText:
         assert result == output
 
     def test_truncate_text_truncates_when_over_threshold(self):
-        from python.helpers import messages
+        from helpers import messages
 
         mock_agent = MagicMock()
         mock_agent.read_prompt = MagicMock(return_value="[...truncated...]")
@@ -47,7 +47,7 @@ class TestTruncateText:
         mock_agent.read_prompt.assert_called_once()
 
     def test_truncate_text_uses_placeholder_length(self):
-        from python.helpers import messages
+        from helpers import messages
 
         mock_agent = MagicMock()
         mock_agent.read_prompt = MagicMock(return_value="[...]")
@@ -63,7 +63,7 @@ class TestTruncateText:
 
 class TestTruncateDictByRatio:
     def test_truncate_dict_by_ratio_returns_unchanged_when_under_threshold(self):
-        from python.helpers import messages
+        from helpers import messages
 
         mock_agent = MagicMock()
         mock_agent.read_prompt = MagicMock(return_value="[...]")
@@ -75,7 +75,7 @@ class TestTruncateDictByRatio:
         mock_agent.read_prompt.assert_not_called()
 
     def test_truncate_dict_by_ratio_truncates_large_string_value(self):
-        from python.helpers import messages
+        from helpers import messages
 
         mock_agent = MagicMock()
         mock_agent.read_prompt = MagicMock(side_effect=lambda x, length: f"[truncated {length}]")
@@ -86,7 +86,7 @@ class TestTruncateDictByRatio:
         assert "truncated" in str(result["key"]) or len(result["key"]) < 500
 
     def test_truncate_dict_by_ratio_processes_nested_dict(self):
-        from python.helpers import messages
+        from helpers import messages
 
         mock_agent = MagicMock()
         mock_agent.read_prompt = MagicMock(return_value="[...]")
@@ -97,7 +97,7 @@ class TestTruncateDictByRatio:
         assert result["outer"]["inner"] == "value"
 
     def test_truncate_dict_by_ratio_processes_list(self):
-        from python.helpers import messages
+        from helpers import messages
 
         mock_agent = MagicMock()
         mock_agent.read_prompt = MagicMock(return_value="[...]")
@@ -109,7 +109,7 @@ class TestTruncateDictByRatio:
         assert result[1]["b"] == 2
 
     def test_truncate_dict_by_ratio_truncates_string_item(self):
-        from python.helpers import messages
+        from helpers import messages
 
         mock_agent = MagicMock()
         mock_agent.read_prompt = MagicMock(side_effect=lambda x, length: f"[{length}]")
@@ -120,7 +120,7 @@ class TestTruncateDictByRatio:
         assert "[" in str(result) or len(result) < 500
 
     def test_truncate_dict_by_ratio_passes_non_dict_list_str_through(self):
-        from python.helpers import messages
+        from helpers import messages
 
         mock_agent = MagicMock()
         data = 42

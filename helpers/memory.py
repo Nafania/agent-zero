@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Any, List, Optional
-from python.helpers import guids
+from helpers import guids
 
 import os
 import json
@@ -8,20 +8,20 @@ import asyncio
 import hashlib
 
 
-from python.helpers.print_style import PrintStyle
-from python.helpers import files
+from helpers.print_style import PrintStyle
+from helpers import files
 from langchain_core.documents import Document
-from python.helpers import knowledge_import
-from python.helpers.log import Log, LogItem
+from helpers import knowledge_import
+from helpers.log import Log, LogItem
 from enum import Enum
 from agent import Agent, AgentContext
 import models
 import logging
-from python.helpers.cognee_init import get_cognee_setting
+from helpers.cognee_init import get_cognee_setting
 
 
 def _get_cognee():
-    from python.helpers.cognee_init import get_cognee
+    from helpers.cognee_init import get_cognee
     return get_cognee()
 
 
@@ -303,7 +303,7 @@ class Memory:
         cognee, _ = _get_cognee()
         ids = []
         timestamp = self.get_timestamp()
-        from python.helpers.cognee_background import CogneeBackgroundWorker
+        from helpers.cognee_background import CogneeBackgroundWorker
 
         for doc in docs:
             doc_id = guids.generate_id(10)
@@ -359,7 +359,7 @@ def _subdir_to_dataset(memory_subdir: str) -> str:
 
 def _state_dir(memory_subdir: str) -> str:
     if memory_subdir.startswith("projects/"):
-        from python.helpers.projects import get_project_meta_folder
+        from helpers.projects import get_project_meta_folder
         return files.get_abs_path(get_project_meta_folder(memory_subdir[9:]), "cognee_state")
     return files.get_abs_path("usr/cognee_state", memory_subdir)
 
@@ -573,7 +573,7 @@ async def _delete_data_by_id(dataset_name: str, data_id: str):
 
 def _invalidate_dashboard_cache():
     try:
-        from python.api.memory_dashboard import invalidate_dashboard_cache
+        from api.memory_dashboard import invalidate_dashboard_cache
         invalidate_dashboard_cache()
     except Exception:
         pass
@@ -589,7 +589,7 @@ def get_custom_knowledge_subdir_abs(agent: Agent) -> str:
 
 
 def reload():
-    import python.helpers.cognee_init as ci
+    import helpers.cognee_init as ci
     ci._configured = False
     ci._cognee_module = None
     ci._search_type_class = None
@@ -605,7 +605,7 @@ def abs_db_dir(memory_subdir: str) -> str:
 
 def abs_knowledge_dir(knowledge_subdir: str, *sub_dirs: str) -> str:
     if knowledge_subdir.startswith("projects/"):
-        from python.helpers.projects import get_project_meta_folder
+        from helpers.projects import get_project_meta_folder
         return files.get_abs_path(
             get_project_meta_folder(knowledge_subdir[9:]), "knowledge", *sub_dirs
         )
@@ -626,7 +626,7 @@ def get_agent_memory_subdir(agent: Agent) -> str:
 
 
 def get_context_memory_subdir(context: AgentContext) -> str:
-    from python.helpers.projects import (
+    from helpers.projects import (
         get_context_memory_subdir as get_project_memory_subdir,
     )
     memory_subdir = get_project_memory_subdir(context)
@@ -639,7 +639,7 @@ def get_existing_memory_subdirs() -> list[str]:
     try:
         subdirs: set[str] = set()
 
-        from python.helpers.projects import get_projects_parent_folder
+        from helpers.projects import get_projects_parent_folder
         project_parent = get_projects_parent_folder()
         if os.path.exists(project_parent):
             for name in files.get_subdirectories(project_parent):
@@ -658,6 +658,6 @@ def get_knowledge_subdirs_by_memory_subdir(
 ) -> list[str]:
     result = list(default)
     if memory_subdir.startswith("projects/"):
-        from python.helpers.projects import get_project_meta_folder
+        from helpers.projects import get_project_meta_folder
         result.append(get_project_meta_folder(memory_subdir[9:], "knowledge"))
     return result

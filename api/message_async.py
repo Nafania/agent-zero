@@ -1,6 +1,6 @@
 from agent import AgentContext
-from python.helpers.defer import DeferredTask
-from python.api.message import Message
+from helpers.defer import DeferredTask
+from api.message import Message
 
 
 class MessageAsync(Message):

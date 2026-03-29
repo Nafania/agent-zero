@@ -1,7 +1,7 @@
 import base64
 import os
-from python.helpers.api import ApiHandler, Request, Response, send_file
-from python.helpers import files, runtime
+from helpers.api import ApiHandler, Request, Response, send_file
+from helpers import files, runtime
 import io
 from mimetypes import guess_type
 

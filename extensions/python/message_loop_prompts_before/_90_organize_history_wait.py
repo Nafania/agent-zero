@@ -1,7 +1,7 @@
-from python.helpers.extension import Extension
+from helpers.extension import Extension
 from agent import LoopData
-from python.extensions.message_loop_end._10_organize_history import DATA_NAME_TASK
-from python.helpers.defer import DeferredTask, THREAD_BACKGROUND
+from extensions.python.message_loop_end._10_organize_history import DATA_NAME_TASK
+from helpers.defer import DeferredTask, THREAD_BACKGROUND
 
 
 class OrganizeHistoryWait(Extension):

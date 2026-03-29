@@ -4,7 +4,7 @@ import asyncio
 import aiohttp
 import json
 
-from python.helpers.vector_db import VectorDB
+from helpers.vector_db import VectorDB
 
 os.environ["USER_AGENT"] = "@mixedbread-ai/unstructured"  # noqa E402
 from langchain_unstructured import UnstructuredLoader  # noqa E402
@@ -21,8 +21,8 @@ from langchain_community.document_loaders.parsers.images import TesseractBlobPar
 from langchain_core.documents import Document
 from langchain_core.messages import SystemMessage, HumanMessage
 
-from python.helpers.print_style import PrintStyle
-from python.helpers import files, errors
+from helpers.print_style import PrintStyle
+from helpers import files, errors
 from agent import Agent
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter

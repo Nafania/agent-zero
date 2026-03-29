@@ -1,6 +1,6 @@
 import os
-from python.helpers import files
-from python.helpers.print_style import PrintStyle
+from helpers import files
+from helpers.print_style import PrintStyle
 
 def migrate_user_data() -> None:
     """

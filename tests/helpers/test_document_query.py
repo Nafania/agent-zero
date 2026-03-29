@@ -58,7 +58,7 @@ class TestLangchainImports:
     def test_no_legacy_langchain_schema_import(self):
         """Ensure document_query.py does not use the legacy langchain.schema path."""
         import inspect
-        from python.helpers import document_query
+        from helpers import document_query
 
         source = inspect.getsource(document_query)
         assert "from langchain.schema" not in source
@@ -66,7 +66,7 @@ class TestLangchainImports:
     def test_no_legacy_langchain_text_splitter_import(self):
         """Ensure document_query.py does not use the legacy langchain.text_splitter path."""
         import inspect
-        from python.helpers import document_query
+        from helpers import document_query
 
         source = inspect.getsource(document_query)
         assert "from langchain.text_splitter" not in source
@@ -74,7 +74,7 @@ class TestLangchainImports:
     def test_no_textloader_import(self):
         """Ensure the unused TextLoader import was removed."""
         import inspect
-        from python.helpers import document_query
+        from helpers import document_query
 
         source = inspect.getsource(document_query)
         assert "from langchain_community.document_loaders.text import TextLoader" not in source
@@ -82,20 +82,20 @@ class TestLangchainImports:
 
 class TestDocumentQueryStoreNormalizeUri:
     def test_normalize_file_uri(self):
-        from python.helpers.document_query import DocumentQueryStore
+        from helpers.document_query import DocumentQueryStore
 
         result = DocumentQueryStore.normalize_uri("file:///tmp/test.txt")
         assert result.startswith("file://")
         assert "test.txt" in result
 
     def test_normalize_http_to_https(self):
-        from python.helpers.document_query import DocumentQueryStore
+        from helpers.document_query import DocumentQueryStore
 
         result = DocumentQueryStore.normalize_uri("http://example.com/doc.pdf")
         assert result.startswith("https://")
 
     def test_normalize_strips_whitespace(self):
-        from python.helpers.document_query import DocumentQueryStore
+        from helpers.document_query import DocumentQueryStore
 
         result = DocumentQueryStore.normalize_uri("  https://example.com/doc  ")
         assert not result.startswith(" ")
@@ -104,13 +104,13 @@ class TestDocumentQueryStoreNormalizeUri:
 
 class TestDocumentQueryStoreInit:
     def test_store_get_requires_agent(self):
-        from python.helpers.document_query import DocumentQueryStore
+        from helpers.document_query import DocumentQueryStore
 
         with pytest.raises(ValueError, match="Agent and agent config"):
             DocumentQueryStore.get(None)
 
     def test_store_initializes_with_agent(self):
-        from python.helpers.document_query import DocumentQueryStore
+        from helpers.document_query import DocumentQueryStore
 
         agent = MagicMock()
         agent.config = MagicMock()

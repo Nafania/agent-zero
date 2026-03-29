@@ -6,8 +6,8 @@ from attr import dataclass
 from flask import Request, Response, jsonify, Flask, session, request, send_file
 from agent import AgentContext
 from initialize import initialize_agent
-from python.helpers.print_style import PrintStyle
-from python.helpers.errors import format_error
+from helpers.print_style import PrintStyle
+from helpers.errors import format_error
 from werkzeug.serving import make_server
 
 ThreadLockType = Union[threading.Lock, threading.RLock]

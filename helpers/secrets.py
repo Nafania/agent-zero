@@ -6,8 +6,8 @@ from io import StringIO
 from dataclasses import dataclass
 from typing import Dict, Optional, List, Literal, Set, Callable, Tuple, TYPE_CHECKING
 from dotenv.parser import parse_stream
-from python.helpers.errors import RepairableException
-from python.helpers import files
+from helpers.errors import RepairableException
+from helpers import files
 
 if TYPE_CHECKING:
     from agent import AgentContext
@@ -505,7 +505,7 @@ class SecretsManager:
 
 
 def get_secrets_manager(context: "AgentContext|None" = None) -> SecretsManager:
-    from python.helpers import projects
+    from helpers import projects
 
     # default secrets file
     secret_files = [DEFAULT_SECRETS_FILE]
@@ -524,7 +524,7 @@ def get_secrets_manager(context: "AgentContext|None" = None) -> SecretsManager:
     return SecretsManager.get_instance(*secret_files)
 
 def get_project_secrets_manager(project_name: str, merge_with_global: bool = False) -> SecretsManager:
-    from python.helpers import projects
+    from helpers import projects
 
     # default secrets file
     secret_files = []

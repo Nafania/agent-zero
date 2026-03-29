@@ -1,6 +1,6 @@
 import asyncio
-from python.helpers.extension import Extension
-from python.helpers import message_queue as mq
+from helpers.extension import Extension
+from helpers import message_queue as mq
 from agent import AgentContext, Agent, LoopData
 
 

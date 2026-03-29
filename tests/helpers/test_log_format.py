@@ -13,7 +13,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 class TestFormatPrefix:
     def test_default_values(self):
-        from python.helpers.log_format import format_prefix
+        from helpers.log_format import format_prefix
 
         result = format_prefix()
         assert "INFO" in result
@@ -22,7 +22,7 @@ class TestFormatPrefix:
         assert "Z" in result  # UTC
 
     def test_custom_level_and_component(self):
-        from python.helpers.log_format import format_prefix
+        from helpers.log_format import format_prefix
 
         result = format_prefix(level="ERROR", component="a0.addon")
         assert "ERROR" in result
@@ -31,7 +31,7 @@ class TestFormatPrefix:
 
 class TestStructuredFormatter:
     def test_format_record(self):
-        from python.helpers.log_format import StructuredFormatter
+        from helpers.log_format import StructuredFormatter
 
         formatter = StructuredFormatter()
         record = logging.LogRecord(
@@ -50,7 +50,7 @@ class TestStructuredFormatter:
         assert "T" in result and "Z" in result
 
     def test_format_record_with_exception(self):
-        from python.helpers.log_format import StructuredFormatter
+        from helpers.log_format import StructuredFormatter
 
         formatter = StructuredFormatter()
         try:
@@ -77,18 +77,18 @@ class TestStructuredFormatter:
 
 class TestConfigureLogging:
     def test_clears_handlers_and_adds_structured(self):
-        from python.helpers.log_format import configure_logging
+        from helpers.log_format import configure_logging
 
         configure_logging(root_level=logging.DEBUG)
         root = logging.getLogger()
         assert len(root.handlers) == 1
         handler = root.handlers[0]
-        from python.helpers.log_format import StructuredFormatter
+        from helpers.log_format import StructuredFormatter
 
         assert isinstance(handler.formatter, StructuredFormatter)
 
     def test_uvicorn_loggers_configured(self):
-        from python.helpers.log_format import configure_logging
+        from helpers.log_format import configure_logging
 
         configure_logging(root_level=logging.WARNING)
         for name in ("uvicorn", "uvicorn.error", "uvicorn.access"):

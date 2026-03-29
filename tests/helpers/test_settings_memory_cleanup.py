@@ -10,7 +10,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-import python.helpers.settings as settings_module
+import helpers.settings as settings_module
 
 REMOVED_MEMORY_KEYS = frozenset(
     {
@@ -36,10 +36,10 @@ def _reset_settings_module_state():
 
 def _minimal_settings():
     with (
-        patch("python.helpers.settings.files") as mock_files,
-        patch("python.helpers.settings.runtime") as mock_runtime,
-        patch("python.helpers.settings.git") as mock_git,
-        patch("python.helpers.settings.dotenv") as mock_dotenv,
+        patch("helpers.settings.files") as mock_files,
+        patch("helpers.settings.runtime") as mock_runtime,
+        patch("helpers.settings.git") as mock_git,
+        patch("helpers.settings.dotenv") as mock_dotenv,
     ):
         mock_files.read_file.return_value = "# gitignore"
         mock_files.get_abs_path.side_effect = lambda *p: "/a0/" + "/".join(p)
@@ -53,10 +53,10 @@ def _minimal_settings():
 class TestRemovedKeysNotInDefaults:
     def test_default_settings_excludes_removed_keys(self):
         with (
-            patch("python.helpers.settings.files") as mock_files,
-            patch("python.helpers.settings.runtime") as mock_runtime,
-            patch("python.helpers.settings.git") as mock_git,
-            patch("python.helpers.settings.dotenv") as mock_dotenv,
+            patch("helpers.settings.files") as mock_files,
+            patch("helpers.settings.runtime") as mock_runtime,
+            patch("helpers.settings.git") as mock_git,
+            patch("helpers.settings.dotenv") as mock_dotenv,
         ):
             mock_files.read_file.return_value = "# gitignore"
             mock_files.get_abs_path.side_effect = lambda *p: "/a0/" + "/".join(p)
@@ -76,7 +76,7 @@ class TestLegacyPayloadNormalize:
         for key in REMOVED_MEMORY_KEYS:
             legacy[key] = "legacy" if key in {"agent_memory_subdir", "agent_knowledge_subdir"} else (0.5 if "threshold" in key else True)
 
-        with patch("python.helpers.settings.get_default_settings", return_value=defs):
+        with patch("helpers.settings.get_default_settings", return_value=defs):
             result = settings_module.normalize_settings(legacy)
 
         for key in REMOVED_MEMORY_KEYS:
@@ -90,12 +90,12 @@ class TestConvertOutDoesNotReEmitRemovedKeys:
             s[key] = "x"
 
         with (
-            patch("python.helpers.settings.get_providers") as mock_prov,
-            patch("python.helpers.settings.files") as mock_files,
-            patch("python.helpers.settings.runtime") as mock_runtime,
-            patch("python.helpers.settings.dotenv") as mock_dotenv,
-            patch("python.helpers.settings.get_default_secrets_manager") as mock_sec,
-            patch("python.helpers.settings.models") as mock_models,
+            patch("helpers.settings.get_providers") as mock_prov,
+            patch("helpers.settings.files") as mock_files,
+            patch("helpers.settings.runtime") as mock_runtime,
+            patch("helpers.settings.dotenv") as mock_dotenv,
+            patch("helpers.settings.get_default_secrets_manager") as mock_sec,
+            patch("helpers.settings.models") as mock_models,
         ):
             mock_prov.side_effect = (
                 lambda t: [{"value": "openrouter", "label": "OpenRouter"}]
@@ -117,7 +117,7 @@ class TestConvertOutDoesNotReEmitRemovedKeys:
 class TestConvertInIgnoresRemovedKeys:
     def test_does_not_apply_removed_keys_to_current(self):
         base = _minimal_settings()
-        with patch("python.helpers.settings.get_settings", return_value=base):
+        with patch("helpers.settings.get_settings", return_value=base):
             incoming = {k: "should-not-apply" for k in REMOVED_MEMORY_KEYS}
             incoming["chat_model_provider"] = "custom-provider"
             result = settings_module.convert_in(incoming)

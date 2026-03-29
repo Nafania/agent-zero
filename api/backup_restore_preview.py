@@ -1,6 +1,6 @@
-from python.helpers.api import ApiHandler, Request, Response
+from helpers.api import ApiHandler, Request, Response
 from werkzeug.datastructures import FileStorage
-from python.helpers.backup import BackupService
+from helpers.backup import BackupService
 import json
 
 

@@ -9,10 +9,10 @@ from fastmcp import FastMCP
 import contextvars
 
 from agent import AgentContext, AgentContextType, UserMessage
-from python.helpers.persist_chat import remove_chat
+from helpers.persist_chat import remove_chat
 from initialize import initialize_agent
-from python.helpers.print_style import PrintStyle
-from python.helpers import settings, projects
+from helpers.print_style import PrintStyle
+from helpers import settings, projects
 from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException

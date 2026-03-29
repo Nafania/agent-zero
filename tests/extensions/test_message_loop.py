@@ -18,7 +18,7 @@ class TestIterationNo:
     async def test_increments_iteration_no(self, mock_agent, mock_loop_data):
         mock_agent.get_data.return_value = 5
 
-        from python.extensions.message_loop_start._10_iteration_no import (
+        from extensions.python.message_loop_start._10_iteration_no import (
             IterationNo,
             get_iter_no,
         )
@@ -32,7 +32,7 @@ class TestIterationNo:
     async def test_starts_at_one_when_none(self, mock_agent, mock_loop_data):
         mock_agent.get_data.return_value = None
 
-        from python.extensions.message_loop_start._10_iteration_no import IterationNo
+        from extensions.python.message_loop_start._10_iteration_no import IterationNo
 
         ext = IterationNo(agent=mock_agent)
         await ext.execute(loop_data=mock_loop_data)
@@ -50,12 +50,12 @@ class TestOrganizeHistory:
         mock_agent.history.compress = MagicMock()
 
         with patch(
-            "python.extensions.message_loop_end._10_organize_history.DeferredTask"
+            "extensions.python.message_loop_end._10_organize_history.DeferredTask"
         ) as mock_task_cls:
             mock_task = MagicMock()
             mock_task_cls.return_value = mock_task
 
-            from python.extensions.message_loop_end._10_organize_history import (
+            from extensions.python.message_loop_end._10_organize_history import (
                 OrganizeHistory,
             )
 
@@ -76,9 +76,9 @@ class TestSaveChat:
         mock_agent.context.type = AgentContextType.BACKGROUND
 
         with patch(
-            "python.extensions.message_loop_end._90_save_chat.persist_chat.save_tmp_chat"
+            "extensions.python.message_loop_end._90_save_chat.persist_chat.save_tmp_chat"
         ) as mock_save:
-            from python.extensions.message_loop_end._90_save_chat import SaveChat
+            from extensions.python.message_loop_end._90_save_chat import SaveChat
 
             ext = SaveChat(agent=mock_agent)
             await ext.execute(loop_data=mock_loop_data)
@@ -92,9 +92,9 @@ class TestSaveChat:
         mock_agent.context.type = AgentContextType.USER
 
         with patch(
-            "python.extensions.message_loop_end._90_save_chat.persist_chat.save_tmp_chat"
+            "extensions.python.message_loop_end._90_save_chat.persist_chat.save_tmp_chat"
         ) as mock_save:
-            from python.extensions.message_loop_end._90_save_chat import SaveChat
+            from extensions.python.message_loop_end._90_save_chat import SaveChat
 
             ext = SaveChat(agent=mock_agent)
             await ext.execute(loop_data=mock_loop_data)
@@ -110,7 +110,7 @@ class TestOrganizeHistoryWait:
         mock_agent.history = MagicMock()
         mock_agent.history.is_over_limit.return_value = False
 
-        from python.extensions.message_loop_prompts_before._90_organize_history_wait import (
+        from extensions.python.message_loop_prompts_before._90_organize_history_wait import (
             OrganizeHistoryWait,
         )
 

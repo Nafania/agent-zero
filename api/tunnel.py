@@ -1,6 +1,6 @@
-from python.helpers.api import ApiHandler, Request, Response
-from python.helpers import runtime
-from python.helpers.tunnel_manager import TunnelManager
+from helpers.api import ApiHandler, Request, Response
+from helpers import runtime
+from helpers.tunnel_manager import TunnelManager
 
 class Tunnel(ApiHandler):
     async def process(self, input: dict, request: Request) -> dict | Response:

@@ -1,6 +1,6 @@
-from python.helpers.api import ApiHandler, Input, Output, Request, Response
-from python.helpers import projects
-from python.helpers.notification import NotificationManager, NotificationType, NotificationPriority
+from helpers.api import ApiHandler, Input, Output, Request, Response
+from helpers import projects
+from helpers.notification import NotificationManager, NotificationType, NotificationPriority
 
 
 class Projects(ApiHandler):

@@ -2,8 +2,8 @@ import json
 
 from flask import Response
 
-from python.helpers.api import ApiHandler, Request
-from python.helpers import cognee_feedback as cf
+from helpers.api import ApiHandler, Request
+from helpers import cognee_feedback as cf
 
 
 class MemoryFeedback(ApiHandler):

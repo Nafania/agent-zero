@@ -7,9 +7,9 @@ from dataclasses import dataclass
 from types import ModuleType
 from typing import Iterable
 
-from python.helpers.files import get_abs_path
-from python.helpers.print_style import PrintStyle
-from python.helpers.websocket import WebSocketHandler
+from helpers.files import get_abs_path
+from helpers.print_style import PrintStyle
+from helpers.websocket import WebSocketHandler
 
 
 @dataclass(frozen=True)

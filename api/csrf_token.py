@@ -1,6 +1,6 @@
 import secrets
 from urllib.parse import urlparse
-from python.helpers.api import (
+from helpers.api import (
     ApiHandler,
     Input,
     Output,
@@ -8,7 +8,7 @@ from python.helpers.api import (
     Response,
     session,
 )
-from python.helpers import runtime, dotenv, login
+from helpers import runtime, dotenv, login
 import fnmatch
 
 ALLOWED_ORIGINS_KEY = "ALLOWED_ORIGINS"
@@ -104,7 +104,7 @@ class GetCsrfToken(ApiHandler):
 
         # always allow tunnel url if running
         try:
-            from python.api.tunnel_proxy import process as tunnel_api_process
+            from api.tunnel_proxy import process as tunnel_api_process
 
             tunnel = await tunnel_api_process({"action": "get"})
             if tunnel and isinstance(tunnel, dict) and tunnel["success"]:

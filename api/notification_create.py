@@ -1,6 +1,6 @@
-from python.helpers.api import ApiHandler
+from helpers.api import ApiHandler
 from flask import Request, Response
-from python.helpers.notification import NotificationManager, NotificationPriority, NotificationType
+from helpers.notification import NotificationManager, NotificationPriority, NotificationType
 
 
 class NotificationCreate(ApiHandler):

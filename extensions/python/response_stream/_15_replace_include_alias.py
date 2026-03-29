@@ -1,6 +1,6 @@
 from typing import Any
-from python.helpers.extension import Extension
-from python.helpers.strings import replace_file_includes
+from helpers.extension import Extension
+from helpers.strings import replace_file_includes
 
 
 class ReplaceIncludeAlias(Extension):

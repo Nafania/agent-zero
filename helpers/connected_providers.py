@@ -5,8 +5,8 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from python.helpers.oauth import OAuthProvider, OAuthTokens, ModelInfo, get_oauth_provider
-from python.helpers.oauth_store import OAuthTokenStore
+from helpers.oauth import OAuthProvider, OAuthTokens, ModelInfo, get_oauth_provider
+from helpers.oauth_store import OAuthTokenStore
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ _DEFAULT_TOKEN_PATH = "usr/oauth_tokens.json"
 
 
 def _get_api_key(provider_id: str) -> str:
-    from python.helpers import dotenv
+    from helpers import dotenv
     return (
         dotenv.get_dotenv_value(f"API_KEY_{provider_id.upper()}")
         or dotenv.get_dotenv_value(f"{provider_id.upper()}_API_KEY")
@@ -27,14 +27,14 @@ def _get_api_key(provider_id: str) -> str:
 
 
 def _get_oauth_client_creds(provider_id: str) -> tuple[str, str]:
-    from python.helpers import dotenv
+    from helpers import dotenv
     cid = dotenv.get_dotenv_value(f"OAUTH_CLIENT_ID_{provider_id.upper()}") or ""
     cs = dotenv.get_dotenv_value(f"OAUTH_CLIENT_SECRET_{provider_id.upper()}") or ""
     return cid, cs
 
 
 def _get_all_provider_ids() -> list[str]:
-    from python.helpers.providers import get_providers
+    from helpers.providers import get_providers
     providers = get_providers("chat") + get_providers("embedding")
     seen = set()
     result = []
@@ -60,7 +60,7 @@ class ProviderPool:
         if token_store_path:
             path = token_store_path
         else:
-            from python.helpers import files
+            from helpers import files
             path = files.get_abs_path(_DEFAULT_TOKEN_PATH)
         self.store = OAuthTokenStore(path)
         self._refresh_lock = threading.Lock()
@@ -206,7 +206,7 @@ _KNOWN_API_BASES: dict[str, str] = {
 
 def _resolve_api_base(provider_id: str) -> str:
     """Derive API base URL from providers.yaml config, falling back to known defaults."""
-    from python.helpers.providers import get_provider_config
+    from helpers.providers import get_provider_config
 
     config = get_provider_config("chat", provider_id)
     if not config:

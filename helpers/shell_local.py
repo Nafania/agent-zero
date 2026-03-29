@@ -4,8 +4,8 @@ import subprocess
 import time
 import sys
 from typing import Optional, Tuple
-from python.helpers import tty_session, runtime
-from python.helpers.shell_ssh import clean_string
+from helpers import tty_session, runtime
+from helpers.shell_ssh import clean_string
 
 class LocalInteractiveSession:
     def __init__(self, cwd: str|None = None):

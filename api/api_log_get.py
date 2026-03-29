@@ -1,5 +1,5 @@
 from agent import AgentContext
-from python.helpers.api import ApiHandler, Request, Response
+from helpers.api import ApiHandler, Request, Response
 
 
 class ApiLogGet(ApiHandler):

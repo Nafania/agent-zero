@@ -11,8 +11,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.scheduler_task_delete import SchedulerTaskDelete
-from python.helpers.task_scheduler import TaskState
+from api.scheduler_task_delete import SchedulerTaskDelete
+from helpers.task_scheduler import TaskState
 
 
 def _make_handler():
@@ -26,8 +26,8 @@ class TestSchedulerTaskDelete:
         mock_scheduler = MagicMock()
         mock_scheduler.reload = AsyncMock()
 
-        with patch("python.api.scheduler_task_delete.TaskScheduler.get", return_value=mock_scheduler), \
-             patch("python.api.scheduler_task_delete.Localization"):
+        with patch("api.scheduler_task_delete.TaskScheduler.get", return_value=mock_scheduler), \
+             patch("api.scheduler_task_delete.Localization"):
             result = await handler.process({}, MagicMock())
 
         assert "error" in result
@@ -40,8 +40,8 @@ class TestSchedulerTaskDelete:
         mock_scheduler.reload = AsyncMock()
         mock_scheduler.get_task_by_uuid = MagicMock(return_value=None)
 
-        with patch("python.api.scheduler_task_delete.TaskScheduler.get", return_value=mock_scheduler), \
-             patch("python.api.scheduler_task_delete.Localization"):
+        with patch("api.scheduler_task_delete.TaskScheduler.get", return_value=mock_scheduler), \
+             patch("api.scheduler_task_delete.Localization"):
             result = await handler.process({"task_id": "nonexistent"}, MagicMock())
 
         assert "error" in result
@@ -60,8 +60,8 @@ class TestSchedulerTaskDelete:
         mock_scheduler.get_task_by_uuid = MagicMock(return_value=mock_task)
         mock_scheduler.remove_task_by_uuid = AsyncMock()
 
-        with patch("python.api.scheduler_task_delete.TaskScheduler.get", return_value=mock_scheduler), \
-             patch("python.api.scheduler_task_delete.Localization"):
+        with patch("api.scheduler_task_delete.TaskScheduler.get", return_value=mock_scheduler), \
+             patch("api.scheduler_task_delete.Localization"):
             result = await handler.process({"task_id": "task-123"}, MagicMock())
 
         assert result["success"] is True
@@ -84,8 +84,8 @@ class TestSchedulerTaskDelete:
         mock_scheduler.save = AsyncMock()
         mock_scheduler.remove_task_by_uuid = AsyncMock()
 
-        with patch("python.api.scheduler_task_delete.TaskScheduler.get", return_value=mock_scheduler), \
-             patch("python.api.scheduler_task_delete.Localization"):
+        with patch("api.scheduler_task_delete.TaskScheduler.get", return_value=mock_scheduler), \
+             patch("api.scheduler_task_delete.Localization"):
             result = await handler.process({"task_id": "task-456"}, MagicMock())
 
         assert result["success"] is True

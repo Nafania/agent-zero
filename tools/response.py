@@ -1,4 +1,4 @@
-from python.helpers.tool import Tool, Response
+from helpers.tool import Tool, Response
 
 
 class ResponseTool(Tool):

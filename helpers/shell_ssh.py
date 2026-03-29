@@ -3,9 +3,9 @@ import paramiko
 import time
 import re
 from typing import Tuple
-from python.helpers.log import Log
-from python.helpers.print_style import PrintStyle
-# from python.helpers.strings import calculate_valid_match_lengths
+from helpers.log import Log
+from helpers.print_style import PrintStyle
+# from helpers.strings import calculate_valid_match_lengths
 
 
 class SSHInteractiveSession:

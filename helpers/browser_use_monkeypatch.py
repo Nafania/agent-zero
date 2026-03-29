@@ -1,6 +1,6 @@
 from typing import Any
 from browser_use.llm import ChatGoogle
-from python.helpers import dirty_json
+from helpers import dirty_json
 
 
 # ------------------------------------------------------------------------------

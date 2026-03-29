@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-import python.helpers.projects as _projects_mod
+import helpers.projects as _projects_mod
 
 # --- Fixtures ---
 
@@ -84,7 +84,7 @@ def project_files(tmp_workdir, projects_env):
 
 def _make_project_structure(tmp_workdir, name, header_data=None):
     """Create project directory structure and header file."""
-    from python.helpers.projects import (
+    from helpers.projects import (
         PROJECT_META_DIR,
         PROJECT_HEADER_FILE,
         PROJECT_INSTRUCTIONS_DIR,
@@ -128,21 +128,21 @@ def _make_project_structure(tmp_workdir, name, header_data=None):
 
 class TestProjectPaths:
     def test_get_projects_parent_folder(self, projects_env, tmp_workdir):
-        from python.helpers.projects import get_projects_parent_folder
+        from helpers.projects import get_projects_parent_folder
 
         path = get_projects_parent_folder()
         assert "usr" in path
         assert "projects" in path
 
     def test_get_project_folder(self, projects_env):
-        from python.helpers.projects import get_project_folder
+        from helpers.projects import get_project_folder
 
         path = get_project_folder("myproj")
         assert "myproj" in path
         assert "projects" in path
 
     def test_get_project_meta_folder(self, projects_env):
-        from python.helpers.projects import get_project_meta_folder
+        from helpers.projects import get_project_meta_folder
 
         path = get_project_meta_folder("myproj")
         assert ".a0proj" in path
@@ -154,7 +154,7 @@ class TestProjectPaths:
 
 class TestCreateProject:
     def test_create_project_creates_structure(self, tmp_workdir, project_files):
-        from python.helpers.projects import create_project
+        from helpers.projects import create_project
 
         with patch.object(_projects_mod, "create_project_meta_folders"):
             with patch.object(_projects_mod.files, "exists", return_value=False):
@@ -187,7 +187,7 @@ class TestCreateProject:
 
 class TestDeleteProject:
     def test_delete_project_calls_delete_dir_and_deactivate(self, tmp_workdir, project_files):
-        from python.helpers.projects import delete_project
+        from helpers.projects import delete_project
 
         with patch.object(_projects_mod, "deactivate_project_in_chats") as mock_deact:
             result = delete_project("oldproj")
@@ -208,7 +208,7 @@ class TestProjectHeader:
             with patch.object(_projects_mod.files, "read_file") as mock_read:
                 mock_read.return_value = '{"title": "My Project", "description": ""}'
                 with patch.object(_projects_mod.dirty_json, "parse", return_value={"title": "My Project", "description": ""}):
-                    from python.helpers.projects import load_project_header
+                    from helpers.projects import load_project_header
 
                     data = load_project_header("proj1")
                     assert data["name"] == "proj1"
@@ -233,7 +233,7 @@ class TestGetActiveProjectsList:
                 }
                 with patch("os.listdir", return_value=["b_proj", "a_proj"]):
                     with patch("os.path.isdir", return_value=True):
-                        from python.helpers.projects import get_active_projects_list
+                        from helpers.projects import get_active_projects_list
 
                         projects = get_active_projects_list()
                 assert len(projects) == 2
@@ -258,7 +258,7 @@ class TestLoadBasicProjectData:
             }
             with patch.object(_projects_mod.files, "read_file") as mock_read:
                 mock_read.side_effect = Exception("no gitignore")
-                from python.helpers.projects import load_basic_project_data
+                from helpers.projects import load_basic_project_data
 
                 data = load_basic_project_data("p1")
                 assert data["title"] == "T"
@@ -292,7 +292,7 @@ class TestUpdateProject:
                         with patch.object(_projects_mod, "save_project_secrets"):
                             with patch.object(_projects_mod, "save_project_subagents"):
                                 with patch.object(_projects_mod, "reactivate_project_in_chats"):
-                                    from python.helpers.projects import update_project
+                                    from helpers.projects import update_project
 
                                     update_project("p1", {"title": "New Title"})
                                     mock_save_h.assert_called_once()
@@ -312,7 +312,7 @@ class TestGetAdditionalInstructionsFiles:
             mock_path.side_effect = lambda *a: str(proj / ".a0proj" / "instructions")
             with patch.object(_projects_mod.files, "read_text_files_in_dir") as mock_read:
                 mock_read.return_value = {"extra.md": "# Extra"}
-                from python.helpers.projects import get_additional_instructions_files
+                from helpers.projects import get_additional_instructions_files
 
                 result = get_additional_instructions_files("p1")
                 assert "extra.md" in result
@@ -326,14 +326,14 @@ class TestContextProjectMapping:
     def test_get_context_project_name_returns_project_from_context(self):
         ctx = MagicMock()
         ctx.get_data.return_value = "myproj"
-        from python.helpers.projects import get_context_project_name
+        from helpers.projects import get_context_project_name
 
         assert get_context_project_name(ctx) == "myproj"
 
     def test_get_context_project_name_returns_none_when_no_project(self):
         ctx = MagicMock()
         ctx.get_data.return_value = None
-        from python.helpers.projects import get_context_project_name
+        from helpers.projects import get_context_project_name
 
         assert get_context_project_name(ctx) is None
 
@@ -342,7 +342,7 @@ class TestContextProjectMapping:
         ctx.get_data.return_value = "myproj"
         with patch.object(_projects_mod, "load_basic_project_data") as mock_load:
             mock_load.return_value = {"memory": "own"}
-            from python.helpers.projects import get_context_memory_subdir
+            from helpers.projects import get_context_memory_subdir
 
             result = get_context_memory_subdir(ctx)
             assert result == "projects/myproj"
@@ -352,14 +352,14 @@ class TestContextProjectMapping:
         ctx.get_data.return_value = "myproj"
         with patch.object(_projects_mod, "load_basic_project_data") as mock_load:
             mock_load.return_value = {"memory": "global"}
-            from python.helpers.projects import get_context_memory_subdir
+            from helpers.projects import get_context_memory_subdir
 
             assert get_context_memory_subdir(ctx) is None
 
     def test_get_context_memory_subdir_returns_none_when_no_project(self):
         ctx = MagicMock()
         ctx.get_data.return_value = None
-        from python.helpers.projects import get_context_memory_subdir
+        from helpers.projects import get_context_memory_subdir
 
         assert get_context_memory_subdir(ctx) is None
 
@@ -390,9 +390,9 @@ class TestCreateProjectMetaFolders:
 
         with patch.object(_projects_mod.files, "get_abs_path", side_effect=path_side):
             with patch.object(_projects_mod.files, "create_dir") as mock_create:
-                with patch("python.helpers.memory.Memory") as mock_mem:
+                with patch("helpers.memory.Memory") as mock_mem:
                     mock_mem.Area = fake_areas
-                    from python.helpers.projects import create_project_meta_folders
+                    from helpers.projects import create_project_meta_folders
 
                     create_project_meta_folders("newproj")
                 assert mock_create.call_count >= 2
@@ -411,7 +411,7 @@ class TestGetKnowledgeFilesCount:
             mock_path.return_value = str(proj / ".a0proj" / "knowledge")
             with patch.object(_projects_mod.files, "list_files_in_dir_recursively") as mock_list:
                 mock_list.return_value = ["doc1.txt", "doc2.txt"]
-                from python.helpers.projects import get_knowledge_files_count
+                from helpers.projects import get_knowledge_files_count
 
                 assert get_knowledge_files_count("p1") == 2
 
@@ -434,7 +434,7 @@ class TestGetFileStructure:
                 }
                 with patch.object(_projects_mod.file_tree, "file_tree") as mock_tree:
                     mock_tree.return_value = "src/\n  main.py"
-                    from python.helpers.projects import get_file_structure
+                    from helpers.projects import get_file_structure
 
                     result = get_file_structure("p1")
                     assert "src" in result or "main.py" in result or "Empty" in result
@@ -452,7 +452,7 @@ class TestGetFileStructure:
                     }
                 }
                 with patch.object(_projects_mod.file_tree, "file_tree", return_value=""):
-                    from python.helpers.projects import get_file_structure
+                    from helpers.projects import get_file_structure
 
                     result = get_file_structure("p1")
                     assert "Empty" in result
@@ -474,7 +474,7 @@ class TestBuildSystemPromptVars:
             with patch.object(_projects_mod, "get_additional_instructions_files", return_value={}):
                 with patch.object(_projects_mod, "get_project_folder", return_value="/a0/projects/myapp"):
                     with patch.object(_projects_mod.files, "normalize_a0_path", return_value="/a0/projects/myapp"):
-                        from python.helpers.projects import build_system_prompt_vars
+                        from helpers.projects import build_system_prompt_vars
 
                         vars = build_system_prompt_vars("myapp")
                         assert vars["project_name"] == "MyApp"
@@ -490,14 +490,14 @@ class TestProjectVariables:
     def test_load_project_variables_returns_content(self):
         with patch.object(_projects_mod.files, "get_abs_path", return_value="/tmp/vars.env"):
             with patch.object(_projects_mod.files, "read_file", return_value="FOO=bar"):
-                from python.helpers.projects import load_project_variables
+                from helpers.projects import load_project_variables
 
                 assert load_project_variables("p1") == "FOO=bar"
 
     def test_load_project_variables_returns_empty_on_error(self):
         with patch.object(_projects_mod.files, "get_abs_path", return_value="/tmp/vars.env"):
             with patch.object(_projects_mod.files, "read_file", side_effect=FileNotFoundError):
-                from python.helpers.projects import load_project_variables
+                from helpers.projects import load_project_variables
 
                 assert load_project_variables("p1") == ""
 
@@ -511,7 +511,7 @@ class TestActivateDeactivateProject:
             mock_ctx.get.return_value = None
             with patch.object(_projects_mod, "load_edit_project_data", return_value={"title": "P", "color": ""}):
                 with pytest.raises(Exception, match="Context not found"):
-                    from python.helpers.projects import activate_project
+                    from helpers.projects import activate_project
 
                     activate_project("ctx-1", "myproj")
 
@@ -519,7 +519,7 @@ class TestActivateDeactivateProject:
         with patch("agent.AgentContext") as mock_ctx:
             mock_ctx.get.return_value = None
             with pytest.raises(Exception, match="Context not found"):
-                from python.helpers.projects import deactivate_project
+                from helpers.projects import deactivate_project
 
                 deactivate_project("ctx-1")
 
@@ -531,13 +531,13 @@ class TestCloneGitProject:
     def test_clone_git_project_creates_project_from_repo(self, tmp_workdir):
         with patch.object(_projects_mod.files, "create_dir_safe") as mock_create:
             mock_create.return_value = str(tmp_workdir / "usr" / "projects" / "cloned")
-            with patch("python.helpers.git.clone_repo"):
-                with patch("python.helpers.git.strip_auth_from_url", return_value="https://github.com/foo/bar"):
+            with patch("helpers.git.clone_repo"):
+                with patch("helpers.git.strip_auth_from_url", return_value="https://github.com/foo/bar"):
                     with patch("os.path.exists", return_value=False):
                         with patch.object(_projects_mod, "create_project_meta_folders"):
                             with patch.object(_projects_mod, "save_project_header"):
                                 with patch.object(_projects_mod.dirty_json, "parse", side_effect=Exception):
-                                    from python.helpers.projects import clone_git_project
+                                    from helpers.projects import clone_git_project
 
                                     basic = {
                                         "title": "Cloned",

@@ -1,4 +1,4 @@
-from python.helpers import files
+from helpers import files
 from typing import TypedDict, TYPE_CHECKING
 from pydantic import BaseModel, model_validator
 import json
@@ -64,7 +64,7 @@ def get_agents_dict(
 
     # merge with project agents if possible
     if project_name:
-        from python.helpers import projects
+        from helpers import projects
 
         project_agents_dir = projects.get_project_meta_folder(project_name, "agents")
         project_agents = _get_agents_list_from_dir(project_agents_dir, origin="project")
@@ -111,7 +111,7 @@ def load_agent_data(name: str, project_name: str | None = None) -> SubAgent:
 
     # merge with project agent if possible
     if project_name:
-        from python.helpers import projects
+        from helpers import projects
 
         project_agents_dir = projects.get_project_meta_folder(project_name, "agents")
         project_agent = _load_agent_data_from_dir(
@@ -282,7 +282,7 @@ def get_available_agents_dict(
     # all available agents
     all_agents = get_agents_dict()
     # filter by project settings
-    from python.helpers import projects
+    from helpers import projects
 
     project_settings = (
         projects.load_project_subagents(project_name) if project_name else {}
@@ -314,7 +314,7 @@ def get_paths(
     project_name = ""
 
     if include_project and agent:
-        from python.helpers import projects
+        from helpers import projects
 
         project_name = projects.get_context_project_name(agent.context) or ""
 

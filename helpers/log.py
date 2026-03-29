@@ -7,8 +7,8 @@ from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Any, Literal, Optional, TYPE_CHECKING, TypeVar, cast
 
-from python.helpers.secrets import get_secrets_manager
-from python.helpers.strings import truncate_text_by_ratio
+from helpers.secrets import get_secrets_manager
+from helpers.strings import truncate_text_by_ratio
 
 
 if TYPE_CHECKING:
@@ -23,7 +23,7 @@ def _lazy_mark_dirty_all(*, reason: str | None = None) -> None:
     # Lazy import to avoid circular import at module load time (AgentContext -> Log).
     global _MARK_DIRTY_ALL
     if _MARK_DIRTY_ALL is None:
-        from python.helpers.state_monitor_integration import mark_dirty_all
+        from helpers.state_monitor_integration import mark_dirty_all
 
         _MARK_DIRTY_ALL = mark_dirty_all
     _MARK_DIRTY_ALL(reason=reason)
@@ -33,7 +33,7 @@ def _lazy_mark_dirty_for_context(context_id: str, *, reason: str | None = None) 
     # Lazy import to avoid circular import at module load time (AgentContext -> Log).
     global _MARK_DIRTY_FOR_CONTEXT
     if _MARK_DIRTY_FOR_CONTEXT is None:
-        from python.helpers.state_monitor_integration import mark_dirty_for_context
+        from helpers.state_monitor_integration import mark_dirty_for_context
 
         _MARK_DIRTY_FOR_CONTEXT = mark_dirty_for_context
     _MARK_DIRTY_FOR_CONTEXT(context_id, reason=reason)

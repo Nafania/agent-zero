@@ -115,7 +115,7 @@ class NotificationManager:
             # Enforce limit
             self._enforce_limit()
 
-        from python.helpers.state_monitor_integration import mark_dirty_all
+        from helpers.state_monitor_integration import mark_dirty_all
         mark_dirty_all(reason="notification.NotificationManager.add_notification")
         return item
 
@@ -175,7 +175,7 @@ class NotificationManager:
         if not changed_nos:
             return 0
 
-        from python.helpers.state_monitor_integration import mark_dirty_all
+        from helpers.state_monitor_integration import mark_dirty_all
         mark_dirty_all(reason="notification.NotificationManager.mark_read_by_ids")
         return len(changed_nos)
 
@@ -196,7 +196,7 @@ class NotificationManager:
         if not changed:
             return
 
-        from python.helpers.state_monitor_integration import mark_dirty_all
+        from helpers.state_monitor_integration import mark_dirty_all
         mark_dirty_all(reason="notification.NotificationManager._update_item")
 
     def mark_all_read(self):
@@ -212,7 +212,7 @@ class NotificationManager:
         if not changed_nos:
             return
 
-        from python.helpers.state_monitor_integration import mark_dirty_all
+        from helpers.state_monitor_integration import mark_dirty_all
         mark_dirty_all(reason="notification.NotificationManager.mark_all_read")
 
     def clear_all(self):
@@ -220,7 +220,7 @@ class NotificationManager:
             self.notifications = []
             self.updates = []
             self.guid = str(uuid.uuid4())
-        from python.helpers.state_monitor_integration import mark_dirty_all
+        from helpers.state_monitor_integration import mark_dirty_all
         mark_dirty_all(reason="notification.NotificationManager.clear_all")
 
     def get_notifications_by_type(self, type: NotificationType) -> list[NotificationItem]:

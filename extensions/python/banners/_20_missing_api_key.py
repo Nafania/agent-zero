@@ -1,5 +1,5 @@
-from python.helpers.extension import Extension
-from python.helpers import settings as settings_helper
+from helpers.extension import Extension
+from helpers import settings as settings_helper
 import models
 
 

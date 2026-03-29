@@ -20,10 +20,10 @@ class TestUnsecuredConnectionCheck:
         frontend_context = {"hostname": "example.com", "protocol": "http:"}
 
         with patch(
-            "python.extensions.banners._10_unsecured_connection.dotenv.get_dotenv_value",
+            "extensions.python.banners._10_unsecured_connection.dotenv.get_dotenv_value",
             side_effect=lambda k, d: "",
         ):
-            from python.extensions.banners._10_unsecured_connection import (
+            from extensions.python.banners._10_unsecured_connection import (
                 UnsecuredConnectionCheck,
             )
 
@@ -40,10 +40,10 @@ class TestUnsecuredConnectionCheck:
         frontend_context = {"hostname": "localhost", "protocol": "http:"}
 
         with patch(
-            "python.extensions.banners._10_unsecured_connection.dotenv.get_dotenv_value",
+            "extensions.python.banners._10_unsecured_connection.dotenv.get_dotenv_value",
             side_effect=lambda k, d: "",
         ):
-            from python.extensions.banners._10_unsecured_connection import (
+            from extensions.python.banners._10_unsecured_connection import (
                 UnsecuredConnectionCheck,
             )
 
@@ -58,10 +58,10 @@ class TestUnsecuredConnectionCheck:
         frontend_context = {"hostname": "example.com", "protocol": "http:"}
 
         with patch(
-            "python.extensions.banners._10_unsecured_connection.dotenv.get_dotenv_value",
+            "extensions.python.banners._10_unsecured_connection.dotenv.get_dotenv_value",
             side_effect=lambda k, d: "user" if "LOGIN" in str(k) else "pass",
         ):
-            from python.extensions.banners._10_unsecured_connection import (
+            from extensions.python.banners._10_unsecured_connection import (
                 UnsecuredConnectionCheck,
             )
 
@@ -79,13 +79,13 @@ class TestMissingApiKeyCheck:
         banners = []
 
         with patch(
-            "python.extensions.banners._20_missing_api_key.settings_helper.get_settings",
+            "extensions.python.banners._20_missing_api_key.settings_helper.get_settings",
             return_value={"chat_model_provider": "ollama"},
         ), patch(
-            "python.extensions.banners._20_missing_api_key.models.get_api_key",
+            "extensions.python.banners._20_missing_api_key.models.get_api_key",
             return_value="key",
         ):
-            from python.extensions.banners._20_missing_api_key import MissingApiKeyCheck
+            from extensions.python.banners._20_missing_api_key import MissingApiKeyCheck
 
             ext = MissingApiKeyCheck(agent=mock_agent)
             await ext.execute(banners=banners)
@@ -97,13 +97,13 @@ class TestMissingApiKeyCheck:
         banners = []
 
         with patch(
-            "python.extensions.banners._20_missing_api_key.settings_helper.get_settings",
+            "extensions.python.banners._20_missing_api_key.settings_helper.get_settings",
             return_value={"chat_model_provider": "openai"},
         ), patch(
-            "python.extensions.banners._20_missing_api_key.models.get_api_key",
+            "extensions.python.banners._20_missing_api_key.models.get_api_key",
             return_value=None,
         ):
-            from python.extensions.banners._20_missing_api_key import MissingApiKeyCheck
+            from extensions.python.banners._20_missing_api_key import MissingApiKeyCheck
 
             ext = MissingApiKeyCheck(agent=mock_agent)
             await ext.execute(banners=banners)
@@ -125,25 +125,25 @@ class TestSystemResourcesCheck:
         vm_mock.available = 8 * 1024**3
 
         with patch(
-            "python.extensions.banners._30_system_resources.psutil.cpu_percent",
+            "extensions.python.banners._30_system_resources.psutil.cpu_percent",
             return_value=25.0,
         ), patch(
-            "python.extensions.banners._30_system_resources.psutil.cpu_count",
+            "extensions.python.banners._30_system_resources.psutil.cpu_count",
             return_value=8,
         ), patch(
-            "python.extensions.banners._30_system_resources.psutil.virtual_memory",
+            "extensions.python.banners._30_system_resources.psutil.virtual_memory",
             return_value=vm_mock,
         ), patch(
-            "python.extensions.banners._30_system_resources.psutil.disk_usage",
+            "extensions.python.banners._30_system_resources.psutil.disk_usage",
             return_value=MagicMock(percent=40.0, used=50 * 1024**3, total=100 * 1024**3),
         ), patch(
-            "python.extensions.banners._30_system_resources.psutil.net_io_counters",
+            "extensions.python.banners._30_system_resources.psutil.net_io_counters",
             return_value=MagicMock(bytes_sent=1000, bytes_recv=2000),
         ), patch(
-            "python.extensions.banners._30_system_resources.os.getloadavg",
+            "extensions.python.banners._30_system_resources.os.getloadavg",
             return_value=(1.0, 0.8, 0.6),
         ):
-            from python.extensions.banners._30_system_resources import (
+            from extensions.python.banners._30_system_resources import (
                 SystemResourcesCheck,
             )
 

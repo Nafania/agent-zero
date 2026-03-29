@@ -11,11 +11,11 @@ from typing import Any, Callable, Deque, Dict, Iterable, List, Optional, Set
 import socketio
 import uuid
 
-from python.helpers.defer import DeferredTask
-from python.helpers.print_style import PrintStyle
-from python.helpers import runtime
-from python.helpers.websocket import ConnectionNotFoundError, WebSocketHandler, WebSocketResult
-from python.helpers.state_monitor import _ws_debug_enabled
+from helpers.defer import DeferredTask
+from helpers.print_style import PrintStyle
+from helpers import runtime
+from helpers.websocket import ConnectionNotFoundError, WebSocketHandler, WebSocketResult
+from helpers.state_monitor import _ws_debug_enabled
 
 BUFFER_MAX_SIZE = 100
 BUFFER_TTL = timedelta(hours=1)

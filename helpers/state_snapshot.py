@@ -9,9 +9,9 @@ import pytz  # type: ignore[import-untyped]
 
 from agent import AgentContext, AgentContextType
 
-from python.helpers.dotenv import get_dotenv_value
-from python.helpers.localization import Localization
-from python.helpers.task_scheduler import TaskScheduler
+from helpers.dotenv import get_dotenv_value
+from helpers.localization import Localization
+from helpers.task_scheduler import TaskScheduler
 
 import time as _time
 import threading as _threading

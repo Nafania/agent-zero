@@ -1,6 +1,6 @@
-from python.helpers.extension import Extension
-from python.helpers.secrets import get_secrets_manager
-from python.helpers.tool import Response
+from helpers.extension import Extension
+from helpers.secrets import get_secrets_manager
+from helpers.tool import Response
 
 
 class MaskToolSecrets(Extension):

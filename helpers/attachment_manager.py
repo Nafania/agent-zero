@@ -3,10 +3,10 @@ import io
 import base64
 from PIL import Image
 from typing import Dict, List, Optional, Tuple
-from python.helpers.security import safe_filename
+from helpers.security import safe_filename
 from werkzeug.datastructures import FileStorage
 
-from python.helpers.print_style import PrintStyle
+from helpers.print_style import PrintStyle
 
 class AttachmentManager:
   ALLOWED_EXTENSIONS = {

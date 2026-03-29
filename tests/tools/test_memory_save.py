@@ -20,7 +20,7 @@ def mock_agent():
 
 @pytest.fixture
 def tool(mock_agent):
-    from python.tools.memory_save import MemorySave
+    from tools.memory_save import MemorySave
     return MemorySave(
         agent=mock_agent,
         name="memory_save",
@@ -36,7 +36,7 @@ class TestMemorySaveExecute:
     async def test_save_returns_response_with_id(self, tool):
         mock_db = MagicMock()
         mock_db.insert_text = AsyncMock(return_value="mem-123")
-        with patch("python.tools.memory_save.Memory.get", new_callable=AsyncMock, return_value=mock_db):
+        with patch("tools.memory_save.Memory.get", new_callable=AsyncMock, return_value=mock_db):
             resp = await tool.execute(text="Important info", area="main")
         assert "mem-123" in resp.message or "Saved" in resp.message
         assert resp.break_loop is False
@@ -45,7 +45,7 @@ class TestMemorySaveExecute:
     async def test_default_area_is_main(self, tool):
         mock_db = MagicMock()
         mock_db.insert_text = AsyncMock(return_value="id-1")
-        with patch("python.tools.memory_save.Memory.get", new_callable=AsyncMock, return_value=mock_db):
+        with patch("tools.memory_save.Memory.get", new_callable=AsyncMock, return_value=mock_db):
             resp = await tool.execute(text="Data", area="")
         mock_db.insert_text.assert_called_once()
         call_args = mock_db.insert_text.call_args

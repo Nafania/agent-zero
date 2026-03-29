@@ -1,8 +1,8 @@
-from python.helpers.api import ApiHandler, Input, Output, Request, Response
+from helpers.api import ApiHandler, Input, Output, Request, Response
 
 
-from python.helpers import persist_chat
-from python.helpers.task_scheduler import TaskScheduler
+from helpers import persist_chat
+from helpers.task_scheduler import TaskScheduler
 
 
 class Reset(ApiHandler):
@@ -19,8 +19,8 @@ class Reset(ApiHandler):
         persist_chat.remove_msg_files(ctxid)
 
         # Reset updates context metadata (log guid/version) and must refresh other tabs' lists.
-        from python.helpers.state_snapshot import touch_chat_list
-        from python.helpers.state_monitor_integration import mark_dirty_all
+        from helpers.state_snapshot import touch_chat_list
+        from helpers.state_monitor_integration import mark_dirty_all
         touch_chat_list()
         mark_dirty_all(reason="api.chat_reset.Reset")
 

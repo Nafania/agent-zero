@@ -19,10 +19,10 @@ if str(PROJECT_ROOT) not in sys.path:
 @pytest.fixture
 def file_browser(tmp_workdir):
     """FileBrowser instance with base_dir set to tmp_workdir."""
-    with patch("python.helpers.file_browser.PrintStyle") as mock_style:
+    with patch("helpers.file_browser.PrintStyle") as mock_style:
         mock_style.error = MagicMock()
         mock_style.warning = MagicMock()
-        from python.helpers.file_browser import FileBrowser
+        from helpers.file_browser import FileBrowser
 
         browser = FileBrowser()
         browser.base_dir = Path(tmp_workdir)
@@ -281,7 +281,7 @@ class TestFileBrowserSaveFiles:
         def safe_fn(name):
             return name
 
-        with patch("python.helpers.file_browser.safe_filename", side_effect=safe_fn):
+        with patch("helpers.file_browser.safe_filename", side_effect=safe_fn):
             success, failed = file_browser.save_files([mock_file], "")
         assert "uploaded.txt" in success
         assert failed == []
@@ -296,7 +296,7 @@ class TestFileBrowserSaveFiles:
         def safe_fn(name):
             return name
 
-        with patch("python.helpers.file_browser.safe_filename", side_effect=safe_fn):
+        with patch("helpers.file_browser.safe_filename", side_effect=safe_fn):
             success, failed = file_browser.save_files([mock_file], "uploads")
         assert "data.csv" in success
         assert (tmp_workdir / "uploads" / "data.csv").read_text() == "csv,data"
@@ -333,7 +333,7 @@ class TestFileBrowserFileTypes:
 
 class TestFileBrowserConstants:
     def test_allowed_extensions_defined(self):
-        from python.helpers.file_browser import FileBrowser
+        from helpers.file_browser import FileBrowser
 
         assert "image" in FileBrowser.ALLOWED_EXTENSIONS
         assert "code" in FileBrowser.ALLOWED_EXTENSIONS
@@ -342,11 +342,11 @@ class TestFileBrowserConstants:
         assert "py" in FileBrowser.ALLOWED_EXTENSIONS["code"]
 
     def test_max_file_size_defined(self):
-        from python.helpers.file_browser import FileBrowser
+        from helpers.file_browser import FileBrowser
 
         assert FileBrowser.MAX_FILE_SIZE == 100 * 1024 * 1024
 
     def test_max_text_file_size_defined(self):
-        from python.helpers.file_browser import FileBrowser
+        from helpers.file_browser import FileBrowser
 
         assert FileBrowser.MAX_TEXT_FILE_SIZE == 1 * 1024 * 1024

@@ -1,6 +1,6 @@
-from python.helpers.extension import Extension
+from helpers.extension import Extension
 from agent import LoopData
-from python.helpers.defer import DeferredTask, THREAD_BACKGROUND
+from helpers.defer import DeferredTask, THREAD_BACKGROUND
 
 DATA_NAME_TASK = "_organize_history_task"
 

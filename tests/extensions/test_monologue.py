@@ -18,11 +18,11 @@ class TestMemoryInit:
     @pytest.mark.asyncio
     async def test_initializes_memory(self, mock_agent, mock_loop_data):
         with patch(
-            "python.extensions.monologue_start._10_memory_init.memory.Memory.get",
+            "extensions.python.monologue_start._10_memory_init.memory.Memory.get",
             new_callable=AsyncMock,
             return_value=MagicMock(),
         ):
-            from python.extensions.monologue_start._10_memory_init import MemoryInit
+            from extensions.python.monologue_start._10_memory_init import MemoryInit
 
             ext = MemoryInit(agent=mock_agent)
             await ext.execute(loop_data=mock_loop_data)
@@ -40,9 +40,9 @@ class TestRenameChat:
         mock_agent.context.name = "Chat 1"
 
         with patch(
-            "python.extensions.monologue_start._60_rename_chat.asyncio.create_task",
+            "extensions.python.monologue_start._60_rename_chat.asyncio.create_task",
         ) as mock_create:
-            from python.extensions.monologue_start._60_rename_chat import RenameChat
+            from extensions.python.monologue_start._60_rename_chat import RenameChat
 
             ext = RenameChat(agent=mock_agent)
             await ext.execute(loop_data=mock_loop_data)
@@ -60,8 +60,8 @@ class TestRenameChat:
         mock_agent.call_utility_model = AsyncMock(return_value="A" * 50)
         mock_agent.context.id = "ctx-1"
 
-        with patch("python.extensions.monologue_start._60_rename_chat.persist_chat.save_tmp_chat", MagicMock()):
-            from python.extensions.monologue_start._60_rename_chat import RenameChat
+        with patch("extensions.python.monologue_start._60_rename_chat.persist_chat.save_tmp_chat", MagicMock()):
+            from extensions.python.monologue_start._60_rename_chat import RenameChat
 
             ext = RenameChat(agent=mock_agent)
             await ext.change_name()
@@ -79,8 +79,8 @@ class TestRenameChat:
         mock_agent.call_utility_model = AsyncMock(return_value="New Name")
         mock_agent.context.id = "ctx-1"
 
-        with patch("python.extensions.monologue_start._60_rename_chat.persist_chat.save_tmp_chat", MagicMock()) as mock_save:
-            from python.extensions.monologue_start._60_rename_chat import RenameChat
+        with patch("extensions.python.monologue_start._60_rename_chat.persist_chat.save_tmp_chat", MagicMock()) as mock_save:
+            from extensions.python.monologue_start._60_rename_chat import RenameChat
 
             ext = RenameChat(agent=mock_agent)
             await ext.change_name()
@@ -98,8 +98,8 @@ class TestRenameChat:
         mock_agent.read_prompt = MagicMock(return_value="prompt")
         mock_agent.call_utility_model = AsyncMock(return_value=None)
 
-        with patch("python.extensions.monologue_start._60_rename_chat.persist_chat.save_tmp_chat", MagicMock()):
-            from python.extensions.monologue_start._60_rename_chat import RenameChat
+        with patch("extensions.python.monologue_start._60_rename_chat.persist_chat.save_tmp_chat", MagicMock()):
+            from extensions.python.monologue_start._60_rename_chat import RenameChat
 
             ext = RenameChat(agent=mock_agent)
             await ext.change_name()
@@ -113,10 +113,10 @@ class TestMemorizeMemories:
     @pytest.mark.asyncio
     async def test_returns_early_when_disabled(self, mock_agent, mock_loop_data):
         with patch(
-            "python.extensions.monologue_end._50_memorize_fragments.settings.get_settings",
+            "extensions.python.monologue_end._50_memorize_fragments.settings.get_settings",
             return_value={"memory_memorize_enabled": False},
         ):
-            from python.extensions.monologue_end._50_memorize_fragments import (
+            from extensions.python.monologue_end._50_memorize_fragments import (
                 MemorizeMemories,
             )
 
@@ -133,15 +133,15 @@ class TestMemorizeMemories:
         mock_agent.context.log.log = MagicMock(return_value=MagicMock(update=MagicMock()))
 
         with patch(
-            "python.extensions.monologue_end._50_memorize_fragments.settings.get_settings",
+            "extensions.python.monologue_end._50_memorize_fragments.settings.get_settings",
             return_value={"memory_memorize_enabled": True, "memory_memorize_replace_threshold": 0},
         ):
             with patch(
-                "python.extensions.monologue_end._50_memorize_fragments.Memory.get",
+                "extensions.python.monologue_end._50_memorize_fragments.Memory.get",
                 new_callable=AsyncMock,
                 return_value=MagicMock(insert_text=AsyncMock(), delete_documents_by_query=AsyncMock(return_value=[])),
             ):
-                from python.extensions.monologue_end._50_memorize_fragments import (
+                from extensions.python.monologue_end._50_memorize_fragments import (
                     MemorizeMemories,
                     DeferredTask,
                 )
@@ -162,15 +162,15 @@ class TestMemorizeMemories:
 
         mock_db = MagicMock(insert_text=AsyncMock(), delete_documents_by_query=AsyncMock(return_value=[]))
         with patch(
-            "python.extensions.monologue_end._50_memorize_fragments.settings.get_settings",
+            "extensions.python.monologue_end._50_memorize_fragments.settings.get_settings",
             return_value={"memory_memorize_enabled": True, "memory_memorize_replace_threshold": 0},
         ):
             with patch(
-                "python.extensions.monologue_end._50_memorize_fragments.Memory.get",
+                "extensions.python.monologue_end._50_memorize_fragments.Memory.get",
                 new_callable=AsyncMock,
                 return_value=MagicMock(),
             ):
-                from python.extensions.monologue_end._50_memorize_fragments import MemorizeMemories
+                from extensions.python.monologue_end._50_memorize_fragments import MemorizeMemories
 
                 ext = MemorizeMemories(agent=mock_agent)
                 # Call memorize directly to test empty response handling
@@ -187,10 +187,10 @@ class TestMemorizeSolutions:
     @pytest.mark.asyncio
     async def test_returns_early_when_disabled(self, mock_agent, mock_loop_data):
         with patch(
-            "python.extensions.monologue_end._51_memorize_solutions.settings.get_settings",
+            "extensions.python.monologue_end._51_memorize_solutions.settings.get_settings",
             return_value={"memory_memorize_enabled": False},
         ):
-            from python.extensions.monologue_end._51_memorize_solutions import (
+            from extensions.python.monologue_end._51_memorize_solutions import (
                 MemorizeSolutions,
             )
 
@@ -207,15 +207,15 @@ class TestMemorizeSolutions:
         mock_agent.context.log.log = MagicMock(return_value=MagicMock(update=MagicMock()))
 
         with patch(
-            "python.extensions.monologue_end._51_memorize_solutions.settings.get_settings",
+            "extensions.python.monologue_end._51_memorize_solutions.settings.get_settings",
             return_value={"memory_memorize_enabled": True, "memory_memorize_replace_threshold": 0},
         ):
             with patch(
-                "python.extensions.monologue_end._51_memorize_solutions.Memory.get",
+                "extensions.python.monologue_end._51_memorize_solutions.Memory.get",
                 new_callable=AsyncMock,
                 return_value=MagicMock(insert_text=AsyncMock(), delete_documents_by_query=AsyncMock(return_value=[])),
             ):
-                from python.extensions.monologue_end._51_memorize_solutions import MemorizeSolutions
+                from extensions.python.monologue_end._51_memorize_solutions import MemorizeSolutions
 
                 ext = MemorizeSolutions(agent=mock_agent)
                 result = await ext.execute(loop_data=mock_loop_data)
@@ -232,19 +232,19 @@ class TestMemorizeSolutions:
 
         mock_db = MagicMock(insert_text=AsyncMock(), delete_documents_by_query=AsyncMock(return_value=[]))
         with patch(
-            "python.extensions.monologue_end._51_memorize_solutions.settings.get_settings",
+            "extensions.python.monologue_end._51_memorize_solutions.settings.get_settings",
             return_value={"memory_memorize_enabled": True, "memory_memorize_replace_threshold": 0},
         ):
             with patch(
-                "python.extensions.monologue_end._51_memorize_solutions.Memory.get",
+                "extensions.python.monologue_end._51_memorize_solutions.Memory.get",
                 new_callable=AsyncMock,
                 return_value=MagicMock(insert_text=AsyncMock(), delete_documents_by_query=AsyncMock(return_value=[])),
             ):
                 with patch(
-                    "python.extensions.monologue_end._51_memorize_solutions.DirtyJson.parse_string",
+                    "extensions.python.monologue_end._51_memorize_solutions.DirtyJson.parse_string",
                     side_effect=ValueError("Parse error"),
                 ):
-                    from python.extensions.monologue_end._51_memorize_solutions import MemorizeSolutions
+                    from extensions.python.monologue_end._51_memorize_solutions import MemorizeSolutions
 
                     ext = MemorizeSolutions(agent=mock_agent)
                     await ext.memorize(mock_loop_data, mock_log, mock_db)
@@ -261,7 +261,7 @@ class TestWaitingForInputMsg:
     async def test_sets_initial_progress_for_main_agent(self, mock_agent, mock_loop_data):
         mock_agent.number = 0
 
-        from python.extensions.monologue_end._90_waiting_for_input_msg import (
+        from extensions.python.monologue_end._90_waiting_for_input_msg import (
             WaitingForInputMsg,
         )
 
@@ -274,7 +274,7 @@ class TestWaitingForInputMsg:
     async def test_skips_for_subordinate_agent(self, mock_agent, mock_loop_data):
         mock_agent.number = 1
 
-        from python.extensions.monologue_end._90_waiting_for_input_msg import (
+        from extensions.python.monologue_end._90_waiting_for_input_msg import (
             WaitingForInputMsg,
         )
 

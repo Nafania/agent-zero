@@ -1,11 +1,11 @@
-from python.helpers.api import ApiHandler, Input, Output, Request
-from python.helpers.task_scheduler import (
+from helpers.api import ApiHandler, Input, Output, Request
+from helpers.task_scheduler import (
     TaskScheduler, ScheduledTask, AdHocTask, PlannedTask, TaskSchedule,
     serialize_task, parse_task_schedule, parse_task_plan, TaskType
 )
-from python.helpers.projects import load_basic_project_data
-from python.helpers.localization import Localization
-from python.helpers.print_style import PrintStyle
+from helpers.projects import load_basic_project_data
+from helpers.localization import Localization
+from helpers.print_style import PrintStyle
 import random
 
 

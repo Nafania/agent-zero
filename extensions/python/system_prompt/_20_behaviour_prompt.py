@@ -1,7 +1,7 @@
 from datetime import datetime
-from python.helpers.extension import Extension
+from helpers.extension import Extension
 from agent import Agent, LoopData
-from python.helpers import files, memory
+from helpers import files, memory
 
 
 class BehaviourPrompt(Extension):

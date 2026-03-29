@@ -1,6 +1,6 @@
-from python.helpers.api import ApiHandler, Request, Response
+from helpers.api import ApiHandler, Request, Response
 
-from python.helpers import settings
+from helpers import settings
 
 from typing import Any
 

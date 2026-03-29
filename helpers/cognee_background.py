@@ -7,9 +7,9 @@ import asyncio
 import time
 from typing import Set
 
-from python.helpers.defer import DeferredTask, THREAD_BACKGROUND
-from python.helpers.print_style import PrintStyle
-from python.helpers.cognee_init import get_cognee_setting
+from helpers.defer import DeferredTask, THREAD_BACKGROUND
+from helpers.print_style import PrintStyle
+from helpers.cognee_init import get_cognee_setting
 
 
 class CogneeBackgroundWorker:

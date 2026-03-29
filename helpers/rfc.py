@@ -3,9 +3,9 @@ import inspect
 import json
 from typing import Any, TypedDict
 import aiohttp
-from python.helpers import crypto
+from helpers import crypto
 
-from python.helpers import dotenv
+from helpers import dotenv
 
 
 # Remote Function Call library

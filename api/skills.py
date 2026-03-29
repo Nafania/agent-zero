@@ -2,8 +2,8 @@ import json
 import os
 import shutil
 
-from python.helpers.api import ApiHandler, Input, Output, Request, Response
-from python.helpers import runtime, skills, projects, files, skills_cli
+from helpers.api import ApiHandler, Input, Output, Request, Response
+from helpers import runtime, skills, projects, files, skills_cli
 
 
 class Skills(ApiHandler):

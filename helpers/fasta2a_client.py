@@ -1,6 +1,6 @@
 import uuid
 from typing import Any, Dict, List, Optional
-from python.helpers.print_style import PrintStyle
+from helpers.print_style import PrintStyle
 
 try:
     from fasta2a.client import A2AClient  # type: ignore

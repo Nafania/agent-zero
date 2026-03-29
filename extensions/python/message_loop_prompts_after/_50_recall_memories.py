@@ -1,9 +1,9 @@
 import asyncio
-from python.helpers.extension import Extension
-from python.helpers.memory import Memory, recall_text_and_feedback_items
+from helpers.extension import Extension
+from helpers.memory import Memory, recall_text_and_feedback_items
 from agent import LoopData
-from python.helpers import settings, log
-from python.helpers.print_style import PrintStyle
+from helpers import settings, log
+from helpers.print_style import PrintStyle
 
 DATA_NAME_TASK = "_recall_memories_task"
 DATA_NAME_ITER = "_recall_memories_iter"
@@ -58,7 +58,7 @@ class RecallMemories(Extension):
             )
             return
 
-        from python.helpers.cognee_init import get_cognee
+        from helpers.cognee_init import get_cognee
         cognee, _ = get_cognee()
         from cognee.modules.engine.models.node_set import NodeSet
 

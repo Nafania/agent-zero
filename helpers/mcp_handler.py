@@ -21,9 +21,9 @@ from contextlib import AsyncExitStack
 from shutil import which
 from datetime import timedelta
 import json
-from python.helpers import errors
-from python.helpers import settings
-from python.helpers.log import LogItem
+from helpers import errors
+from helpers import settings
+from helpers.log import LogItem
 
 import httpx
 
@@ -39,9 +39,9 @@ from anyio.streams.memory import (
 )
 
 from pydantic import BaseModel, Field, Discriminator, Tag, PrivateAttr
-from python.helpers import dirty_json
-from python.helpers.print_style import PrintStyle
-from python.helpers.tool import Tool, Response
+from helpers import dirty_json
+from helpers.print_style import PrintStyle
+from helpers.tool import Tool, Response
 
 
 def normalize_name(name: str) -> str:

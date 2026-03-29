@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.scheduler_tick import SchedulerTick
+from api.scheduler_tick import SchedulerTick
 
 
 def _make_handler():
@@ -43,8 +43,8 @@ class TestSchedulerTick:
         mock_scheduler.tick = AsyncMock()
         mock_scheduler.serialize_all_tasks = MagicMock(return_value=serialized)
 
-        with patch("python.api.scheduler_tick.TaskScheduler.get", return_value=mock_scheduler), \
-             patch("python.api.scheduler_tick.Localization"):
+        with patch("api.scheduler_tick.TaskScheduler.get", return_value=mock_scheduler), \
+             patch("api.scheduler_tick.Localization"):
             result = await handler.process({}, MagicMock())
 
         assert result["scheduler"] == "tick"
@@ -62,8 +62,8 @@ class TestSchedulerTick:
         mock_scheduler.tick = AsyncMock()
         mock_scheduler.serialize_all_tasks = MagicMock(return_value=[])
 
-        with patch("python.api.scheduler_tick.TaskScheduler.get", return_value=mock_scheduler), \
-             patch("python.api.scheduler_tick.Localization"):
+        with patch("api.scheduler_tick.TaskScheduler.get", return_value=mock_scheduler), \
+             patch("api.scheduler_tick.Localization"):
             result = await handler.process({}, MagicMock())
 
         assert result["tasks_count"] == 0

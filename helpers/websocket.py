@@ -9,7 +9,7 @@ from typing import Any, Iterable, Optional, TYPE_CHECKING
 import socketio
 
 if TYPE_CHECKING:  # pragma: no cover - hints only
-    from python.helpers.websocket_manager import WebSocketManager
+    from helpers.websocket_manager import WebSocketManager
 
 _EVENT_NAME_PATTERN = re.compile(r"^[a-z][a-z0-9_]*$")
 _RESERVED_EVENT_NAMES: set[str] = {
@@ -272,7 +272,7 @@ class WebSocketResult:
 class WebSocketHandler(ABC):
     """Base class for WebSocket event handlers.
 
-    The interface mirrors :class:`python.helpers.api.ApiHandler` with declarative
+    The interface mirrors :class:`helpers.api.ApiHandler` with declarative
     security configuration and lifecycle hooks while enforcing event-naming
     conventions.
     """

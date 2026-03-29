@@ -9,8 +9,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.helpers.websocket_manager import WebSocketManager
-from python.websocket_handlers.dev_websocket_test_handler import (
+from helpers.websocket_manager import WebSocketManager
+from websocket_handlers.dev_websocket_test_handler import (
     DevWebsocketTestHandler,
 )
 
@@ -88,7 +88,7 @@ async def test_harness_request_delayed_waits_for_sleep(monkeypatch):
         calls.append(delay)
 
     monkeypatch.setattr(
-        "python.websocket_handlers.dev_websocket_test_handler.asyncio.sleep",
+        "websocket_handlers.dev_websocket_test_handler.asyncio.sleep",
         _fake_sleep,
     )
 

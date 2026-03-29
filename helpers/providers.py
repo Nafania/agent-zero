@@ -1,5 +1,5 @@
 import yaml
-from python.helpers import files
+from helpers import files
 from typing import List, Dict, Optional, TypedDict, Literal
 
 ModelType = Literal["chat", "embedding"]

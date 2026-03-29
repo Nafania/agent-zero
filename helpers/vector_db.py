@@ -4,8 +4,8 @@ from langchain_core.documents import Document
 from simpleeval import simple_eval
 
 from agent import Agent
-from python.helpers import guids
-from python.helpers.cognee_init import configure_cognee
+from helpers import guids
+from helpers.cognee_init import configure_cognee
 
 
 class VectorDB:
@@ -31,7 +31,7 @@ class VectorDB:
         self, query: str, limit: int, threshold: float, filter: str = ""
     ):
         self._ensure_cognee()
-        from python.helpers.memory import _get_cognee
+        from helpers.memory import _get_cognee
         cognee, SearchType = _get_cognee()
 
         comparator = get_comparator(filter) if filter else None
@@ -90,7 +90,7 @@ class VectorDB:
 
     async def insert_documents(self, docs: list[Document]):
         self._ensure_cognee()
-        from python.helpers.memory import _get_cognee
+        from helpers.memory import _get_cognee
         cognee, _ = _get_cognee()
 
         ids = [guids.generate_id() for _ in range(len(docs))]

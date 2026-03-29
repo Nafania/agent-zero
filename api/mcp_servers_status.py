@@ -1,8 +1,8 @@
-from python.helpers.api import ApiHandler, Request, Response
+from helpers.api import ApiHandler, Request, Response
 
 from typing import Any
 
-from python.helpers.mcp_handler import MCPConfig
+from helpers.mcp_handler import MCPConfig
 
 
 class McpServersStatuss(ApiHandler):

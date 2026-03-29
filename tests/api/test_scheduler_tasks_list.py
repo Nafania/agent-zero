@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.scheduler_tasks_list import SchedulerTasksList
+from api.scheduler_tasks_list import SchedulerTasksList
 
 
 def _make_handler():
@@ -31,8 +31,8 @@ class TestSchedulerTasksList:
         mock_scheduler.reload = AsyncMock()
         mock_scheduler.serialize_all_tasks = MagicMock(return_value=tasks_list)
 
-        with patch("python.api.scheduler_tasks_list.TaskScheduler.get", return_value=mock_scheduler), \
-             patch("python.api.scheduler_tasks_list.Localization"):
+        with patch("api.scheduler_tasks_list.TaskScheduler.get", return_value=mock_scheduler), \
+             patch("api.scheduler_tasks_list.Localization"):
             result = await handler.process({}, MagicMock())
 
         assert result["ok"] is True
@@ -46,8 +46,8 @@ class TestSchedulerTasksList:
         mock_scheduler.reload = AsyncMock()
         mock_scheduler.serialize_all_tasks = MagicMock(return_value=[])
 
-        with patch("python.api.scheduler_tasks_list.TaskScheduler.get", return_value=mock_scheduler), \
-             patch("python.api.scheduler_tasks_list.Localization"):
+        with patch("api.scheduler_tasks_list.TaskScheduler.get", return_value=mock_scheduler), \
+             patch("api.scheduler_tasks_list.Localization"):
             result = await handler.process({}, MagicMock())
 
         assert result["ok"] is True
@@ -59,8 +59,8 @@ class TestSchedulerTasksList:
         mock_scheduler = MagicMock()
         mock_scheduler.reload = AsyncMock(side_effect=Exception("Scheduler error"))
 
-        with patch("python.api.scheduler_tasks_list.TaskScheduler.get", return_value=mock_scheduler), \
-             patch("python.api.scheduler_tasks_list.Localization"):
+        with patch("api.scheduler_tasks_list.TaskScheduler.get", return_value=mock_scheduler), \
+             patch("api.scheduler_tasks_list.Localization"):
             result = await handler.process({}, MagicMock())
 
         assert result["ok"] is False

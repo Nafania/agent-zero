@@ -1,9 +1,9 @@
 import base64
-from python.helpers.print_style import PrintStyle
-from python.helpers.tool import Tool, Response
-from python.helpers import runtime, files, images
+from helpers.print_style import PrintStyle
+from helpers.tool import Tool, Response
+from helpers import runtime, files, images
 from mimetypes import guess_type
-from python.helpers import history
+from helpers import history
 
 # image optimization and token estimation for context window
 MAX_PIXELS = 768_000

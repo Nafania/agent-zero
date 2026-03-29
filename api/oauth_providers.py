@@ -1,6 +1,6 @@
-from python.helpers.api import ApiHandler, Input, Output, Request
-from python.helpers.providers import get_oauth_providers
-from python.helpers.connected_providers import ProviderPool
+from helpers.api import ApiHandler, Input, Output, Request
+from helpers.providers import get_oauth_providers
+from helpers.connected_providers import ProviderPool
 
 
 class OAuthProviders(ApiHandler):

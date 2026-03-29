@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from python.helpers.api import ApiHandler, Input, Output, Request, Response
-from python.helpers import skills_cli
+from helpers.api import ApiHandler, Input, Output, Request, Response
+from helpers import skills_cli
 
 
 class SkillInstall(ApiHandler):

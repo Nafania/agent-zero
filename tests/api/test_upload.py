@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.upload import UploadFile
+from api.upload import UploadFile
 
 
 def _make_handler(app=None, lock=None):
@@ -46,8 +46,8 @@ class TestUploadFile:
         request.files.__contains__ = lambda self, k: k == "file"
         request.files.getlist = MagicMock(return_value=[storage])
 
-        with patch("python.api.upload.files.get_abs_path", return_value=str(tmp_path / "usr/uploads/doc.pdf")), \
-             patch("python.api.upload.safe_filename", return_value="doc.pdf"):
+        with patch("api.upload.files.get_abs_path", return_value=str(tmp_path / "usr/uploads/doc.pdf")), \
+             patch("api.upload.safe_filename", return_value="doc.pdf"):
             (tmp_path / "usr" / "uploads").mkdir(parents=True)
             result = await handler.process({}, request)
 
@@ -64,7 +64,7 @@ class TestUploadFile:
         request.files.__contains__ = lambda self, k: k == "file"
         request.files.getlist = MagicMock(return_value=[storage])
 
-        with patch("python.api.upload.safe_filename", return_value=""):
+        with patch("api.upload.safe_filename", return_value=""):
             result = await handler.process({}, request)
 
         assert result == {"filenames": []}
@@ -83,8 +83,8 @@ class TestUploadFile:
         def get_path(*parts):
             return str(tmp_path / "usr" / "uploads" / parts[-1])
 
-        with patch("python.api.upload.files.get_abs_path", side_effect=get_path), \
-             patch("python.api.upload.safe_filename", side_effect=lambda x: x):
+        with patch("api.upload.files.get_abs_path", side_effect=get_path), \
+             patch("api.upload.safe_filename", side_effect=lambda x: x):
             (tmp_path / "usr" / "uploads").mkdir(parents=True)
             result = await handler.process({}, request)
 

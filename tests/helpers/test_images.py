@@ -13,7 +13,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from PIL import Image
 
-from python.helpers.images import compress_image
+from helpers.images import compress_image
 
 
 class TestCompressImage:

@@ -6,14 +6,14 @@ from typing import Any, List
 import contextlib
 import threading
 
-from python.helpers import settings, projects
+from helpers import settings, projects
 from starlette.requests import Request
 
 # Local imports
-from python.helpers.print_style import PrintStyle
+from helpers.print_style import PrintStyle
 from agent import AgentContext, UserMessage, AgentContextType
 from initialize import initialize_agent
-from python.helpers.persist_chat import remove_chat
+from helpers.persist_chat import remove_chat
 
 # Import FastA2A
 try:
@@ -358,7 +358,7 @@ class DynamicA2AProxy:
             })
             return
 
-        from python.helpers import settings
+        from helpers import settings
         cfg = settings.get_settings()
         if not cfg["a2a_server_enabled"]:
             response = b'HTTP/1.1 403 Forbidden\r\n\r\nA2A server is disabled'

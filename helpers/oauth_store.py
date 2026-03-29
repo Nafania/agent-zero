@@ -5,7 +5,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Optional
 
-from python.helpers.oauth import OAuthTokens
+from helpers.oauth import OAuthTokens
 
 logger = logging.getLogger(__name__)
 

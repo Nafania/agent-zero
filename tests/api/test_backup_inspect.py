@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.backup_inspect import BackupInspect
+from api.backup_inspect import BackupInspect
 
 
 def _make_handler():
@@ -71,7 +71,7 @@ class TestBackupInspect:
             "files_in_archive": ["usr/data.json"],
         }
 
-        with patch("python.api.backup_inspect.BackupService") as MockBackup:
+        with patch("api.backup_inspect.BackupService") as MockBackup:
             mock_svc = MagicMock()
             mock_svc.inspect_backup = AsyncMock(return_value=metadata)
             MockBackup.return_value = mock_svc

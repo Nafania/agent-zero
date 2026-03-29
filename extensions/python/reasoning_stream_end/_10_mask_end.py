@@ -1,4 +1,4 @@
-from python.helpers.extension import Extension
+from helpers.extension import Extension
 
 
 class MaskReasoningStreamEnd(Extension):
@@ -17,7 +17,7 @@ class MaskReasoningStreamEnd(Extension):
 
                 # Print any remaining masked content
                 if tail:
-                    from python.helpers.print_style import PrintStyle
+                    from helpers.print_style import PrintStyle
                     PrintStyle().stream(tail)
 
                 # Clean up the filter

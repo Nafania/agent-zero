@@ -160,7 +160,7 @@ class PrintStyle:
         # Automatically mask secrets in all print output
         try:
             if not hasattr(self, "secrets_mgr"):
-                from python.helpers.secrets import get_secrets_manager
+                from helpers.secrets import get_secrets_manager
                 self.secrets_mgr = get_secrets_manager()
             text = self.secrets_mgr.mask_values(text)
         except Exception:

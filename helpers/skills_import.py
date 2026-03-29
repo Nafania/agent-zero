@@ -9,8 +9,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List, Literal, Optional, Tuple
 
-from python.helpers import files
-from python.helpers.skills import discover_skill_md_files
+from helpers import files
+from helpers.skills import discover_skill_md_files
 
 
 ConflictPolicy = Literal["skip", "overwrite", "rename"]
@@ -172,7 +172,7 @@ def _resolve_conflict(dest: Path, policy: ConflictPolicy) -> Tuple[Path, bool]:
 
 def get_project_skills_folder(project_name: str) -> Path:
     """Get the skills folder path for a project."""
-    from python.helpers.projects import get_project_meta_folder
+    from helpers.projects import get_project_meta_folder
     return Path(get_project_meta_folder(project_name, PROJECT_SKILLS_DIR))
 
 
@@ -181,7 +181,7 @@ def get_agent_profile_skills_folder(profile_name: str) -> Path:
 
 
 def get_project_agent_profile_skills_folder(project_name: str, profile_name: str) -> Path:
-    from python.helpers.projects import get_project_meta_folder
+    from helpers.projects import get_project_meta_folder
     return Path(get_project_meta_folder(project_name, "agents", profile_name, "skills"))
 
 

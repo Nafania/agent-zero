@@ -25,7 +25,7 @@ def mock_agent():
 
 @pytest.fixture
 def tool(mock_agent):
-    from python.tools.wait import WaitTool
+    from tools.wait import WaitTool
     t = WaitTool(
         agent=mock_agent,
         name="wait",
@@ -49,7 +49,7 @@ class TestWaitToolExecute:
     @pytest.mark.asyncio
     async def test_invalid_until_timestamp_returns_error(self, tool):
         tool.args = {"until": "not-a-valid-date"}
-        with patch("python.tools.wait.Localization.get") as mock_loc:
+        with patch("tools.wait.Localization.get") as mock_loc:
             mock_loc.return_value.localtime_str_to_utc_dt = MagicMock(return_value=None)
             resp = await tool.execute()
         assert "Invalid" in resp.message or "invalid" in resp.message.lower()
@@ -57,7 +57,7 @@ class TestWaitToolExecute:
     @pytest.mark.asyncio
     async def test_past_target_time_returns_error(self, tool):
         tool.args = {"until": "2020-01-01T00:00:00Z"}
-        with patch("python.tools.wait.Localization.get") as mock_loc:
+        with patch("tools.wait.Localization.get") as mock_loc:
             past = datetime(2020, 1, 1, tzinfo=timezone.utc)
             mock_loc.return_value.localtime_str_to_utc_dt = MagicMock(return_value=past)
             resp = await tool.execute()
@@ -66,7 +66,7 @@ class TestWaitToolExecute:
     @pytest.mark.asyncio
     async def test_duration_wait_completes(self, tool):
         tool.args = {"seconds": 1, "minutes": 0, "hours": 0, "days": 0}
-        with patch("python.tools.wait.managed_wait", new_callable=AsyncMock) as mock_wait:
+        with patch("tools.wait.managed_wait", new_callable=AsyncMock) as mock_wait:
             mock_wait.return_value = datetime.now(timezone.utc) + timedelta(seconds=1)
             resp = await tool.execute()
         assert "Wait complete" in resp.message or "complete" in resp.message.lower()

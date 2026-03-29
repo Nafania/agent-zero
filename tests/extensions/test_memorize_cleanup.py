@@ -11,9 +11,9 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from agent import LoopData
-from python.extensions.monologue_end._50_memorize_fragments import MemorizeMemories
-from python.extensions.monologue_end._51_memorize_solutions import MemorizeSolutions
-from python.helpers.memory import Memory
+from extensions.python.monologue_end._50_memorize_fragments import MemorizeMemories
+from extensions.python.monologue_end._51_memorize_solutions import MemorizeSolutions
+from helpers.memory import Memory
 
 
 def _stale_memorize_settings(**overrides):
@@ -51,7 +51,7 @@ async def test_memorize_fragments_ignores_legacy_replace_and_consolidation_setti
     )
 
     ext = MemorizeMemories(agent)
-    with patch("python.helpers.settings.get_settings", return_value=_stale_memorize_settings()):
+    with patch("helpers.settings.get_settings", return_value=_stale_memorize_settings()):
         await ext.memorize(loop_data, log_item, db)
 
     db.delete_documents_by_query.assert_not_called()
@@ -76,7 +76,7 @@ async def test_memorize_solutions_ignores_legacy_replace_and_consolidation_setti
     )
 
     ext = MemorizeSolutions(agent)
-    with patch("python.helpers.settings.get_settings", return_value=_stale_memorize_settings()):
+    with patch("helpers.settings.get_settings", return_value=_stale_memorize_settings()):
         await ext.memorize(loop_data, log_item, db)
 
     db.delete_documents_by_query.assert_not_called()
@@ -97,7 +97,7 @@ async def test_memorize_fragments_inserts_without_legacy_keys():
 
     ext = MemorizeMemories(agent)
     minimal = {"memory_memorize_enabled": True}
-    with patch("python.helpers.settings.get_settings", return_value=minimal):
+    with patch("helpers.settings.get_settings", return_value=minimal):
         await ext.memorize(loop_data, log_item, db)
 
     db.delete_documents_by_query.assert_not_called()

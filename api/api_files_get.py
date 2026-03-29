@@ -1,8 +1,8 @@
 import base64
 import os
-from python.helpers.api import ApiHandler, Request, Response
-from python.helpers import files
-from python.helpers.print_style import PrintStyle
+from helpers.api import ApiHandler, Request, Response
+from helpers import files
+from helpers.print_style import PrintStyle
 import json
 
 

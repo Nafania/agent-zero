@@ -22,7 +22,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 class TestMessageDataclass:
     def test_message_creation(self):
-        from python.helpers.email_client import Message
+        from helpers.email_client import Message
 
         msg = Message(
             sender="alice@example.com",
@@ -36,7 +36,7 @@ class TestMessageDataclass:
         assert msg.attachments == ["/a0/usr/email/file.pdf"]
 
     def test_message_empty_attachments(self):
-        from python.helpers.email_client import Message
+        from helpers.email_client import Message
 
         msg = Message(sender="", subject="", body="", attachments=[])
         assert msg.attachments == []
@@ -47,7 +47,7 @@ class TestMessageDataclass:
 
 class TestEmailClientInit:
     def test_init_imap_defaults(self):
-        from python.helpers.email_client import EmailClient
+        from helpers.email_client import EmailClient
 
         client = EmailClient(
             account_type="imap",
@@ -65,13 +65,13 @@ class TestEmailClientInit:
         assert client.client is None
 
     def test_init_normalizes_account_type(self):
-        from python.helpers.email_client import EmailClient
+        from helpers.email_client import EmailClient
 
         client = EmailClient(account_type="IMAP", server="x", username="u", password="p")
         assert client.account_type == "imap"
 
     def test_init_with_options(self):
-        from python.helpers.email_client import EmailClient
+        from helpers.email_client import EmailClient
 
         client = EmailClient(
             account_type="imap",
@@ -91,11 +91,11 @@ class TestEmailClientInit:
 class TestEmailClientConnect:
     @pytest.mark.asyncio
     async def test_connect_imap_success(self):
-        from python.helpers.email_client import EmailClient
+        from helpers.email_client import EmailClient
 
         mock_client = MagicMock()
-        with patch("python.helpers.email_client.IMAPClient", return_value=mock_client):
-            with patch("python.helpers.email_client.PrintStyle"):
+        with patch("helpers.email_client.IMAPClient", return_value=mock_client):
+            with patch("helpers.email_client.PrintStyle"):
                 client = EmailClient(
                     account_type="imap",
                     server="imap.gmail.com",
@@ -107,10 +107,10 @@ class TestEmailClientConnect:
 
     @pytest.mark.asyncio
     async def test_connect_unsupported_account_type(self):
-        from python.helpers.email_client import EmailClient
-        from python.helpers.errors import RepairableException
+        from helpers.email_client import EmailClient
+        from helpers.errors import RepairableException
 
-        with patch("python.helpers.email_client.PrintStyle"):
+        with patch("helpers.email_client.PrintStyle"):
             client = EmailClient(
                 account_type="pop3",
                 server="x",
@@ -124,11 +124,11 @@ class TestEmailClientConnect:
 
     @pytest.mark.asyncio
     async def test_connect_imap_failure_raises(self):
-        from python.helpers.email_client import EmailClient
-        from python.helpers.errors import RepairableException
+        from helpers.email_client import EmailClient
+        from helpers.errors import RepairableException
 
-        with patch("python.helpers.email_client.IMAPClient", side_effect=OSError("Connection refused")):
-            with patch("python.helpers.email_client.PrintStyle"):
+        with patch("helpers.email_client.IMAPClient", side_effect=OSError("Connection refused")):
+            with patch("helpers.email_client.PrintStyle"):
                 client = EmailClient(
                     account_type="imap",
                     server="imap.gmail.com",
@@ -146,13 +146,13 @@ class TestEmailClientConnect:
 class TestEmailClientDisconnect:
     @pytest.mark.asyncio
     async def test_disconnect_imap_logout(self):
-        from python.helpers.email_client import EmailClient
+        from helpers.email_client import EmailClient
 
         mock_client = MagicMock()
         client = EmailClient(account_type="imap", server="x", username="u", password="p")
         client.client = mock_client
 
-        with patch("python.helpers.email_client.PrintStyle"):
+        with patch("helpers.email_client.PrintStyle"):
             await client.disconnect()
 
         mock_client.logout.assert_called_once()
@@ -160,26 +160,26 @@ class TestEmailClientDisconnect:
 
     @pytest.mark.asyncio
     async def test_disconnect_exchange_clears_account(self):
-        from python.helpers.email_client import EmailClient
+        from helpers.email_client import EmailClient
 
         client = EmailClient(account_type="exchange", server="x", username="u", password="p")
         client.exchange_account = MagicMock()
 
-        with patch("python.helpers.email_client.PrintStyle"):
+        with patch("helpers.email_client.PrintStyle"):
             await client.disconnect()
 
         assert client.exchange_account is None
 
     @pytest.mark.asyncio
     async def test_disconnect_handles_logout_error(self):
-        from python.helpers.email_client import EmailClient
+        from helpers.email_client import EmailClient
 
         mock_client = MagicMock()
         mock_client.logout.side_effect = Exception("Logout failed")
         client = EmailClient(account_type="imap", server="x", username="u", password="p")
         client.client = mock_client
 
-        with patch("python.helpers.email_client.PrintStyle"):
+        with patch("helpers.email_client.PrintStyle"):
             await client.disconnect()
 
         assert client.client is mock_client
@@ -190,23 +190,23 @@ class TestEmailClientDisconnect:
 
 class TestDecodeHeader:
     def test_decode_header_empty(self):
-        from python.helpers.email_client import EmailClient
+        from helpers.email_client import EmailClient
 
         client = EmailClient(account_type="imap", server="x", username="u", password="p")
         assert client._decode_header("") == ""
 
     def test_decode_header_plain_ascii(self):
-        from python.helpers.email_client import EmailClient
+        from helpers.email_client import EmailClient
 
         client = EmailClient(account_type="imap", server="x", username="u", password="p")
         assert client._decode_header("Hello World") == "Hello World"
 
     def test_decode_header_encoded(self):
-        from python.helpers.email_client import EmailClient
+        from helpers.email_client import EmailClient
 
         client = EmailClient(account_type="imap", server="x", username="u", password="p")
         # decode_header returns list of (bytes_or_str, encoding)
-        with patch("python.helpers.email_client.decode_header") as mock_dh:
+        with patch("helpers.email_client.decode_header") as mock_dh:
             mock_dh.return_value = [(b"Subject", "utf-8")]
             result = client._decode_header("=?utf-8?B?U3ViamVjdA==?=")
         assert result == "Subject"
@@ -217,7 +217,7 @@ class TestDecodeHeader:
 
 class TestHtmlToText:
     def test_html_to_text_simple(self):
-        from python.helpers.email_client import EmailClient
+        from helpers.email_client import EmailClient
 
         client = EmailClient(account_type="imap", server="x", username="u", password="p")
         result = client._html_to_text("<p>Hello <b>World</b></p>")
@@ -225,7 +225,7 @@ class TestHtmlToText:
         assert "World" in result
 
     def test_html_to_text_replaces_cid_with_file_marker(self):
-        from python.helpers.email_client import EmailClient
+        from helpers.email_client import EmailClient
 
         client = EmailClient(account_type="imap", server="x", username="u", password="p")
         html = '<img src="cid:abc123" />'
@@ -234,7 +234,7 @@ class TestHtmlToText:
         assert "[file:///a0/usr/email/image.png]" in result
 
     def test_html_to_text_unknown_cid_unchanged(self):
-        from python.helpers.email_client import EmailClient
+        from helpers.email_client import EmailClient
 
         client = EmailClient(account_type="imap", server="x", username="u", password="p")
         html = '<img src="cid:unknown" />'
@@ -249,10 +249,10 @@ class TestHtmlToText:
 class TestSaveAttachmentBytes:
     @pytest.mark.asyncio
     async def test_save_attachment_returns_abs_path(self):
-        from python.helpers.email_client import EmailClient
+        from helpers.email_client import EmailClient
 
         client = EmailClient(account_type="imap", server="x", username="u", password="p")
-        with patch("python.helpers.email_client.files") as mock_files:
+        with patch("helpers.email_client.files") as mock_files:
             mock_files.safe_file_name.return_value = "doc.pdf"
             mock_files.get_abs_path.return_value = "/a0/usr/email/doc_abc12345.pdf"
             path = await client._save_attachment_bytes("doc.pdf", b"content", "usr/email")
@@ -261,10 +261,10 @@ class TestSaveAttachmentBytes:
 
     @pytest.mark.asyncio
     async def test_save_attachment_sanitizes_filename(self):
-        from python.helpers.email_client import EmailClient
+        from helpers.email_client import EmailClient
 
         client = EmailClient(account_type="imap", server="x", username="u", password="p")
-        with patch("python.helpers.email_client.files") as mock_files:
+        with patch("helpers.email_client.files") as mock_files:
             mock_files.safe_file_name.return_value = "safe_name.pdf"
             mock_files.get_abs_path.return_value = "/a0/usr/email/safe_name_abc.pdf"
             await client._save_attachment_bytes("evil/name.pdf", b"x", "usr/email")
@@ -277,7 +277,7 @@ class TestSaveAttachmentBytes:
 class TestParseMessage:
     @pytest.mark.asyncio
     async def test_parse_single_part_plain(self):
-        from python.helpers.email_client import EmailClient, Message
+        from helpers.email_client import EmailClient, Message
 
         client = EmailClient(account_type="imap", server="x", username="u", password="p")
         msg = StdEmailMessage()
@@ -294,7 +294,7 @@ class TestParseMessage:
 
     @pytest.mark.asyncio
     async def test_parse_multipart_with_attachment(self):
-        from python.helpers.email_client import EmailClient, Message
+        from helpers.email_client import EmailClient, Message
 
         client = EmailClient(account_type="imap", server="x", username="u", password="p")
         mime_msg = MIMEMultipart()
@@ -307,7 +307,7 @@ class TestParseMessage:
         part.add_header("Content-Disposition", "attachment", filename="file.bin")
         mime_msg.attach(part)
 
-        with patch("python.helpers.email_client.files") as mock_files:
+        with patch("helpers.email_client.files") as mock_files:
             mock_files.safe_file_name.return_value = "file.bin"
             mock_files.get_abs_path.return_value = "/a0/usr/email/file_abc.bin"
             result = await client._parse_message(mime_msg, "usr/email")
@@ -318,7 +318,7 @@ class TestParseMessage:
 
     @pytest.mark.asyncio
     async def test_parse_html_fallback_when_no_plain(self):
-        from python.helpers.email_client import EmailClient, Message
+        from helpers.email_client import EmailClient, Message
 
         client = EmailClient(account_type="imap", server="x", username="u", password="p")
         mime_msg = MIMEMultipart()
@@ -336,18 +336,18 @@ class TestParseMessage:
 class TestReadMessagesImap:
     @pytest.mark.asyncio
     async def test_read_messages_requires_connect_first(self):
-        from python.helpers.email_client import EmailClient
-        from python.helpers.errors import RepairableException
+        from helpers.email_client import EmailClient
+        from helpers.errors import RepairableException
 
         client = EmailClient(account_type="imap", server="x", username="u", password="p")
-        with patch("python.helpers.email_client.PrintStyle"):
+        with patch("helpers.email_client.PrintStyle"):
             with pytest.raises(RepairableException) as exc_info:
                 await client.read_messages("usr/email")
         assert "not connected" in str(exc_info.value).lower()
 
     @pytest.mark.asyncio
     async def test_read_messages_imap_empty_inbox(self):
-        from python.helpers.email_client import EmailClient
+        from helpers.email_client import EmailClient
 
         mock_client = MagicMock()
         mock_client.select_folder.return_value = None
@@ -356,7 +356,7 @@ class TestReadMessagesImap:
         client = EmailClient(account_type="imap", server="x", username="u", password="p")
         client.client = mock_client
 
-        with patch("python.helpers.email_client.PrintStyle"):
+        with patch("helpers.email_client.PrintStyle"):
             messages = await client.read_messages("usr/email")
 
         assert messages == []
@@ -364,7 +364,7 @@ class TestReadMessagesImap:
 
     @pytest.mark.asyncio
     async def test_read_messages_imap_with_filter(self):
-        from python.helpers.email_client import EmailClient
+        from helpers.email_client import EmailClient
 
         mock_client = MagicMock()
         mock_client.select_folder.return_value = None
@@ -378,7 +378,7 @@ class TestReadMessagesImap:
         client = EmailClient(account_type="imap", server="x", username="u", password="p")
         client.client = mock_client
 
-        with patch("python.helpers.email_client.PrintStyle"):
+        with patch("helpers.email_client.PrintStyle"):
             messages = await client.read_messages(
                 "usr/email",
                 filter={"unread": True, "sender": "*@example.com", "subject": "*"},
@@ -391,7 +391,7 @@ class TestReadMessagesImap:
 
     @pytest.mark.asyncio
     async def test_read_messages_sender_filter_excludes(self):
-        from python.helpers.email_client import EmailClient
+        from helpers.email_client import EmailClient
 
         mock_client = MagicMock()
         mock_client.select_folder.return_value = None
@@ -405,7 +405,7 @@ class TestReadMessagesImap:
         client = EmailClient(account_type="imap", server="x", username="u", password="p")
         client.client = mock_client
 
-        with patch("python.helpers.email_client.PrintStyle"):
+        with patch("helpers.email_client.PrintStyle"):
             messages = await client.read_messages(
                 "usr/email",
                 filter={"sender": "*@example.com"},
@@ -415,7 +415,7 @@ class TestReadMessagesImap:
 
     @pytest.mark.asyncio
     async def test_read_messages_subject_filter_excludes(self):
-        from python.helpers.email_client import EmailClient
+        from helpers.email_client import EmailClient
 
         mock_client = MagicMock()
         mock_client.select_folder.return_value = None
@@ -430,7 +430,7 @@ class TestReadMessagesImap:
         client = EmailClient(account_type="imap", server="x", username="u", password="p")
         client.client = mock_client
 
-        with patch("python.helpers.email_client.PrintStyle"):
+        with patch("helpers.email_client.PrintStyle"):
             messages = await client.read_messages(
                 "usr/email",
                 filter={"subject": "*invoice*"},
@@ -445,9 +445,9 @@ class TestReadMessagesImap:
 class TestReadMessagesConvenience:
     @pytest.mark.asyncio
     async def test_read_messages_connects_and_disconnects(self):
-        from python.helpers.email_client import read_messages
+        from helpers.email_client import read_messages
 
-        with patch("python.helpers.email_client.EmailClient") as mock_cls:
+        with patch("helpers.email_client.EmailClient") as mock_cls:
             mock_instance = AsyncMock()
             mock_instance.connect = AsyncMock()
             mock_instance.disconnect = AsyncMock()
@@ -472,7 +472,7 @@ class TestReadMessagesConvenience:
 class TestEmailClientEdgeCases:
     @pytest.mark.asyncio
     async def test_fetch_handles_line_too_long_retry(self):
-        from python.helpers.email_client import EmailClient
+        from helpers.email_client import EmailClient
 
         mock_client = MagicMock()
         mock_client.select_folder.return_value = None
@@ -485,7 +485,7 @@ class TestEmailClientEdgeCases:
         client = EmailClient(account_type="imap", server="x", username="u", password="p")
         client.client = mock_client
 
-        with patch("python.helpers.email_client.PrintStyle"):
+        with patch("helpers.email_client.PrintStyle"):
             messages = await client.read_messages("usr/email")
 
         assert len(messages) == 1
@@ -493,7 +493,7 @@ class TestEmailClientEdgeCases:
 
     @pytest.mark.asyncio
     async def test_skips_message_on_unexpected_response_format(self):
-        from python.helpers.email_client import EmailClient
+        from helpers.email_client import EmailClient
 
         mock_client = MagicMock()
         mock_client.select_folder.return_value = None
@@ -507,7 +507,7 @@ class TestEmailClientEdgeCases:
         client = EmailClient(account_type="imap", server="x", username="u", password="p")
         client.client = mock_client
 
-        with patch("python.helpers.email_client.PrintStyle"):
+        with patch("helpers.email_client.PrintStyle"):
             messages = await client.read_messages("usr/email")
 
         assert len(messages) == 1
@@ -515,11 +515,11 @@ class TestEmailClientEdgeCases:
 
     @pytest.mark.asyncio
     async def test_exchange_requires_connect_first(self):
-        from python.helpers.email_client import EmailClient
-        from python.helpers.errors import RepairableException
+        from helpers.email_client import EmailClient
+        from helpers.errors import RepairableException
 
         client = EmailClient(account_type="exchange", server="x", username="u", password="p")
-        with patch("python.helpers.email_client.PrintStyle"):
+        with patch("helpers.email_client.PrintStyle"):
             with pytest.raises(RepairableException) as exc_info:
                 await client.read_messages("usr/email")
         assert "not connected" in str(exc_info.value).lower()

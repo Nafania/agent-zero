@@ -3,8 +3,8 @@ from dataclasses import dataclass
 from typing import Any
 
 from agent import Agent, LoopData
-from python.helpers.print_style import PrintStyle
-from python.helpers.strings import sanitize_string
+from helpers.print_style import PrintStyle
+from helpers.strings import sanitize_string
 
 
 @dataclass

@@ -11,7 +11,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 try:
-    from python.tools.unknown import Unknown
+    from tools.unknown import Unknown
 except (ImportError, AttributeError) as e:
     pytest.skip(f"Failed to import unknown tool: {e}", allow_module_level=True)
 
@@ -38,13 +38,13 @@ def tool(mock_agent):
 class TestUnknownExecute:
     @pytest.mark.asyncio
     async def test_returns_tool_not_found_message(self, tool):
-        with patch("python.tools.unknown.get_tools_prompt", return_value="Available tools: ..."):
+        with patch("tools.unknown.get_tools_prompt", return_value="Available tools: ..."):
             resp = await tool.execute()
         assert "not found" in resp.message.lower() or "unknown_tool" in resp.message
         assert resp.break_loop is False
 
     @pytest.mark.asyncio
     async def test_includes_tools_prompt(self, tool):
-        with patch("python.tools.unknown.get_tools_prompt", return_value="code_execution, browser_agent"):
+        with patch("tools.unknown.get_tools_prompt", return_value="code_execution, browser_agent"):
             resp = await tool.execute()
         assert "code_execution" in resp.message or "Tools" in str(tool.agent.read_prompt.call_args)

@@ -8,7 +8,7 @@ from typing import Any, Callable, Iterable, Literal, Optional, Sequence
 
 from pathspec import PathSpec
 
-from python.helpers import files as files_helper
+from helpers import files as files_helper
 
 SORT_BY_NAME = "name"
 SORT_BY_CREATED = "created"

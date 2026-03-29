@@ -1,7 +1,7 @@
-from python.helpers.api import ApiHandler, Input, Output, Request, Response
+from helpers.api import ApiHandler, Input, Output, Request, Response
 
 
-from python.helpers import persist_chat
+from helpers import persist_chat
 
 class LoadChats(ApiHandler):
     async def process(self, input: Input, request: Request) -> Output:

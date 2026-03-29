@@ -4,9 +4,9 @@ import mimetypes
 import os
 
 from flask import Response
-from python.helpers.api import ApiHandler, Input, Output, Request
-from python.helpers import files, runtime
-from python.api import file_info
+from helpers.api import ApiHandler, Input, Output, Request
+from helpers import files, runtime
+from api import file_info
 from urllib.parse import quote
 
 

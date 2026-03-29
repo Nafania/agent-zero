@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.download_work_dir_file import (
+from api.download_work_dir_file import (
     DownloadFile,
     stream_file_download,
     make_disposition,
@@ -71,7 +71,7 @@ class TestDownloadFile:
         request.args = {"path": "a0/file.txt"}
 
         with patch(
-            "python.api.download_work_dir_file.runtime.call_development_function",
+            "api.download_work_dir_file.runtime.call_development_function",
             new_callable=AsyncMock,
             return_value={"exists": False},
         ):
@@ -86,7 +86,7 @@ class TestDownloadFile:
         request.args = {"path": "/a0/missing.txt"}
 
         with patch(
-            "python.api.download_work_dir_file.runtime.call_development_function",
+            "api.download_work_dir_file.runtime.call_development_function",
             new_callable=AsyncMock,
             return_value={"exists": False},
         ):
@@ -109,14 +109,14 @@ class TestDownloadFile:
         }
 
         with patch(
-            "python.api.download_work_dir_file.runtime.call_development_function",
+            "api.download_work_dir_file.runtime.call_development_function",
             new_callable=AsyncMock,
             side_effect=[
                 file_info_result,
                 b"SGVsbG8gV29ybGQ=",  # base64 "Hello World"
             ],
         ), patch(
-            "python.api.download_work_dir_file.runtime.is_development",
+            "api.download_work_dir_file.runtime.is_development",
             return_value=True,
         ):
             result = await handler.process({}, request)

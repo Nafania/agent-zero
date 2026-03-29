@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.chat_create import CreateChat
+from api.chat_create import CreateChat
 
 
 def _make_handler(app=None, lock=None):
@@ -27,8 +27,8 @@ class TestCreateChat:
         mock_ctx.id = "new-ctx-123"
 
         with patch.object(handler, "use_context", return_value=mock_ctx), \
-             patch("python.api.chat_create.AgentContext") as MockCtx, \
-             patch("python.helpers.state_monitor_integration.mark_dirty_all"):
+             patch("api.chat_create.AgentContext") as MockCtx, \
+             patch("helpers.state_monitor_integration.mark_dirty_all"):
             MockCtx.get.return_value = None
             result = await handler.process({"current_context": "", "new_context": ""}, MagicMock())
 
@@ -44,8 +44,8 @@ class TestCreateChat:
         mock_ctx.id = "provided-ctx-456"
 
         with patch.object(handler, "use_context", return_value=mock_ctx) as use_ctx, \
-             patch("python.api.chat_create.AgentContext"), \
-             patch("python.helpers.state_monitor_integration.mark_dirty_all"):
+             patch("api.chat_create.AgentContext"), \
+             patch("helpers.state_monitor_integration.mark_dirty_all"):
             await handler.process({"current_context": "old", "new_context": "provided-ctx-456"}, MagicMock())
             use_ctx.assert_called_once_with("provided-ctx-456")
 
@@ -57,8 +57,8 @@ class TestCreateChat:
         mock_ctx.id = "ctx-1"
 
         with patch.object(handler, "use_context", return_value=mock_ctx), \
-             patch("python.api.chat_create.AgentContext"), \
-             patch("python.helpers.state_monitor_integration.mark_dirty_all") as mark_dirty:
+             patch("api.chat_create.AgentContext"), \
+             patch("helpers.state_monitor_integration.mark_dirty_all") as mark_dirty:
             await handler.process({}, MagicMock())
             mark_dirty.assert_called_once_with(reason="api.chat_create.CreateChat")
 
@@ -70,8 +70,8 @@ class TestCreateChat:
         mock_ctx.id = "ctx-id"
 
         with patch.object(handler, "use_context", return_value=mock_ctx), \
-             patch("python.api.chat_create.AgentContext"), \
-             patch("python.helpers.state_monitor_integration.mark_dirty_all"):
+             patch("api.chat_create.AgentContext"), \
+             patch("helpers.state_monitor_integration.mark_dirty_all"):
             result = await handler.process({}, MagicMock())
 
         assert "ok" in result

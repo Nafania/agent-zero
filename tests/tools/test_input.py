@@ -11,7 +11,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 try:
-    from python.tools.input import Input
+    from tools.input import Input
 except (ImportError, AttributeError) as e:
     pytest.skip(f"Failed to import input tool: {e}", allow_module_level=True)
 
@@ -47,8 +47,8 @@ def tool(mock_agent):
 class TestInputExecute:
     @pytest.mark.asyncio
     async def test_forwards_to_code_execution(self, tool):
-        from python.helpers.tool import Response
-        with patch("python.tools.input.CodeExecution") as MockCET:
+        from helpers.tool import Response
+        with patch("tools.input.CodeExecution") as MockCET:
             mock_cet = MagicMock()
             mock_cet.execute = AsyncMock(return_value=Response(message="yes", break_loop=False))
             MockCET.return_value = mock_cet

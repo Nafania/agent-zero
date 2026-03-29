@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.upload_work_dir_files import UploadWorkDirFiles
+from api.upload_work_dir_files import UploadWorkDirFiles
 
 
 def _make_handler(app=None, lock=None):
@@ -50,11 +50,11 @@ class TestUploadWorkDirFiles:
         request.form = {"path": "/a0"}
 
         with patch(
-            "python.api.upload_work_dir_files.upload_files",
+            "api.upload_work_dir_files.upload_files",
             new_callable=AsyncMock,
             return_value=(["doc.txt"], []),
         ), patch(
-            "python.api.upload_work_dir_files.runtime.call_development_function",
+            "api.upload_work_dir_files.runtime.call_development_function",
             new_callable=AsyncMock,
             return_value=[{"name": "doc.txt"}],
         ):
@@ -77,11 +77,11 @@ class TestUploadWorkDirFiles:
         request.form = {"path": "/a0"}
 
         with patch(
-            "python.api.upload_work_dir_files.upload_files",
+            "api.upload_work_dir_files.upload_files",
             new_callable=AsyncMock,
             return_value=(["doc.txt"], ["bad.txt"]),
         ), patch(
-            "python.api.upload_work_dir_files.runtime.call_development_function",
+            "api.upload_work_dir_files.runtime.call_development_function",
             new_callable=AsyncMock,
             return_value=[],
         ):
@@ -103,7 +103,7 @@ class TestUploadWorkDirFiles:
         request.form = {"path": "/a0"}
 
         with patch(
-            "python.api.upload_work_dir_files.upload_files",
+            "api.upload_work_dir_files.upload_files",
             new_callable=AsyncMock,
             return_value=([], ["bad.txt"]),
         ):
@@ -121,11 +121,11 @@ class TestUploadWorkDirFiles:
         request.form = {"path": "/a0"}
 
         with patch(
-            "python.api.upload_work_dir_files.upload_files",
+            "api.upload_work_dir_files.upload_files",
             new_callable=AsyncMock,
             return_value=([], []),
         ), patch(
-            "python.api.upload_work_dir_files.runtime.call_development_function",
+            "api.upload_work_dir_files.runtime.call_development_function",
             new_callable=AsyncMock,
             return_value=[],
         ):

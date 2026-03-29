@@ -15,8 +15,8 @@ import asyncio
 import uuid
 from typing import Any, Callable
 
-from python.helpers import files
-from python.helpers.settings import get_settings
+from helpers import files
+from helpers.settings import get_settings
 
 _log = logging.getLogger(__name__)
 
@@ -221,7 +221,7 @@ async def drain_feedback_queue(
     """
     if cognee_module is _UNSET:
         try:
-            from python.helpers.cognee_init import get_cognee
+            from helpers.cognee_init import get_cognee
 
             cognee_module, _ = get_cognee()
         except Exception:
@@ -294,7 +294,7 @@ async def submit_memory_feedback(
 
     if cognee_module is _UNSET:
         try:
-            from python.helpers.cognee_init import get_cognee
+            from helpers.cognee_init import get_cognee
 
             cognee_module, _ = get_cognee()
         except Exception:

@@ -7,17 +7,17 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, TYPE_CHECKING
 
-from python.helpers import runtime
-from python.helpers.print_style import PrintStyle
-from python.helpers.state_snapshot import (
+from helpers import runtime
+from helpers.print_style import PrintStyle
+from helpers.state_snapshot import (
     StateRequestV1,
     advance_state_request_after_snapshot,
     build_snapshot_from_request,
 )
-from python.helpers.websocket import ConnectionNotFoundError
+from helpers.websocket import ConnectionNotFoundError
 
 if TYPE_CHECKING:  # pragma: no cover - hints only
-    from python.helpers.websocket_manager import WebSocketManager
+    from helpers.websocket_manager import WebSocketManager
 
 
 ConnectionIdentity = tuple[str, str]  # (namespace, sid)

@@ -25,9 +25,9 @@ def mock_secrets_manager():
 @pytest.fixture
 def patch_log_dependencies(mock_secrets_manager):
     """Patch get_secrets_manager and state monitor to avoid side effects."""
-    with patch("python.helpers.log.get_secrets_manager", return_value=mock_secrets_manager):
-        with patch("python.helpers.log._lazy_mark_dirty_all"):
-            with patch("python.helpers.log._lazy_mark_dirty_for_context"):
+    with patch("helpers.log.get_secrets_manager", return_value=mock_secrets_manager):
+        with patch("helpers.log._lazy_mark_dirty_all"):
+            with patch("helpers.log._lazy_mark_dirty_for_context"):
                 yield
 
 
@@ -36,22 +36,22 @@ def patch_log_dependencies(mock_secrets_manager):
 
 class TestLogConstants:
     def test_heading_max_len_defined(self):
-        from python.helpers.log import HEADING_MAX_LEN
+        from helpers.log import HEADING_MAX_LEN
 
         assert HEADING_MAX_LEN == 120
 
     def test_content_max_len_defined(self):
-        from python.helpers.log import CONTENT_MAX_LEN
+        from helpers.log import CONTENT_MAX_LEN
 
         assert CONTENT_MAX_LEN == 15_000
 
     def test_response_content_max_len_larger(self):
-        from python.helpers.log import CONTENT_MAX_LEN, RESPONSE_CONTENT_MAX_LEN
+        from helpers.log import CONTENT_MAX_LEN, RESPONSE_CONTENT_MAX_LEN
 
         assert RESPONSE_CONTENT_MAX_LEN > CONTENT_MAX_LEN
 
     def test_progress_max_len_defined(self):
-        from python.helpers.log import PROGRESS_MAX_LEN
+        from helpers.log import PROGRESS_MAX_LEN
 
         assert PROGRESS_MAX_LEN == 120
 
@@ -61,18 +61,18 @@ class TestLogConstants:
 
 class TestTruncateHeading:
     def test_truncate_heading_none_returns_empty(self):
-        from python.helpers.log import _truncate_heading
+        from helpers.log import _truncate_heading
 
         assert _truncate_heading(None) == ""
 
     def test_truncate_heading_short_unchanged(self):
-        from python.helpers.log import _truncate_heading
+        from helpers.log import _truncate_heading
 
         text = "Short heading"
         assert _truncate_heading(text) == text
 
     def test_truncate_heading_long_truncated(self):
-        from python.helpers.log import HEADING_MAX_LEN, _truncate_heading
+        from helpers.log import HEADING_MAX_LEN, _truncate_heading
 
         text = "x" * (HEADING_MAX_LEN + 50)
         result = _truncate_heading(text)
@@ -82,24 +82,24 @@ class TestTruncateHeading:
 
 class TestTruncateProgress:
     def test_truncate_progress_none_returns_empty(self):
-        from python.helpers.log import _truncate_progress
+        from helpers.log import _truncate_progress
 
         assert _truncate_progress(None) == ""
 
     def test_truncate_progress_short_unchanged(self):
-        from python.helpers.log import _truncate_progress
+        from helpers.log import _truncate_progress
 
         assert _truncate_progress("Short") == "Short"
 
 
 class TestTruncateKey:
     def test_truncate_key_short_unchanged(self):
-        from python.helpers.log import _truncate_key
+        from helpers.log import _truncate_key
 
         assert _truncate_key("key") == "key"
 
     def test_truncate_key_long_truncated(self):
-        from python.helpers.log import KEY_MAX_LEN, _truncate_key
+        from helpers.log import KEY_MAX_LEN, _truncate_key
 
         long_key = "x" * (KEY_MAX_LEN + 20)
         result = _truncate_key(long_key)
@@ -108,33 +108,33 @@ class TestTruncateKey:
 
 class TestTruncateValue:
     def test_truncate_value_short_string_unchanged(self):
-        from python.helpers.log import _truncate_value
+        from helpers.log import _truncate_value
 
         assert _truncate_value("short") == "short"
 
     def test_truncate_value_long_string_truncated(self):
-        from python.helpers.log import VALUE_MAX_LEN, _truncate_value
+        from helpers.log import VALUE_MAX_LEN, _truncate_value
 
         long_val = "x" * (VALUE_MAX_LEN + 100)
         result = _truncate_value(long_val)
         assert "Characters hidden" in result or len(result) <= VALUE_MAX_LEN + 50
 
     def test_truncate_value_dict_recursive(self):
-        from python.helpers.log import _truncate_value
+        from helpers.log import _truncate_value
 
         d = {"a": "short", "b": "also short"}
         result = _truncate_value(d)
         assert result == {"a": "short", "b": "also short"}
 
     def test_truncate_value_list_recursive(self):
-        from python.helpers.log import _truncate_value
+        from helpers.log import _truncate_value
 
         lst = ["a", "b"]
         result = _truncate_value(lst)
         assert result == ["a", "b"]
 
     def test_truncate_value_tuple_recursive(self):
-        from python.helpers.log import _truncate_value
+        from helpers.log import _truncate_value
 
         t = ("a", "b")
         result = _truncate_value(t)
@@ -143,18 +143,18 @@ class TestTruncateValue:
 
 class TestTruncateContent:
     def test_truncate_content_none_returns_empty(self):
-        from python.helpers.log import _truncate_content
+        from helpers.log import _truncate_content
 
         assert _truncate_content(None, "info") == ""
 
     def test_truncate_content_short_unchanged(self):
-        from python.helpers.log import _truncate_content
+        from helpers.log import _truncate_content
 
         text = "Short content"
         assert _truncate_content(text, "info") == text
 
     def test_truncate_content_response_type_uses_larger_limit(self):
-        from python.helpers.log import CONTENT_MAX_LEN, RESPONSE_CONTENT_MAX_LEN, _truncate_content
+        from helpers.log import CONTENT_MAX_LEN, RESPONSE_CONTENT_MAX_LEN, _truncate_content
 
         # Content at CONTENT_MAX_LEN + 1 would be truncated for "info"
         long_info = "x" * (CONTENT_MAX_LEN + 100)
@@ -172,7 +172,7 @@ class TestTruncateContent:
 
 class TestLogItem:
     def test_log_item_creation(self, patch_log_dependencies):
-        from python.helpers.log import Log, LogItem
+        from helpers.log import Log, LogItem
 
         log = Log()
         item = LogItem(log=log, no=0, type="info")
@@ -183,7 +183,7 @@ class TestLogItem:
         assert item.timestamp > 0
 
     def test_log_item_output(self, patch_log_dependencies):
-        from python.helpers.log import Log, LogItem
+        from helpers.log import Log, LogItem
 
         log = Log()
         item = LogItem(log=log, no=0, type="info", heading="H", content="C", id="item-1")
@@ -202,7 +202,7 @@ class TestLogItem:
 
 class TestLog:
     def test_log_initialization(self, patch_log_dependencies):
-        from python.helpers.log import Log
+        from helpers.log import Log
 
         log = Log()
         assert log.guid
@@ -212,7 +212,7 @@ class TestLog:
         assert log.progress_active is False
 
     def test_log_creates_item(self, patch_log_dependencies):
-        from python.helpers.log import Log
+        from helpers.log import Log
 
         log = Log()
         item = log.log("info", heading="Test", content="Body")
@@ -223,7 +223,7 @@ class TestLog:
         assert log.logs[0].type == "info"
 
     def test_log_with_kvps(self, patch_log_dependencies):
-        from python.helpers.log import Log
+        from helpers.log import Log
 
         log = Log()
         item = log.log("tool", heading="Tool", kvps={"key": "value"})
@@ -231,7 +231,7 @@ class TestLog:
         assert item.kvps.get("key") == "value"
 
     def test_log_output_returns_updates(self, patch_log_dependencies):
-        from python.helpers.log import Log
+        from helpers.log import Log
 
         log = Log()
         log.log("info", heading="A")
@@ -243,7 +243,7 @@ class TestLog:
         assert has_earlier is False
 
     def test_log_output_with_start_end(self, patch_log_dependencies):
-        from python.helpers.log import Log
+        from helpers.log import Log
 
         log = Log()
         log.log("info", heading="A")
@@ -254,7 +254,7 @@ class TestLog:
         assert out[0]["heading"] == "B"
 
     def test_log_reset_clears_state(self, patch_log_dependencies):
-        from python.helpers.log import Log
+        from helpers.log import Log
 
         log = Log()
         log.log("info", heading="Before")
@@ -265,7 +265,7 @@ class TestLog:
         assert log.guid != old_guid
 
     def test_log_set_progress(self, patch_log_dependencies):
-        from python.helpers.log import Log
+        from helpers.log import Log
 
         log = Log()
         log.set_progress("Processing...", no=1, active=True)
@@ -274,7 +274,7 @@ class TestLog:
         assert log.progress_active is True
 
     def test_log_set_initial_progress(self, patch_log_dependencies):
-        from python.helpers.log import Log
+        from helpers.log import Log
 
         log = Log()
         log.set_initial_progress()
@@ -282,7 +282,7 @@ class TestLog:
         assert log.progress_active is False
 
     def test_log_item_update(self, patch_log_dependencies):
-        from python.helpers.log import Log
+        from helpers.log import Log
 
         log = Log()
         item = log.log("info", heading="Original", content="Body")
@@ -291,7 +291,7 @@ class TestLog:
         assert log.logs[0].content == "New body"
 
     def test_log_item_stream_appends(self, patch_log_dependencies):
-        from python.helpers.log import Log
+        from helpers.log import Log
 
         log = Log()
         item = log.log("info", heading="A", content="B")
@@ -300,7 +300,7 @@ class TestLog:
         assert "B" in log.logs[0].content and "+C" in log.logs[0].content
 
     def test_log_item_update_ignored_when_guid_mismatch(self, patch_log_dependencies):
-        from python.helpers.log import Log, LogItem
+        from helpers.log import Log, LogItem
 
         log = Log()
         item = LogItem(log=log, no=0, type="info", heading="H", content="C")
@@ -310,7 +310,7 @@ class TestLog:
         assert log.logs[0].heading == "H"
 
     def test_log_with_id(self, patch_log_dependencies):
-        from python.helpers.log import Log
+        from helpers.log import Log
 
         log = Log()
         item = log.log("info", heading="H", id="custom-id")
@@ -319,7 +319,7 @@ class TestLog:
         assert out[0]["id"] == "custom-id"
 
     def test_log_update_progress_persistent_vs_temporary(self, patch_log_dependencies):
-        from python.helpers.log import Log
+        from helpers.log import Log
 
         log = Log()
         log.log("info", heading="First", update_progress="persistent")
@@ -328,14 +328,14 @@ class TestLog:
         assert log.progress_no == -1  # temporary sets -1
 
     def test_log_masking_integration(self):
-        from python.helpers.log import Log
+        from helpers.log import Log
 
         mock_mgr = MagicMock()
         mock_mgr.mask_values = lambda s: s.replace("secret", "***")
 
-        with patch("python.helpers.log.get_secrets_manager", return_value=mock_mgr):
-            with patch("python.helpers.log._lazy_mark_dirty_all"):
-                with patch("python.helpers.log._lazy_mark_dirty_for_context"):
+        with patch("helpers.log.get_secrets_manager", return_value=mock_mgr):
+            with patch("helpers.log._lazy_mark_dirty_all"):
+                with patch("helpers.log._lazy_mark_dirty_for_context"):
                     log = Log()
                     log.log("info", content="My secret key")
                     assert "***" in log.logs[0].content

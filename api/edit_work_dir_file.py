@@ -1,9 +1,9 @@
 import mimetypes
 import os
 
-from python.helpers.api import ApiHandler, Input, Output, Request
-from python.helpers.file_browser import FileBrowser
-from python.helpers import runtime, files
+from helpers.api import ApiHandler, Input, Output, Request
+from helpers.file_browser import FileBrowser
+from helpers import runtime, files
 
 MAX_EDIT_FILE_SIZE = 1024 * 1024
 BINARY_SAMPLE_SIZE = 10 * 1024

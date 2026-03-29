@@ -1,6 +1,6 @@
-from python.helpers.api import ApiHandler, Request, Response
+from helpers.api import ApiHandler, Request, Response
 
-from python.helpers import runtime
+from helpers import runtime
 
 class RFC(ApiHandler):
 

@@ -1,10 +1,10 @@
 from agent import AgentContext, UserMessage
-from python.helpers.api import ApiHandler, Request, Response
+from helpers.api import ApiHandler, Request, Response
 
-from python.helpers import files, extension, message_queue as mq
+from helpers import files, extension, message_queue as mq
 import os
-from python.helpers.security import safe_filename
-from python.helpers.defer import DeferredTask
+from helpers.security import safe_filename
+from helpers.defer import DeferredTask
 
 
 class Message(ApiHandler):

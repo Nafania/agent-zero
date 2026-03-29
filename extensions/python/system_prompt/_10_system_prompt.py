@@ -1,9 +1,9 @@
 from typing import Any
-from python.helpers.extension import Extension
-from python.helpers.mcp_handler import MCPConfig
+from helpers.extension import Extension
+from helpers.mcp_handler import MCPConfig
 from agent import Agent, LoopData
-from python.helpers.settings import get_settings
-from python.helpers import projects, skills
+from helpers.settings import get_settings
+from helpers import projects, skills
 
 
 class SystemPrompt(Extension):
@@ -61,7 +61,7 @@ def get_mcp_tools_prompt(agent: Agent):
 def get_secrets_prompt(agent: Agent):
     try:
         # Use lazy import to avoid circular dependencies
-        from python.helpers.secrets import get_secrets_manager
+        from helpers.secrets import get_secrets_manager
 
         secrets_manager = get_secrets_manager(agent.context)
         secrets = secrets_manager.get_secrets_for_prompt()

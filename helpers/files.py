@@ -43,7 +43,7 @@ def load_plugin_variables(
 
     if plugin_file and exists(plugin_file):
 
-        from python.helpers import extract_tools
+        from helpers import extract_tools
 
         classes = extract_tools.load_classes_from_file(
             plugin_file, VariablesPlugin, one_per_file=False
@@ -78,7 +78,7 @@ def load_plugin_variables(
     return {}
 
 
-from python.helpers.strings import sanitize_string
+from helpers.strings import sanitize_string
 
 
 def parse_file(
@@ -512,7 +512,7 @@ def get_abs_path(*relative_paths):
 def get_abs_path_dockerized(*relative_paths):
     "Ensures the abs path is dockerized (i.e. /a0/... path)"
     abs = get_abs_path(*relative_paths)
-    from python.helpers import runtime
+    from helpers import runtime
     if runtime.is_dockerized():
         return abs
     return normalize_a0_path(abs)
@@ -530,7 +530,7 @@ def deabsolute_path(path: str):
 
 def fix_dev_path(path: str):
     "On dev environment, convert /a0/... paths to local absolute paths"
-    from python.helpers.runtime import is_development
+    from helpers.runtime import is_development
 
     if is_development():
         if path.startswith("/a0/"):

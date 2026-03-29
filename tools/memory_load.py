@@ -1,5 +1,5 @@
-from python.helpers.memory import Memory
-from python.helpers.tool import Tool, Response
+from helpers.memory import Memory
+from helpers.tool import Tool, Response
 
 DEFAULT_THRESHOLD = 0.7
 DEFAULT_LIMIT = 10

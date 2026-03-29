@@ -13,7 +13,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from flask import Response
 
-from python.api.api_reset_chat import ApiResetChat
+from api.api_reset_chat import ApiResetChat
 
 
 def _make_handler(app=None, lock=None):
@@ -37,7 +37,7 @@ class TestApiResetChat:
         app, lock = mock_app
         handler = _make_handler(app, lock)
 
-        with patch("python.api.api_reset_chat.AgentContext") as MockCtx:
+        with patch("api.api_reset_chat.AgentContext") as MockCtx:
             MockCtx.use.return_value = None
             result = await handler.process({"context_id": "nonexistent"}, MagicMock())
 
@@ -51,8 +51,8 @@ class TestApiResetChat:
         handler = _make_handler(app, lock)
         mock_ctx = MagicMock()
 
-        with patch("python.api.api_reset_chat.AgentContext") as MockCtx, \
-             patch("python.api.api_reset_chat.persist_chat") as mock_persist:
+        with patch("api.api_reset_chat.AgentContext") as MockCtx, \
+             patch("api.api_reset_chat.persist_chat") as mock_persist:
             MockCtx.use.return_value = mock_ctx
             result = await handler.process({"context_id": "ctx-123"}, MagicMock())
 
@@ -68,7 +68,7 @@ class TestApiResetChat:
         app, lock = mock_app
         handler = _make_handler(app, lock)
 
-        with patch("python.api.api_reset_chat.AgentContext") as MockCtx:
+        with patch("api.api_reset_chat.AgentContext") as MockCtx:
             MockCtx.use.side_effect = Exception("Unexpected error")
             result = await handler.process({"context_id": "ctx-1"}, MagicMock())
 

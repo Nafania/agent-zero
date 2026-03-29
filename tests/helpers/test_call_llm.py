@@ -323,26 +323,26 @@ class TestCallLlm:
 
     @pytest.mark.asyncio
     async def test_returns_accumulated_response(self, mock_streaming_model):
-        from python.helpers.call_llm import call_llm
+        from helpers.call_llm import call_llm
         result = await call_llm("You are helpful.", mock_streaming_model, "Hi")
         assert result == "Hello"
 
     @pytest.mark.asyncio
     async def test_empty_examples_works(self, mock_streaming_model):
-        from python.helpers.call_llm import call_llm
+        from helpers.call_llm import call_llm
         result = await call_llm("System", mock_streaming_model, "msg", examples=[])
         assert isinstance(result, str)
 
     @pytest.mark.asyncio
     async def test_few_shot_examples_included(self, mock_streaming_model):
-        from python.helpers.call_llm import call_llm
+        from helpers.call_llm import call_llm
         examples = [{"input": "q1", "output": "a1"}, {"input": "q2", "output": "a2"}]
         result = await call_llm("System", mock_streaming_model, "msg", examples=examples)
         assert result == "Hello"
 
     @pytest.mark.asyncio
     async def test_callback_invoked_per_chunk(self, mock_streaming_model):
-        from python.helpers.call_llm import call_llm
+        from helpers.call_llm import call_llm
         chunks = []
         result = await call_llm(
             "System", mock_streaming_model, "msg", callback=chunks.append
@@ -352,26 +352,26 @@ class TestCallLlm:
 
     @pytest.mark.asyncio
     async def test_callback_none_no_error(self, mock_streaming_model):
-        from python.helpers.call_llm import call_llm
+        from helpers.call_llm import call_llm
         result = await call_llm("System", mock_streaming_model, "msg", callback=None)
         assert result == "Hello"
 
     @pytest.mark.asyncio
     async def test_handles_content_object_chunks(self, model_yielding_content_objects):
-        from python.helpers.call_llm import call_llm
+        from helpers.call_llm import call_llm
         result = await call_llm("System", model_yielding_content_objects, "msg")
         assert result == "AB"
 
     @pytest.mark.asyncio
     async def test_handles_string_chunks(self, model_yielding_strings):
-        from python.helpers.call_llm import call_llm
+        from helpers.call_llm import call_llm
         result = await call_llm("System", model_yielding_strings, "msg")
         assert result == "XYZ"
 
     @pytest.mark.asyncio
     async def test_handles_other_chunk_types_via_str(self):
         from langchain_core.runnables import Runnable
-        from python.helpers.call_llm import call_llm
+        from helpers.call_llm import call_llm
 
         class FakeOtherModel(Runnable):
             def invoke(self, input, config=None, **kwargs):
@@ -388,7 +388,7 @@ class TestCallLlm:
     @pytest.mark.asyncio
     async def test_empty_stream_returns_empty_string(self):
         from langchain_core.runnables import Runnable
-        from python.helpers.call_llm import call_llm
+        from helpers.call_llm import call_llm
 
         class FakeEmptyModel(Runnable):
             def invoke(self, input, config=None, **kwargs):
@@ -404,7 +404,7 @@ class TestCallLlm:
 
     @pytest.mark.asyncio
     async def test_system_and_message_passed_to_chain(self, mock_streaming_model):
-        from python.helpers.call_llm import call_llm
+        from helpers.call_llm import call_llm
         result = await call_llm(
             "Custom system prompt", mock_streaming_model, "User question here"
         )

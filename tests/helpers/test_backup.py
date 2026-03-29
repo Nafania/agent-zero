@@ -20,9 +20,9 @@ if str(PROJECT_ROOT) not in sys.path:
 @pytest.fixture
 def backup_service(tmp_workdir):
     """BackupService with mocked agent_zero_root pointing to tmp_workdir."""
-    with patch("python.helpers.backup.files.get_abs_path", return_value=str(tmp_workdir)):
-        with patch("python.helpers.backup.git.get_git_info", return_value={"version": "test-1.0"}):
-            from python.helpers.backup import BackupService
+    with patch("helpers.backup.files.get_abs_path", return_value=str(tmp_workdir)):
+        with patch("helpers.backup.git.get_git_info", return_value={"version": "test-1.0"}):
+            from helpers.backup import BackupService
 
             svc = BackupService()
             svc.agent_zero_root = str(tmp_workdir)
@@ -249,7 +249,7 @@ class TestCreateBackup:
         usr.mkdir(exist_ok=True)
         (usr / "data.txt").write_text("data")
 
-        with patch("python.helpers.backup.tempfile.mkdtemp", return_value=str(tmp_workdir)):
+        with patch("helpers.backup.tempfile.mkdtemp", return_value=str(tmp_workdir)):
             with patch.object(
                 backup_service,
                 "test_patterns",
@@ -264,7 +264,7 @@ class TestCreateBackup:
                     }
                 ],
             ):
-                with patch("python.helpers.backup.PrintStyle"):
+                with patch("helpers.backup.PrintStyle"):
                     with patch.object(backup_service, "_get_system_info", new_callable=AsyncMock, return_value={}):
                         with patch.object(
                             backup_service, "_get_environment_info", new_callable=AsyncMock, return_value={}

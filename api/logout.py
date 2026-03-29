@@ -1,4 +1,4 @@
-from python.helpers.api import ApiHandler, Request, session
+from helpers.api import ApiHandler, Request, session
 
 
 class ApiLogout(ApiHandler):

@@ -1,7 +1,7 @@
 import asyncio
 from datetime import datetime, timezone
 
-from python.helpers.print_style import PrintStyle
+from helpers.print_style import PrintStyle
 
 
 def format_remaining_time(total_seconds: float) -> str:

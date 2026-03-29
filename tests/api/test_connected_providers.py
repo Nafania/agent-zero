@@ -11,8 +11,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.connected_providers import ConnectedProviders
-from python.helpers.connected_providers import ConnectedProvider
+from api.connected_providers import ConnectedProviders
+from helpers.connected_providers import ConnectedProvider
 
 
 def _make():
@@ -27,7 +27,7 @@ class TestConnectedProviders:
             ConnectedProvider(provider_id="openrouter", auth_method="api_key", is_active=True),
             ConnectedProvider(provider_id="google", auth_method="oauth", is_active=True),
         ]
-        with patch("python.api.connected_providers.ProviderPool") as mock_pool_cls:
+        with patch("api.connected_providers.ProviderPool") as mock_pool_cls:
             mock_pool = MagicMock()
             mock_pool.get_connected.return_value = mock_connected
             mock_pool_cls.get_instance.return_value = mock_pool
@@ -44,7 +44,7 @@ class TestConnectedProviders:
     @pytest.mark.asyncio
     async def test_returns_empty_when_no_providers(self):
         handler = _make()
-        with patch("python.api.connected_providers.ProviderPool") as mock_pool_cls:
+        with patch("api.connected_providers.ProviderPool") as mock_pool_cls:
             mock_pool = MagicMock()
             mock_pool.get_connected.return_value = []
             mock_pool_cls.get_instance.return_value = mock_pool

@@ -15,7 +15,7 @@ if str(PROJECT_ROOT) not in sys.path:
 class TestCapturePrintsAsync:
     @pytest.mark.asyncio
     async def test_captures_stdout(self):
-        from python.helpers.print_catch import capture_prints_async
+        from helpers.print_catch import capture_prints_async
 
         async def print_hello():
             print("hello", end="")
@@ -28,7 +28,7 @@ class TestCapturePrintsAsync:
 
     @pytest.mark.asyncio
     async def test_captures_multiple_prints(self):
-        from python.helpers.print_catch import capture_prints_async
+        from helpers.print_catch import capture_prints_async
 
         async def print_multi():
             print("a", end="")
@@ -41,7 +41,7 @@ class TestCapturePrintsAsync:
 
     @pytest.mark.asyncio
     async def test_restores_stdout_on_exception(self):
-        from python.helpers.print_catch import capture_prints_async
+        from helpers.print_catch import capture_prints_async
 
         original_stdout = sys.stdout
 
@@ -56,7 +56,7 @@ class TestCapturePrintsAsync:
 
     @pytest.mark.asyncio
     async def test_get_output_returns_current_value(self):
-        from python.helpers.print_catch import capture_prints_async
+        from helpers.print_catch import capture_prints_async
 
         async def print_incremental():
             print("1", end="")
@@ -69,7 +69,7 @@ class TestCapturePrintsAsync:
 
     @pytest.mark.asyncio
     async def test_passes_args_and_kwargs(self):
-        from python.helpers.print_catch import capture_prints_async
+        from helpers.print_catch import capture_prints_async
 
         async def add(a, b):
             print(f"{a}+{b}", end="")

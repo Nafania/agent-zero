@@ -13,7 +13,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from flask import Response
 
-from python.api.message_queue_remove import MessageQueueRemove
+from api.message_queue_remove import MessageQueueRemove
 
 
 def _make_handler(app=None, lock=None):
@@ -27,9 +27,9 @@ class TestMessageQueueRemove:
         handler = _make_handler(app, lock)
         mock_ctx = MagicMock()
 
-        with patch("python.api.message_queue_remove.AgentContext") as MockCtx, \
-             patch("python.api.message_queue_remove.mq") as mock_mq, \
-             patch("python.api.message_queue_remove.mark_dirty_for_context"):
+        with patch("api.message_queue_remove.AgentContext") as MockCtx, \
+             patch("api.message_queue_remove.mq") as mock_mq, \
+             patch("api.message_queue_remove.mark_dirty_for_context"):
             MockCtx.get.return_value = mock_ctx
             mock_mq.remove.return_value = 2
 
@@ -47,7 +47,7 @@ class TestMessageQueueRemove:
         app, lock = mock_app
         handler = _make_handler(app, lock)
 
-        with patch("python.api.message_queue_remove.AgentContext") as MockCtx:
+        with patch("api.message_queue_remove.AgentContext") as MockCtx:
             MockCtx.get.return_value = None
             result = await handler.process({"context": "nonexistent"}, MagicMock())
 
@@ -61,9 +61,9 @@ class TestMessageQueueRemove:
         handler = _make_handler(app, lock)
         mock_ctx = MagicMock()
 
-        with patch("python.api.message_queue_remove.AgentContext") as MockCtx, \
-             patch("python.api.message_queue_remove.mq") as mock_mq, \
-             patch("python.api.message_queue_remove.mark_dirty_for_context"):
+        with patch("api.message_queue_remove.AgentContext") as MockCtx, \
+             patch("api.message_queue_remove.mq") as mock_mq, \
+             patch("api.message_queue_remove.mark_dirty_for_context"):
             MockCtx.get.return_value = mock_ctx
             mock_mq.remove.return_value = 0
 

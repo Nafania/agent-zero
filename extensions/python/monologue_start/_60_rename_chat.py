@@ -1,5 +1,5 @@
-from python.helpers import persist_chat, tokens
-from python.helpers.extension import Extension
+from helpers import persist_chat, tokens
+from helpers.extension import Extension
 from agent import LoopData
 import asyncio
 
@@ -35,8 +35,8 @@ class RenameChat(Extension):
                 # apply to context and save
                 self.agent.context.name = new_name
                 persist_chat.save_tmp_chat(self.agent.context)
-                from python.helpers.state_snapshot import touch_chat_list
-                from python.helpers.state_monitor_integration import mark_dirty_all
+                from helpers.state_snapshot import touch_chat_list
+                from helpers.state_monitor_integration import mark_dirty_all
                 touch_chat_list()
                 mark_dirty_all(reason="rename_chat")
         except Exception as e:

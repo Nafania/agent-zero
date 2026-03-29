@@ -4,11 +4,11 @@ import shutil
 import base64
 import subprocess
 from typing import Dict, List, Tuple, Any
-from python.helpers.security import safe_filename
+from helpers.security import safe_filename
 from datetime import datetime
 
-from python.helpers import files
-from python.helpers.print_style import PrintStyle
+from helpers import files
+from helpers.print_style import PrintStyle
 
 
 class FileBrowser:

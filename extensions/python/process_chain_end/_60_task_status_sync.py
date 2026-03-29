@@ -1,6 +1,6 @@
-from python.helpers.extension import Extension
-from python.helpers.task_scheduler import TaskScheduler, TaskState
-from python.helpers.print_style import PrintStyle
+from helpers.extension import Extension
+from helpers.task_scheduler import TaskScheduler, TaskState
+from helpers.print_style import PrintStyle
 from agent import LoopData
 
 

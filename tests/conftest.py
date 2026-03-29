@@ -64,7 +64,7 @@ def mock_settings(default_settings):
 
 @pytest.fixture
 def patch_settings(mock_settings):
-    with patch("python.helpers.settings.get_settings", return_value=mock_settings):
+    with patch("helpers.settings.get_settings", return_value=mock_settings):
         yield mock_settings
 
 

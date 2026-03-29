@@ -1,6 +1,6 @@
-from python.helpers.api import ApiHandler, Request, Response
-from python.helpers import dotenv, runtime
-from python.helpers.tunnel_manager import TunnelManager
+from helpers.api import ApiHandler, Request, Response
+from helpers import dotenv, runtime
+from helpers.tunnel_manager import TunnelManager
 import requests
 
 
@@ -34,5 +34,5 @@ async def process(input: dict) -> dict | Response:
             return {"error": str(e)}
     else:
         # forward to API handler directly
-        from python.api.tunnel import process as local_process
+        from api.tunnel import process as local_process
         return await local_process(input)

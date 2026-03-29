@@ -1,5 +1,5 @@
-from python.helpers.extension import Extension
-from python.helpers import skills
+from helpers.extension import Extension
+from helpers import skills
 from agent import LoopData
 
 

@@ -8,7 +8,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.helpers.websocket import (
+from helpers.websocket import (
     WebSocketHandler,
     WebSocketResult,
     SingletonInstantiationError,
@@ -140,9 +140,9 @@ def test_get_instance_returns_singleton():
 
 @pytest.mark.asyncio
 async def test_state_sync_handler_registers_and_routes_state_request():
-    from python.helpers.websocket_manager import WebSocketManager
-    from python.websocket_handlers.state_sync_handler import StateSyncHandler
-    from python.helpers.state_monitor import _reset_state_monitor_for_testing
+    from helpers.websocket_manager import WebSocketManager
+    from websocket_handlers.state_sync_handler import StateSyncHandler
+    from helpers.state_monitor import _reset_state_monitor_for_testing
 
     _reset_state_monitor_for_testing()
     StateSyncHandler._reset_instance_for_testing()
@@ -181,7 +181,7 @@ async def test_state_sync_handler_registers_and_routes_state_request():
 
 @pytest.mark.asyncio
 async def test_root_default_handler_requires_no_auth_or_csrf():
-    from python.websocket_handlers._default import RootDefaultHandler
+    from websocket_handlers._default import RootDefaultHandler
 
     assert RootDefaultHandler.requires_auth() is False
     assert RootDefaultHandler.requires_csrf() is False
@@ -189,8 +189,8 @@ async def test_root_default_handler_requires_no_auth_or_csrf():
 
 @pytest.mark.asyncio
 async def test_root_default_handler_processes_ws_root_echo():
-    from python.helpers.websocket_manager import WebSocketManager
-    from python.websocket_handlers._default import RootDefaultHandler
+    from helpers.websocket_manager import WebSocketManager
+    from websocket_handlers._default import RootDefaultHandler
 
     RootDefaultHandler._reset_instance_for_testing()
     socketio = _FakeSocketIO()
@@ -224,8 +224,8 @@ async def test_root_default_handler_processes_ws_root_echo():
 
 @pytest.mark.asyncio
 async def test_hello_handler_processes_hello_request():
-    from python.helpers.websocket_manager import WebSocketManager
-    from python.websocket_handlers.hello_handler import HelloHandler
+    from helpers.websocket_manager import WebSocketManager
+    from websocket_handlers.hello_handler import HelloHandler
 
     HelloHandler._reset_instance_for_testing()
     socketio = _FakeSocketIO()
@@ -252,8 +252,8 @@ async def test_hello_handler_processes_hello_request():
 
 @pytest.mark.asyncio
 async def test_hello_handler_defaults_to_stranger_when_no_name():
-    from python.helpers.websocket_manager import WebSocketManager
-    from python.websocket_handlers.hello_handler import HelloHandler
+    from helpers.websocket_manager import WebSocketManager
+    from websocket_handlers.hello_handler import HelloHandler
 
     HelloHandler._reset_instance_for_testing()
     socketio = _FakeSocketIO()
@@ -278,8 +278,8 @@ async def test_hello_handler_defaults_to_stranger_when_no_name():
 
 @pytest.mark.asyncio
 async def test_dev_websocket_test_handler_ws_tester_request():
-    from python.helpers.websocket_manager import WebSocketManager
-    from python.websocket_handlers.dev_websocket_test_handler import DevWebsocketTestHandler
+    from helpers.websocket_manager import WebSocketManager
+    from websocket_handlers.dev_websocket_test_handler import DevWebsocketTestHandler
 
     DevWebsocketTestHandler._reset_instance_for_testing()
     socketio = _FakeSocketIO()
@@ -306,8 +306,8 @@ async def test_dev_websocket_test_handler_ws_tester_request():
 
 @pytest.mark.asyncio
 async def test_dev_websocket_test_handler_ws_tester_request_delayed():
-    from python.helpers.websocket_manager import WebSocketManager
-    from python.websocket_handlers.dev_websocket_test_handler import DevWebsocketTestHandler
+    from helpers.websocket_manager import WebSocketManager
+    from websocket_handlers.dev_websocket_test_handler import DevWebsocketTestHandler
 
     DevWebsocketTestHandler._reset_instance_for_testing()
     socketio = _FakeSocketIO()
@@ -332,8 +332,8 @@ async def test_dev_websocket_test_handler_ws_tester_request_delayed():
 
 @pytest.mark.asyncio
 async def test_dev_websocket_test_handler_unknown_event_returns_error():
-    from python.helpers.websocket_manager import WebSocketManager
-    from python.websocket_handlers.dev_websocket_test_handler import DevWebsocketTestHandler
+    from helpers.websocket_manager import WebSocketManager
+    from websocket_handlers.dev_websocket_test_handler import DevWebsocketTestHandler
 
     DevWebsocketTestHandler._reset_instance_for_testing()
     socketio = _FakeSocketIO()

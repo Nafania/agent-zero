@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from typing import Any
-from python.helpers import extract_tools, files
+from helpers import extract_tools, files
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -27,7 +27,7 @@ class Extension:
 async def call_extensions(
     extension_point: str, agent: "Agent|None" = None, **kwargs
 ) -> Any:
-    from python.helpers import projects, subagents
+    from helpers import projects, subagents
 
     # search for extension folders in all agent's paths
     paths = subagents.get_paths(agent, "extensions", extension_point, default_root="python")

@@ -19,9 +19,9 @@ class TestKokoroTtsPreload:
         mock_kokoro = MagicMock()
         mock_kokoro.KPipeline.return_value = mock_pipeline
         with patch.dict("sys.modules", {"kokoro": mock_kokoro}):
-            with patch("python.helpers.kokoro_tts.PrintStyle"):
-                with patch("python.helpers.kokoro_tts.NotificationManager"):
-                    from python.helpers import kokoro_tts
+            with patch("helpers.kokoro_tts.PrintStyle"):
+                with patch("helpers.kokoro_tts.NotificationManager"):
+                    from helpers import kokoro_tts
                     kokoro_tts._pipeline = None
                     kokoro_tts.is_updating_model = False
                     try:
@@ -34,7 +34,7 @@ class TestKokoroTtsPreload:
 class TestKokoroTtsIsDownloading:
     @pytest.mark.asyncio
     async def test_is_downloading_returns_bool(self):
-        from python.helpers import kokoro_tts
+        from helpers import kokoro_tts
         old = kokoro_tts.is_updating_model
         kokoro_tts.is_updating_model = False
         try:
@@ -47,7 +47,7 @@ class TestKokoroTtsIsDownloading:
 class TestKokoroTtsIsDownloaded:
     @pytest.mark.asyncio
     async def test_is_downloaded_false_when_no_pipeline(self):
-        from python.helpers import kokoro_tts
+        from helpers import kokoro_tts
         old = kokoro_tts._pipeline
         kokoro_tts._pipeline = None
         try:
@@ -58,7 +58,7 @@ class TestKokoroTtsIsDownloaded:
 
     @pytest.mark.asyncio
     async def test_is_downloaded_true_when_loaded(self):
-        from python.helpers import kokoro_tts
+        from helpers import kokoro_tts
         old = kokoro_tts._pipeline
         kokoro_tts._pipeline = MagicMock()
         try:
@@ -78,7 +78,7 @@ class TestKokoroTtsSynthesizeSentences:
         mock_segment.audio = mock_audio
         mock_pipeline = MagicMock(return_value=iter([mock_segment]))
 
-        from python.helpers import kokoro_tts
+        from helpers import kokoro_tts
         with patch.object(kokoro_tts, "_pipeline", mock_pipeline):
             with patch.object(kokoro_tts, "_preload", AsyncMock()):
                 with patch.object(kokoro_tts, "sf") as msf:

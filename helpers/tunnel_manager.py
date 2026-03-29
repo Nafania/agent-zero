@@ -7,7 +7,7 @@ from flaredantic import (
 import threading
 from collections import deque
 
-from python.helpers.print_style import PrintStyle
+from helpers.print_style import PrintStyle
 
 # Singleton to manage the tunnel instance
 class TunnelManager:

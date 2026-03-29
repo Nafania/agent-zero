@@ -16,7 +16,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 class TestValidateSnapshotSchemaV1:
     def test_validate_accepts_valid_snapshot(self):
-        from python.helpers.state_snapshot import validate_snapshot_schema_v1
+        from helpers.state_snapshot import validate_snapshot_schema_v1
 
         snapshot = {
             "deselect_chat": False,
@@ -38,20 +38,20 @@ class TestValidateSnapshotSchemaV1:
         validate_snapshot_schema_v1(snapshot)  # no raise
 
     def test_validate_rejects_non_dict(self):
-        from python.helpers.state_snapshot import validate_snapshot_schema_v1
+        from helpers.state_snapshot import validate_snapshot_schema_v1
 
         with pytest.raises(TypeError, match="must be a dict"):
             validate_snapshot_schema_v1([])
 
     def test_validate_rejects_missing_keys(self):
-        from python.helpers.state_snapshot import validate_snapshot_schema_v1
+        from helpers.state_snapshot import validate_snapshot_schema_v1
 
         snapshot = {"context": "", "logs": []}  # missing many keys
         with pytest.raises(ValueError, match="missing"):
             validate_snapshot_schema_v1(snapshot)
 
     def test_validate_rejects_extra_keys(self):
-        from python.helpers.state_snapshot import validate_snapshot_schema_v1
+        from helpers.state_snapshot import validate_snapshot_schema_v1
 
         snapshot = {
             "deselect_chat": False,
@@ -75,7 +75,7 @@ class TestValidateSnapshotSchemaV1:
             validate_snapshot_schema_v1(snapshot)
 
     def test_validate_rejects_wrong_type_for_key(self):
-        from python.helpers.state_snapshot import validate_snapshot_schema_v1
+        from helpers.state_snapshot import validate_snapshot_schema_v1
 
         snapshot = {
             "deselect_chat": False,
@@ -103,7 +103,7 @@ class TestValidateSnapshotSchemaV1:
 
 class TestParseStateRequestPayload:
     def test_parse_valid_payload(self):
-        from python.helpers.state_snapshot import parse_state_request_payload
+        from helpers.state_snapshot import parse_state_request_payload
 
         payload = {
             "context": "ctx-1",
@@ -118,7 +118,7 @@ class TestParseStateRequestPayload:
         assert req.timezone == "UTC"
 
     def test_parse_null_context(self):
-        from python.helpers.state_snapshot import parse_state_request_payload
+        from helpers.state_snapshot import parse_state_request_payload
 
         payload = {
             "context": None,
@@ -130,7 +130,7 @@ class TestParseStateRequestPayload:
         assert req.context is None
 
     def test_parse_rejects_invalid_context_type(self):
-        from python.helpers.state_snapshot import parse_state_request_payload, StateRequestValidationError
+        from helpers.state_snapshot import parse_state_request_payload, StateRequestValidationError
 
         payload = {
             "context": 123,
@@ -142,7 +142,7 @@ class TestParseStateRequestPayload:
             parse_state_request_payload(payload)
 
     def test_parse_rejects_negative_log_from(self):
-        from python.helpers.state_snapshot import parse_state_request_payload, StateRequestValidationError
+        from helpers.state_snapshot import parse_state_request_payload, StateRequestValidationError
 
         payload = {
             "context": None,
@@ -154,7 +154,7 @@ class TestParseStateRequestPayload:
             parse_state_request_payload(payload)
 
     def test_parse_rejects_empty_timezone(self):
-        from python.helpers.state_snapshot import parse_state_request_payload, StateRequestValidationError
+        from helpers.state_snapshot import parse_state_request_payload, StateRequestValidationError
 
         payload = {
             "context": None,
@@ -166,7 +166,7 @@ class TestParseStateRequestPayload:
             parse_state_request_payload(payload)
 
     def test_parse_rejects_invalid_timezone(self):
-        from python.helpers.state_snapshot import parse_state_request_payload, StateRequestValidationError
+        from helpers.state_snapshot import parse_state_request_payload, StateRequestValidationError
 
         payload = {
             "context": None,
@@ -183,7 +183,7 @@ class TestParseStateRequestPayload:
 
 class TestStateRequestValidationError:
     def test_state_request_validation_error_has_reason_and_details(self):
-        from python.helpers.state_snapshot import StateRequestValidationError
+        from helpers.state_snapshot import StateRequestValidationError
 
         e = StateRequestValidationError(
             reason="test_reason",
@@ -200,9 +200,9 @@ class TestStateRequestValidationError:
 
 class TestCoerceStateRequestInputs:
     def test_coerce_uses_default_timezone_when_empty(self):
-        from python.helpers.state_snapshot import _coerce_state_request_inputs
+        from helpers.state_snapshot import _coerce_state_request_inputs
 
-        with patch("python.helpers.state_snapshot.get_dotenv_value", return_value="Europe/London"):
+        with patch("helpers.state_snapshot.get_dotenv_value", return_value="Europe/London"):
             req = _coerce_state_request_inputs(
                 context=None,
                 log_from=0,
@@ -212,9 +212,9 @@ class TestCoerceStateRequestInputs:
             assert req.timezone == "Europe/London"
 
     def test_coerce_handles_non_int_log_from(self):
-        from python.helpers.state_snapshot import _coerce_state_request_inputs
+        from helpers.state_snapshot import _coerce_state_request_inputs
 
-        with patch("python.helpers.state_snapshot.get_dotenv_value", return_value="UTC"):
+        with patch("helpers.state_snapshot.get_dotenv_value", return_value="UTC"):
             req = _coerce_state_request_inputs(
                 context=None,
                 log_from="invalid",
@@ -229,7 +229,7 @@ class TestCoerceStateRequestInputs:
 
 class TestAdvanceStateRequestAfterSnapshot:
     def test_advance_updates_log_from_from_snapshot(self):
-        from python.helpers.state_snapshot import (
+        from helpers.state_snapshot import (
             StateRequestV1,
             advance_state_request_after_snapshot,
         )
@@ -248,7 +248,7 @@ class TestAdvanceStateRequestAfterSnapshot:
         assert result.timezone == "UTC"
 
     def test_advance_preserves_original_on_invalid_snapshot_values(self):
-        from python.helpers.state_snapshot import (
+        from helpers.state_snapshot import (
             StateRequestV1,
             advance_state_request_after_snapshot,
         )
@@ -271,7 +271,7 @@ class TestAdvanceStateRequestAfterSnapshot:
 @pytest.mark.asyncio
 class TestBuildSnapshot:
     async def test_build_snapshot_from_request_produces_valid_schema(self):
-        from python.helpers.state_snapshot import (
+        from helpers.state_snapshot import (
             StateRequestV1,
             build_snapshot_from_request,
             validate_snapshot_schema_v1,
@@ -281,13 +281,13 @@ class TestBuildSnapshot:
         mock_manager.output = MagicMock(return_value=[])
         mock_manager.guid = "guid"
         mock_manager.updates = []
-        with patch("python.helpers.state_snapshot.AgentContext") as mock_ctx:
+        with patch("helpers.state_snapshot.AgentContext") as mock_ctx:
             mock_ctx.get = MagicMock(return_value=None)
             mock_ctx.all = MagicMock(return_value=[])
-            with patch("python.helpers.state_snapshot.AgentContext.get_notification_manager", return_value=mock_manager):
-                with patch("python.helpers.state_snapshot.TaskScheduler.get") as mock_ts:
+            with patch("helpers.state_snapshot.AgentContext.get_notification_manager", return_value=mock_manager):
+                with patch("helpers.state_snapshot.TaskScheduler.get") as mock_ts:
                     mock_ts.return_value.get_task_by_uuid = MagicMock(return_value=None)
-                    with patch("python.helpers.state_snapshot.Localization.get") as mock_loc:
+                    with patch("helpers.state_snapshot.Localization.get") as mock_loc:
                         mock_loc.return_value.set_timezone = MagicMock()
 
                         request = StateRequestV1(

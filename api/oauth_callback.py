@@ -1,9 +1,9 @@
 from flask import Response as FlaskResponse
-from python.helpers.api import ApiHandler, Input, Output, Request
-from python.helpers.oauth import get_oauth_provider
-from python.helpers.connected_providers import ProviderPool
-from python.helpers import dotenv
-from python.api.oauth_authorize import _pending_states
+from helpers.api import ApiHandler, Input, Output, Request
+from helpers.oauth import get_oauth_provider
+from helpers.connected_providers import ProviderPool
+from helpers import dotenv
+from api.oauth_authorize import _pending_states
 
 
 class OAuthCallback(ApiHandler):

@@ -23,13 +23,13 @@ import litellm
 import openai
 from litellm.types.utils import ModelResponse
 
-from python.helpers import dotenv
-from python.helpers import settings, dirty_json
-from python.helpers.dotenv import load_dotenv
-from python.helpers.providers import ModelType as ProviderModelType, get_provider_config
-from python.helpers.rate_limiter import RateLimiter
-from python.helpers.tokens import approximate_tokens
-from python.helpers import dirty_json, browser_use_monkeypatch
+from helpers import dotenv
+from helpers import settings, dirty_json
+from helpers.dotenv import load_dotenv
+from helpers.providers import ModelType as ProviderModelType, get_provider_config
+from helpers.rate_limiter import RateLimiter
+from helpers.tokens import approximate_tokens
+from helpers import dirty_json, browser_use_monkeypatch
 
 from langchain_core.language_models.chat_models import SimpleChatModel
 from langchain_core.outputs.chat_generation import ChatGenerationChunk
@@ -134,9 +134,9 @@ def _emit_usage_event(event: dict[str, Any]) -> None:
 
 
 # Auto-register the built-in metrics collector
-from python.helpers.metrics_collector import collector as _metrics_collector
+from helpers.metrics_collector import collector as _metrics_collector
 register_llm_callback(_metrics_collector.record)
-from python.helpers import files as _files
+from helpers import files as _files
 _metrics_collector.enable_persistence(_files.get_abs_path("usr", "metrics.json"))
 
 
@@ -278,7 +278,7 @@ api_keys_round_robin: dict[str, int] = {}
 
 
 def get_api_key(service: str) -> str:
-    from python.helpers.connected_providers import ProviderPool
+    from helpers.connected_providers import ProviderPool
     pool = ProviderPool.get_instance()
     key = pool.get_credential(service)
     if key and key not in ("None", "NA"):
@@ -415,7 +415,7 @@ def _cap_max_tokens_for_context(model_name: str, call_kwargs: dict, msgs: list) 
             return
         est_input = litellm.token_counter(model=model_name, messages=msgs)
         headroom = ctx_window - est_input
-        from python.helpers.print_style import PrintStyle
+        from helpers.print_style import PrintStyle
         PrintStyle(font_color="cyan", padding=False).print(
             f"_cap_max_tokens: model={model_name} ctx={ctx_window} "
             f"est_input={est_input} headroom={headroom} "
@@ -749,7 +749,7 @@ class LiteLLMChatWrapper(SimpleChatModel):
                 # Detect silently truncated streams: got chunks but transport
                 # closed the connection without a proper finish_reason.
                 if stream and got_any_chunk and _finish is None:
-                    from python.helpers.print_style import PrintStyle
+                    from helpers.print_style import PrintStyle
                     PrintStyle(font_color="red", padding=True).print(
                         f"⚠ Stream silently truncated: got chunks but no finish_reason "
                         f"(model={self.model_name}). Retrying..."
@@ -761,7 +761,7 @@ class LiteLLMChatWrapper(SimpleChatModel):
 
                 if _finish == "length":
                     _max_used = call_kwargs.get("max_tokens", "?")
-                    from python.helpers.print_style import PrintStyle
+                    from helpers.print_style import PrintStyle
                     PrintStyle(font_color="orange", padding=True).print(
                         f"⚠ Response truncated: model hit max_tokens={_max_used} "
                         f"(model={self.model_name}). "
@@ -849,7 +849,7 @@ class LiteLLMChatWrapper(SimpleChatModel):
                 _ttft = None
                 _t0 = _time.monotonic()
 
-                from python.helpers.print_style import PrintStyle
+                from helpers.print_style import PrintStyle
                 PrintStyle(font_color="yellow").print(
                     f"LLM retry {attempt}/{max_retries} for {self.model_name}: "
                     f"{type(e).__name__} (backoff {delay:.1f}s)"

@@ -20,7 +20,7 @@ def mock_agent():
 
 @pytest.fixture
 def tool(mock_agent):
-    from python.tools.memory_delete import MemoryDelete
+    from tools.memory_delete import MemoryDelete
     return MemoryDelete(
         agent=mock_agent,
         name="memory_delete",
@@ -36,7 +36,7 @@ class TestMemoryDeleteExecute:
     async def test_delete_returns_count(self, tool):
         mock_db = MagicMock()
         mock_db.delete_documents_by_ids = AsyncMock(return_value=["id1", "id2"])
-        with patch("python.tools.memory_delete.Memory.get", new_callable=AsyncMock, return_value=mock_db):
+        with patch("tools.memory_delete.Memory.get", new_callable=AsyncMock, return_value=mock_db):
             resp = await tool.execute(ids="id1,id2")
         assert "2" in resp.message or "Deleted" in resp.message
         assert resp.break_loop is False
@@ -45,6 +45,6 @@ class TestMemoryDeleteExecute:
     async def test_empty_ids_deletes_nothing(self, tool):
         mock_db = MagicMock()
         mock_db.delete_documents_by_ids = AsyncMock(return_value=[])
-        with patch("python.tools.memory_delete.Memory.get", new_callable=AsyncMock, return_value=mock_db):
+        with patch("tools.memory_delete.Memory.get", new_callable=AsyncMock, return_value=mock_db):
             resp = await tool.execute(ids="")
         mock_db.delete_documents_by_ids.assert_called_with(ids=[])

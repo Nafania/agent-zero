@@ -1,6 +1,6 @@
 from initialize import initialize_agent
-from python.helpers import dirty_json, files, subagents, projects
-from python.helpers.extension import Extension
+from helpers import dirty_json, files, subagents, projects
+from helpers.extension import Extension
 
 
 class LoadProfileSettings(Extension):

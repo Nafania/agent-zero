@@ -127,7 +127,7 @@ class TestAgentContext:
 
     def test_set_current_and_get_current(self):
         from agent import AgentContext
-        from python.helpers import context as context_helper
+        from helpers import context as context_helper
 
         context_helper.clear_context_data()
         AgentContext.set_current("ctx-1")
@@ -219,7 +219,7 @@ class TestAgentContext:
             mock_agent_cls.return_value = MagicMock()
             ctx = AgentContext(config=mock_agent_config, id="test-ctx-use")
             try:
-                from python.helpers import context as context_helper
+                from helpers import context as context_helper
                 context_helper.clear_context_data()
                 result = AgentContext.use("test-ctx-use")
                 assert result is ctx
@@ -229,7 +229,7 @@ class TestAgentContext:
 
     def test_context_use_clears_current_when_not_found(self):
         from agent import AgentContext
-        from python.helpers import context as context_helper
+        from helpers import context as context_helper
 
         context_helper.clear_context_data()
         AgentContext.set_current("some-id")
@@ -239,7 +239,7 @@ class TestAgentContext:
 
     def test_context_current_returns_none_when_no_context_set(self):
         from agent import AgentContext
-        from python.helpers import context as context_helper
+        from helpers import context as context_helper
 
         context_helper.clear_context_data()
         assert AgentContext.current() is None
@@ -668,7 +668,7 @@ class TestAgent:
 
     def test_agent_get_tool_returns_unknown_when_no_tool_found(self, agent_with_mocked_extensions):
         from agent import Agent
-        from python.tools.unknown import Unknown
+        from tools.unknown import Unknown
 
         agent = agent_with_mocked_extensions
         with (
@@ -776,7 +776,7 @@ class TestAgent:
             }
             mock_mcp = MagicMock()
             mock_mcp.MCPConfig.get_instance.return_value.get_tool.return_value = None
-            with patch.dict("sys.modules", {"python.helpers.mcp_handler": mock_mcp}):
+            with patch.dict("sys.modules", {"helpers.mcp_handler": mock_mcp}):
                 with patch.object(agent, "get_tool", return_value=mock_tool):
                     result = await agent.process_tools('{"tool_name": "test_tool"}')
                     assert result == "done"
@@ -795,6 +795,6 @@ class TestAgent:
             mock_extract.json_parse_dirty.return_value = {"tool_name": "nonexistent_tool_xyz", "tool_args": {}}
             mock_mcp = MagicMock()
             mock_mcp.MCPConfig.get_instance.return_value.get_tool.return_value = None
-            with patch.dict("sys.modules", {"python.helpers.mcp_handler": mock_mcp}):
+            with patch.dict("sys.modules", {"helpers.mcp_handler": mock_mcp}):
                 await agent.process_tools('{"tool_name": "nonexistent_tool_xyz"}')
                 agent.hist_add_warning.assert_called()

@@ -11,8 +11,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.provider_models import ProviderModels
-from python.helpers.oauth import ModelInfo
+from api.provider_models import ProviderModels
+from helpers.oauth import ModelInfo
 
 
 def _make():
@@ -27,7 +27,7 @@ class TestProviderModels:
             ModelInfo(id="gemini-2.5-pro", name="Gemini 2.5 Pro", context_length=1048576, supports_vision=True),
             ModelInfo(id="gemini-2.0-flash", name="Gemini 2.0 Flash", context_length=1048576, supports_vision=True),
         ]
-        with patch("python.api.provider_models.ProviderPool") as mock_pool_cls:
+        with patch("api.provider_models.ProviderPool") as mock_pool_cls:
             mock_pool = MagicMock()
             mock_pool.list_models = AsyncMock(return_value=mock_models)
             mock_pool_cls.get_instance.return_value = mock_pool
@@ -41,7 +41,7 @@ class TestProviderModels:
     @pytest.mark.asyncio
     async def test_returns_empty_for_disconnected(self):
         handler = _make()
-        with patch("python.api.provider_models.ProviderPool") as mock_pool_cls:
+        with patch("api.provider_models.ProviderPool") as mock_pool_cls:
             mock_pool = MagicMock()
             mock_pool.list_models = AsyncMock(return_value=[])
             mock_pool_cls.get_instance.return_value = mock_pool

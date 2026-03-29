@@ -20,7 +20,7 @@ class TestReasoningLogFromStream:
         mock_log_item = MagicMock()
         mock_agent.context.log.log.return_value = mock_log_item
 
-        from python.extensions.reasoning_stream._10_log_from_stream import LogFromStream
+        from extensions.python.reasoning_stream._10_log_from_stream import LogFromStream
 
         ext = LogFromStream(agent=mock_agent)
         await ext.execute(loop_data=mock_loop_data, text="thinking...")
@@ -34,7 +34,7 @@ class TestMaskReasoningStreamChunk:
 
     @pytest.mark.asyncio
     async def test_returns_early_without_agent(self, mock_agent):
-        from python.extensions.reasoning_stream_chunk._10_mask_stream import (
+        from extensions.python.reasoning_stream_chunk._10_mask_stream import (
             MaskReasoningStreamChunk,
         )
 
@@ -48,12 +48,12 @@ class TestMaskReasoningStreamChunk:
         filter_mock.process_chunk.return_value = "***"
 
         with patch(
-            "python.extensions.reasoning_stream_chunk._10_mask_stream.get_secrets_manager"
+            "extensions.python.reasoning_stream_chunk._10_mask_stream.get_secrets_manager"
         ) as mock_mgr:
             mock_mgr.return_value.create_streaming_filter.return_value = filter_mock
             mock_mgr.return_value.mask_values.return_value = "***"
 
-            from python.extensions.reasoning_stream_chunk._10_mask_stream import (
+            from extensions.python.reasoning_stream_chunk._10_mask_stream import (
                 MaskReasoningStreamChunk,
             )
 
@@ -68,7 +68,7 @@ class TestMaskReasoningStreamEnd:
 
     @pytest.mark.asyncio
     async def test_returns_early_without_agent(self, mock_agent):
-        from python.extensions.reasoning_stream_end._10_mask_end import (
+        from extensions.python.reasoning_stream_end._10_mask_end import (
             MaskReasoningStreamEnd,
         )
 
@@ -81,7 +81,7 @@ class TestMaskReasoningStreamEnd:
         filter_mock.finalize.return_value = ""
         mock_agent.get_data.return_value = filter_mock
 
-        from python.extensions.reasoning_stream_end._10_mask_end import (
+        from extensions.python.reasoning_stream_end._10_mask_end import (
             MaskReasoningStreamEnd,
         )
 

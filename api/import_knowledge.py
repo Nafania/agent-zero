@@ -1,7 +1,7 @@
-from python.helpers.api import ApiHandler, Request, Response
-from python.helpers import files, memory
+from helpers.api import ApiHandler, Request, Response
+from helpers import files, memory
 import os
-from python.helpers.security import safe_filename
+from helpers.security import safe_filename
 
 
 class ImportKnowledge(ApiHandler):

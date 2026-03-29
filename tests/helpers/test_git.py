@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.helpers import git
+from helpers import git
 
 
 class TestStripAuthFromUrl:
@@ -37,28 +37,28 @@ class TestStripAuthFromUrl:
 
 class TestGetVersion:
     def test_returns_version_from_git_info(self):
-        with patch("python.helpers.git.get_git_info") as m:
+        with patch("helpers.git.get_git_info") as m:
             m.return_value = {"short_tag": "v0.9.8", "branch": "main"}
             assert git.get_version() == "v0.9.8"
 
     def test_falls_back_to_env(self):
-        with patch("python.helpers.git.get_git_info", side_effect=Exception("no git")):
+        with patch("helpers.git.get_git_info", side_effect=Exception("no git")):
             with patch.dict(os.environ, {"A0_VERSION": "v1.0.0"}, clear=False):
                 assert git.get_version() == "v1.0.0"
 
     def test_falls_back_to_version_file(self, tmp_path):
         version_file = tmp_path / "VERSION"
         version_file.write_text("v0.9.9")
-        with patch("python.helpers.git.get_git_info", side_effect=Exception("no git")):
+        with patch("helpers.git.get_git_info", side_effect=Exception("no git")):
             with patch.dict(os.environ, {}, clear=True):
-                with patch("python.helpers.git.files") as mf:
+                with patch("helpers.git.files") as mf:
                     mf.get_base_dir.return_value = str(tmp_path)
                     assert git.get_version() == "v0.9.9"
 
     def test_returns_unknown_when_all_fail(self):
-        with patch("python.helpers.git.get_git_info", side_effect=Exception("no git")):
+        with patch("helpers.git.get_git_info", side_effect=Exception("no git")):
             with patch.dict(os.environ, {}, clear=True):
-                with patch("python.helpers.git.files") as mf:
+                with patch("helpers.git.files") as mf:
                     mf.get_base_dir.return_value = "/tmp"
                     with patch("os.path.isfile", return_value=False):
                         assert git.get_version() == "unknown"
@@ -68,7 +68,7 @@ class TestCloneRepo:
     def test_clone_without_token(self):
         with patch("subprocess.run") as m:
             m.return_value = MagicMock(returncode=0)
-            with patch("python.helpers.git.Repo") as mr:
+            with patch("helpers.git.Repo") as mr:
                 git.clone_repo("https://github.com/org/repo", "/tmp/dest")
         m.assert_called_once()
         args = m.call_args[0][0]
@@ -79,7 +79,7 @@ class TestCloneRepo:
     def test_clone_with_token_adds_extra_header(self):
         with patch("subprocess.run") as m:
             m.return_value = MagicMock(returncode=0)
-            with patch("python.helpers.git.Repo"):
+            with patch("helpers.git.Repo"):
                 git.clone_repo("https://github.com/org/repo", "/tmp/dest", token="ghp_xxx")
         args = m.call_args[0][0]
         assert "-c" in args
@@ -96,7 +96,7 @@ class TestCloneRepo:
 
 class TestGetRepoStatus:
     def test_returns_not_git_repo_on_error(self):
-        with patch("python.helpers.git.Repo", side_effect=Exception("not a repo")):
+        with patch("helpers.git.Repo", side_effect=Exception("not a repo")):
             result = git.get_repo_status("/tmp")
         assert result["is_git_repo"] is False
         assert "error" in result
@@ -114,7 +114,7 @@ class TestGetRepoStatus:
         mock_repo.head.commit.author = "Author"
         mock_repo.head.commit.committed_date = 1234567890
 
-        with patch("python.helpers.git.Repo", return_value=mock_repo):
+        with patch("helpers.git.Repo", return_value=mock_repo):
             result = git.get_repo_status("/tmp/repo")
         assert result["is_git_repo"] is True
         assert result["current_branch"] == "main"

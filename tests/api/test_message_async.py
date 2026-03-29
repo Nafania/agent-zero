@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.message_async import MessageAsync
+from api.message_async import MessageAsync
 
 
 def _make_handler(app=None, lock=None):
@@ -50,5 +50,5 @@ class TestMessageAsync:
         assert result["context"] == "ctx-456"
 
     def test_inherits_from_message(self):
-        from python.api.message import Message
+        from api.message import Message
         assert issubclass(MessageAsync, Message)

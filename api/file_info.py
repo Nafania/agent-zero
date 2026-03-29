@@ -1,6 +1,6 @@
 import os
-from python.helpers.api import ApiHandler, Input, Output, Request, Response
-from python.helpers import files, runtime
+from helpers.api import ApiHandler, Input, Output, Request, Response
+from helpers import files, runtime
 from typing import TypedDict
 
 class FileInfoApi(ApiHandler):
