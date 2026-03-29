@@ -243,6 +243,7 @@ def csrf_protect(f):
 
 
 @webapp.route("/login", methods=["GET", "POST"])
+@extension.extensible
 async def login_handler():
     error = None
     if request.method == 'POST':
@@ -261,6 +262,7 @@ async def login_handler():
 
 
 @webapp.route("/logout")
+@extension.extensible
 async def logout_handler():
     session.pop('authentication', None)
     return redirect(url_for('login_handler'))
@@ -269,6 +271,7 @@ async def logout_handler():
 # handle default address, load index
 @webapp.route("/", methods=["GET"])
 @requires_auth
+@extension.extensible
 async def serve_index():
     gitinfo = None
     try:
@@ -316,6 +319,7 @@ async def serve_extension_asset(asset_path):
     return send_file(path)
 
 
+@extension.extensible
 async def _serve_plugin_asset(plugin_name, asset_path):
     plugin_dir = plugins.find_plugin_dir(plugin_name)
     if not plugin_dir:
@@ -677,6 +681,7 @@ def wait_for_health(host: str, port: int):
         time.sleep(1)
 
 
+@extension.extensible
 def init_a0():
     # initialize contexts and MCP
     init_chats = initialize.initialize_chats()

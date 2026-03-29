@@ -1,4 +1,8 @@
 import json
+import os
+import subprocess
+import sys
+from datetime import datetime, timezone
 
 from helpers.api import ApiHandler, Request, Response
 from helpers import plugins, files
@@ -68,13 +72,51 @@ class Plugins(ApiHandler):
 
         if action == "get_toggle_status":
             plugin_name = input.get("plugin_name", "")
+            project_name = input.get("project_name", "")
+            agent_profile = input.get("agent_profile", "")
             if not plugin_name:
                 return Response(status=400, response="Missing plugin_name")
+
             meta = plugins.get_plugin_meta(plugin_name)
             if not meta:
                 return Response(status=404, response="Plugin not found")
-            state = plugins.get_toggle_state(plugin_name)
-            return {"ok": True, "status": state}
+
+            if meta.always_enabled:
+                return {
+                    "ok": True,
+                    "status": "enabled",
+                    "loaded_project_name": project_name,
+                    "loaded_agent_profile": agent_profile,
+                    "loaded_path": "",
+                }
+
+            result = plugins.find_plugin_assets(
+                plugins.TOGGLE_FILE_PATTERN,
+                plugin_name=plugin_name,
+                project_name=project_name,
+                agent_profile=agent_profile,
+                only_first=True,
+            )
+
+            if result:
+                entry = result[0]
+                path = entry.get("path", "")
+                status = "enabled" if path.endswith(plugins.ENABLED_FILE_NAME) else "disabled"
+                return {
+                    "ok": True,
+                    "status": status,
+                    "loaded_project_name": entry.get("project_name", ""),
+                    "loaded_agent_profile": entry.get("agent_profile", ""),
+                    "loaded_path": path,
+                }
+
+            return {
+                "ok": True,
+                "status": "enabled",
+                "loaded_project_name": "",
+                "loaded_agent_profile": "",
+                "loaded_path": "",
+            }
 
         if action == "toggle":
             plugin_name = input.get("plugin_name", "")
@@ -86,6 +128,22 @@ class Plugins(ApiHandler):
                 return Response(status=400, response="Missing plugin_name")
             plugins.toggle_plugin(
                 plugin_name, enabled, project_name, agent_profile, clear_overrides
+            )
+            return {"ok": True}
+
+        if action == "toggle_plugin":
+            # upstream-compatible alias
+            plugin_name = input.get("plugin_name", "")
+            enabled = input.get("enabled")
+            project_name = input.get("project_name", "")
+            agent_profile = input.get("agent_profile", "")
+            clear_overrides = bool(input.get("clear_overrides", False))
+            if not plugin_name:
+                return Response(status=400, response="Missing plugin_name")
+            if enabled is None:
+                return Response(status=400, response="Missing enabled state")
+            plugins.toggle_plugin(
+                plugin_name, bool(enabled), project_name, agent_profile, clear_overrides
             )
             return {"ok": True}
 
@@ -105,5 +163,133 @@ class Plugins(ApiHandler):
                 return Response(status=400, response="Missing plugin_name")
             config = plugins.get_default_plugin_config(plugin_name)
             return {"ok": True, "data": config}
+
+        if action == "list_configs":
+            plugin_name = input.get("plugin_name", "")
+            asset_type = input.get("asset_type", "config")
+            if not plugin_name:
+                return Response(status=400, response="Missing plugin_name")
+            configs = plugins.find_plugin_assets(
+                plugins.CONFIG_FILE_NAME if asset_type == "config" else plugins.TOGGLE_FILE_PATTERN,
+                plugin_name=plugin_name,
+                project_name="*",
+                agent_profile="*",
+                only_first=False,
+            )
+            return {"ok": True, "data": configs}
+
+        if action == "delete_config":
+            plugin_name = input.get("plugin_name", "")
+            path = input.get("path", "")
+            if not plugin_name:
+                return Response(status=400, response="Missing plugin_name")
+            if not path:
+                return Response(status=400, response="Missing path")
+            configs = plugins.find_plugin_assets(
+                plugins.CONFIG_FILE_NAME,
+                plugin_name=plugin_name,
+                project_name="*",
+                agent_profile="*",
+                only_first=False,
+            )
+            toggles = plugins.find_plugin_assets(
+                plugins.TOGGLE_FILE_PATTERN,
+                plugin_name=plugin_name,
+                project_name="*",
+                agent_profile="*",
+                only_first=False,
+            )
+            allowed_paths = {c.get("path", "") for c in configs + toggles}
+            if path not in allowed_paths:
+                return Response(status=400, response="Invalid path")
+            if not files.exists(path):
+                return {"ok": True}
+            try:
+                os.remove(path)
+            except Exception as e:
+                return Response(status=500, response=f"Failed to delete config: {str(e)}")
+            return {"ok": True}
+
+        if action == "delete_plugin":
+            plugin_name = input.get("plugin_name", "")
+            if not plugin_name:
+                return Response(status=400, response="Missing plugin_name")
+            try:
+                plugins.delete_plugin(plugin_name)
+            except FileNotFoundError as e:
+                return Response(status=404, response=str(e))
+            except ValueError as e:
+                return Response(status=400, response=str(e))
+            except Exception as e:
+                return Response(status=500, response=f"Failed to delete plugin: {str(e)}")
+            return {"ok": True}
+
+        if action == "get_doc":
+            plugin_name = input.get("plugin_name", "")
+            doc = input.get("doc", "")
+            if not plugin_name:
+                return Response(status=400, response="Missing plugin_name")
+            if doc not in ("readme", "license"):
+                return Response(status=400, response="doc must be 'readme' or 'license'")
+            plugin_dir = plugins.find_plugin_dir(plugin_name)
+            if not plugin_dir:
+                return Response(status=404, response="Plugin not found")
+            filename = "README.md" if doc == "readme" else "LICENSE"
+            file_path = files.get_abs_path(plugin_dir, filename)
+            if not files.exists(file_path):
+                return Response(status=404, response=f"{filename} not found")
+            return {"ok": True, "content": files.read_file(file_path), "filename": filename}
+
+        if action == "run_init_script":
+            plugin_name = input.get("plugin_name", "")
+            if not plugin_name:
+                return Response(status=400, response="Missing plugin_name")
+            plugin_dir = plugins.find_plugin_dir(plugin_name)
+            if not plugin_dir:
+                return Response(status=404, response="Plugin not found")
+            init_script = files.get_abs_path(plugin_dir, "initialize.py")
+            if not files.exists(init_script):
+                return Response(status=404, response="initialize.py not found")
+            executed_at = datetime.now(timezone.utc).isoformat()
+            try:
+                result = subprocess.run(
+                    [sys.executable, init_script],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    cwd=plugin_dir,
+                    timeout=120,
+                )
+                exit_code = result.returncode
+                output = result.stdout or ""
+            except subprocess.TimeoutExpired:
+                exit_code = -1
+                output = "Error: script timed out after 120 seconds"
+            except Exception as e:
+                exit_code = -1
+                output = f"Error: {str(e)}"
+            exec_record = {"executed_at": executed_at, "exit_code": exit_code}
+            exec_path = plugins.determine_plugin_asset_path(plugin_name, "", "", "init_exec.json")
+            if exec_path:
+                files.write_file(exec_path, json.dumps(exec_record))
+            return {
+                "ok": exit_code == 0,
+                "output": output,
+                "exit_code": exit_code,
+                "executed_at": executed_at,
+            }
+
+        if action == "get_init_exec":
+            plugin_name = input.get("plugin_name", "")
+            if not plugin_name:
+                return Response(status=400, response="Missing plugin_name")
+            exec_path = plugins.determine_plugin_asset_path(plugin_name, "", "", "init_exec.json")
+            if exec_path and files.exists(exec_path):
+                try:
+                    data = json.loads(files.read_file(exec_path))
+                    return {"ok": True, "data": data}
+                except Exception:
+                    pass
+            return {"ok": True, "data": None}
 
         return Response(status=400, response=f"Unknown action: {action}")

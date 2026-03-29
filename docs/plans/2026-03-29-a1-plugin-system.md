@@ -198,3 +198,167 @@ plugins/<name>/
 - **Shim files**: ~43 (25 helper shims + 18 API shims)
 - **Modified files**: ~10 (extension.py, subagents.py, files.py, run_ui.py, AGENTS.md, ci.yml)
 - **Updated test files**: ~50 (import rewrites, patch target fixes)
+
+---
+
+## Upstream Reference Points
+
+Our goal: achieve API-compatible plugin system so that all future upstream plugins, extensions, and WebUI components work without modification in our fork.
+
+### Upstream branch and commit
+
+- **Branch**: `origin/development`
+- **HEAD at time of implementation**: `1b89a0d3` (Add tool request validation and plugin change notifications)
+- **Key upstream commits** (chronological):
+  - `d02dda36` — BIG PYTHON REFACTOR (initial plugin structure, `@extensible`)
+  - `ab9fc4ee` — Refactor extensions to async/sync API
+  - `eac0d3bc` — Redesign plugin marketplace; simplify API
+  - `9acbf253` — Move input tool and prompt into code_execution plugin
+  - `27730153` — Clear plugin cache & add API extension hooks
+  - `1b89a0d3` — Add tool request validation and plugin change notifications
+
+### Verification Checklist — API Surface Compatibility
+
+Compare our implementation against upstream `origin/development` HEAD.
+
+#### `helpers/plugins.py` — public functions
+
+| Function | Upstream | Ours | Status |
+|----------|----------|------|--------|
+| `get_plugin_roots()` | ✅ | ✅ | ✅ compatible |
+| `get_plugins_list()` | ✅ | ✅ | ✅ compatible |
+| `get_enhanced_plugins_list()` | ✅ | ✅ | ✅ compatible |
+| `get_plugin_meta()` | ✅ | ✅ | ✅ compatible |
+| `find_plugin_dir()` | ✅ | ✅ | ✅ compatible |
+| `delete_plugin()` | ✅ | ✅ | ✅ compatible |
+| `get_plugin_paths()` | ✅ | ✅ | ✅ compatible |
+| `get_enabled_plugin_paths()` | ✅ | ✅ | ✅ compatible |
+| `get_enabled_plugins()` | ✅ | ✅ | ✅ compatible |
+| `determined_toggle_from_paths()` | ✅ | ✅ | ✅ compatible |
+| `get_toggle_state()` | ✅ | ✅ | ✅ compatible |
+| `toggle_plugin()` | ✅ | ✅ | ✅ compatible |
+| `get_plugin_config()` | ✅ | ✅ | ✅ compatible |
+| `get_default_plugin_config()` | ✅ | ✅ | ✅ compatible |
+| `save_plugin_config()` | ✅ | ✅ | ✅ compatible |
+| `find_plugin_asset()` | ✅ | ✅ | ✅ compatible |
+| `find_plugin_assets()` | ✅ | ✅ | ✅ compatible |
+| `determine_plugin_asset_path()` | ✅ | ✅ | ✅ compatible |
+| `send_frontend_reload_notification()` | ✅ (no args) | ✅ (optional `plugin_names`) | ✅ compatible (superset) |
+| `after_plugin_change()` | ✅ (no args) | ✅ (optional `plugin_names`) | ✅ compatible (superset) |
+| `clear_plugin_cache()` | ✅ | ✅ | ✅ compatible |
+| `uninstall_plugin()` | ❌ | ✅ | ✅ our extra |
+| `call_plugin_hook()` | ❌ | ✅ | ✅ our extra |
+
+#### `helpers/extension.py` — public API
+
+| Symbol | Upstream | Ours | Status |
+|--------|----------|------|--------|
+| `@extensible` decorator | ✅ | ✅ (applied to 43 functions) | ✅ resolved |
+| `Extension` base class | ✅ | ✅ | ✅ compatible |
+| `call_extensions_async()` | ✅ | ✅ | ✅ compatible |
+| `call_extensions_sync()` | ✅ | ✅ | ✅ compatible |
+| `call_extensions()` (legacy) | ❌ (removed) | ✅ (backward compat) | ✅ our extra |
+| `get_webui_extensions()` | ✅ | ✅ | ✅ compatible |
+| `_get_extension_classes()` | ✅ | ✅ | ✅ compatible |
+
+#### `helpers/subagents.py` — `get_paths()`
+
+| Feature | Upstream | Ours | Status |
+|---------|----------|------|--------|
+| `include_plugins` param | ✅ | ✅ | ✅ compatible |
+| Plugin agent merging | ✅ | ✅ | ✅ compatible |
+| `agent.yaml` support | ✅ | ✅ | ✅ compatible |
+
+#### `run_ui.py` — plugin routes
+
+| Feature | Upstream | Ours | Status |
+|---------|----------|------|--------|
+| `/plugins/<name>/<path>` (builtin) | ✅ | ✅ | ✅ compatible |
+| `/usr/plugins/<name>/<path>` (user) | ✅ | ✅ | ✅ compatible |
+| `/extensions/webui/<path>` | ✅ | ✅ | ✅ compatible |
+| Plugin API handler registration | ✅ | ✅ | ✅ compatible |
+| `@extensible` on routes/init | ✅ (5 decorations) | ✅ (5 decorations) | ✅ resolved |
+
+#### `api/plugins.py` — API actions
+
+| Action | Upstream | Ours | Status |
+|--------|----------|------|--------|
+| `get_config` | ✅ | ✅ | ✅ |
+| `save_config` | ✅ | ✅ | ✅ |
+| `get_toggle_status` | ✅ | ✅ | ✅ |
+| `toggle_plugin` | ✅ | ✅ (`toggle` + `toggle_plugin` alias) | ✅ resolved |
+| `get_default_config` | ✅ | ✅ | ✅ |
+| `list` | ❌ | ✅ | ✅ our extra |
+| `uninstall` | ❌ | ✅ | ✅ our extra |
+| `list_configs` | ✅ | ✅ | ✅ resolved |
+| `delete_config` | ✅ | ✅ | ✅ resolved |
+| `delete_plugin` | ✅ | ✅ | ✅ resolved |
+| `get_doc` | ✅ | ✅ | ✅ resolved |
+| `run_init_script` | ✅ | ✅ | ✅ resolved |
+| `get_init_exec` | ✅ | ✅ | ✅ resolved |
+
+#### Plugins — directory comparison
+
+| Plugin | Upstream | Ours | Notes |
+|--------|----------|------|-------|
+| `memory` | ✅ | ✅ | + Cognee customizations |
+| `code_execution` | ✅ | ✅ | |
+| `error_retry` | ✅ | ✅ | |
+| `infection_check` | ✅ | ✅ | |
+| `text_editor` | ✅ | ✅ | |
+| `chat_branching` | ✅ | ✅ | |
+| `plugin_installer` | ✅ | ✅ | |
+| `plugin_scan` | ✅ | ✅ | |
+| `example_agent` | ✅ | ✅ | ✅ resolved |
+| `browser` | ❌ | ✅ | Our extra (not yet migrated upstream) |
+| `search` | ❌ | ✅ | Our extra |
+| `scheduler` | ❌ | ✅ | Our extra |
+| `skills` | ❌ | ✅ | Our extra |
+| `vision` | ❌ | ✅ | Our extra |
+| `document_query` | ❌ | ✅ | Our extra |
+| `a2a` | ❌ | ✅ | Our extra |
+| `notifications` | ❌ | ✅ | Our extra |
+
+### Identified Gaps — ALL RESOLVED
+
+1. **`@extensible` applied to 43 functions** ✅
+   - `agent.py`: 32 methods (AgentContext: 10, LoopData: 1, Agent: 21)
+   - `initialize.py`: 6 functions
+   - `run_ui.py`: 5 functions
+   - Fixed `_get_agent` in decorator to handle mocked Agent classes (TypeError) and spec'd mock instances (hasattr guard)
+
+2. **`api/plugins.py` — all 14 actions now present** ✅
+   - Added: `list_configs`, `delete_config`, `delete_plugin`, `get_doc`, `run_init_script`, `get_init_exec`
+   - Added `toggle_plugin` alias for upstream compat (original `toggle` kept)
+   - Enhanced `get_toggle_status` to match upstream response format (project_name/agent_profile)
+
+3. **`example_agent` plugin added** ✅
+   - Copied from upstream: plugin.yaml, agent.yaml, system prompt
+
+### How to verify implementation against upstream
+
+```bash
+# 1. Compare helpers/plugins.py function signatures
+diff <(git show origin/development:helpers/plugins.py | grep "^def \|^async def " | sort) \
+     <(grep "^def \|^async def " helpers/plugins.py | sort)
+
+# 2. Compare helpers/extension.py API
+diff <(git show origin/development:helpers/extension.py | grep "^def \|^async def \|^class " | sort) \
+     <(grep "^def \|^async def \|^class " helpers/extension.py | sort)
+
+# 3. Compare @extensible usage
+diff <(git show origin/development:agent.py | grep -c "@extension.extensible") \
+     <(grep -c "@extension.extensible" agent.py)
+
+# 4. Compare plugin list
+diff <(git ls-tree origin/development plugins/ --name-only -d | sort) \
+     <(ls -d plugins/*/ | sed 's|/$||' | sort)
+
+# 5. Compare api/plugins.py actions
+diff <(git show origin/development:api/plugins.py | grep "action ==" | sort) \
+     <(grep "action ==" api/plugins.py | sort)
+
+# 6. Compare subagents.py get_paths signature
+diff <(git show origin/development:helpers/subagents.py | grep -A20 "def get_paths") \
+     <(grep -A20 "def get_paths" helpers/subagents.py)
+```

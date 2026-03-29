@@ -30,14 +30,27 @@ def extensible(func):
     """
 
     def _get_agent(args, kwargs):
-        from agent import Agent
+        try:
+            from agent import Agent
+        except (ImportError, TypeError):
+            return None
+
+        def _check(obj):
+            try:
+                return (
+                    isinstance(obj, Agent)
+                    and bool(getattr(obj, "__dict__", None))
+                    and hasattr(obj, "config")
+                )
+            except TypeError:
+                return False
 
         candidate = kwargs.get("agent")
-        if isinstance(candidate, Agent) and bool(getattr(candidate, "__dict__", None)):
+        if _check(candidate):
             return candidate
 
         for a in args:
-            if isinstance(a, Agent) and bool(getattr(a, "__dict__", None)):
+            if _check(a):
                 return a
 
         return None
