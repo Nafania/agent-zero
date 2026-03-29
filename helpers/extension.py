@@ -30,7 +30,7 @@ async def call_extensions(
     from helpers import projects, subagents
 
     # search for extension folders in all agent's paths
-    paths = subagents.get_paths(agent, "python", extension_point, default_root="extensions")
+    paths = subagents.get_paths(agent, "extensions", "python", extension_point, default_root="")
     all_exts = [cls for path in paths for cls in _get_extensions(path)]
 
     # merge: first ocurrence of file name is the override
