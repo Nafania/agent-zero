@@ -11,11 +11,13 @@ _enabled_areas: dict[str, bool] = {}
 
 def toggle_global(enabled: bool) -> None:
     global _enabled_global
-    _enabled_global = enabled
+    with _lock:
+        _enabled_global = enabled
 
 
 def toggle_area(area: str, enabled: bool) -> None:
-    _enabled_areas[area] = enabled
+    with _lock:
+        _enabled_areas[area] = enabled
 
 
 def has(area: str, key: str) -> bool:

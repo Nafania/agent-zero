@@ -25,15 +25,21 @@ class BranchChat(ApiHandler):
             new_ctx = AgentContext(config=initialize_agent(), set_current=False)
             agent = ctx.agent0
 
-            history = agent.history[: message_index + 1] if agent else []
-            if new_ctx.agent0:
-                new_ctx.agent0.history = list(history)
+            if agent and new_ctx.agent0:
+                messages = agent.history.output()
+                truncated = messages[: message_index + 1]
+                new_agent = new_ctx.agent0
+                new_agent.history.current.messages.clear()
+                for msg in truncated:
+                    new_agent.hist_add_message(msg.ai, content=msg.content)
                 persist_chat.save_tmp_chat(new_ctx)
+            else:
+                truncated = []
 
             return {
                 "ok": True,
                 "new_context_id": new_ctx.id,
-                "messages_copied": len(history),
+                "messages_copied": len(truncated),
             }
         except Exception as e:
             return FlaskResponse(status=500, response=str(e))

@@ -125,6 +125,7 @@ def get_enhanced_plugins_list(
 ) -> List[PluginListItem]:
     """Discover plugins by directory convention. First root wins on ID conflict."""
     results: list[PluginListItem] = []
+    seen_names: set[str] = set()
 
     def load_plugins(root_path: str, is_custom: bool):
         rp = Path(root_path)
@@ -133,6 +134,8 @@ def get_enhanced_plugins_list(
         for d in sorted(rp.iterdir(), key=lambda p: p.name):
             try:
                 if not d.is_dir() or d.name.startswith("."):
+                    continue
+                if d.name in seen_names:
                     continue
                 meta_file = str(d / META_FILE_NAME)
                 if not files.exists(meta_file):
@@ -144,6 +147,7 @@ def get_enhanced_plugins_list(
                 has_license = files.exists(str(d / "LICENSE"))
                 has_init_script = files.exists(str(d / "initialize.py"))
                 toggle_state = get_toggle_state(d.name)
+                seen_names.add(d.name)
                 results.append(
                     PluginListItem(
                         name=d.name,
@@ -651,6 +655,16 @@ def call_plugin_hook(plugin_name: str, hook_name: str, *args, **kwargs):
         return None
 
     if asyncio.iscoroutinefunction(hook):
-        return asyncio.run(hook(*args, **kwargs))
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+
+        if loop and loop.is_running():
+            import nest_asyncio
+            nest_asyncio.apply(loop)
+            return loop.run_until_complete(hook(*args, **kwargs))
+        else:
+            return asyncio.run(hook(*args, **kwargs))
 
     return hook(*args, **kwargs)

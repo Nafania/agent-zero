@@ -36,6 +36,11 @@ def install_from_zip(zip_path: str) -> str:
 def install_from_git(repo_url: str, branch: str = "main") -> str:
     """Clone a git repo into usr/plugins/."""
     import subprocess
+    from urllib.parse import urlparse
+
+    parsed = urlparse(repo_url)
+    if parsed.scheme not in ("https", "http"):
+        raise ValueError(f"Only HTTP(S) URLs are supported, got: {parsed.scheme!r}")
 
     plugin_name = repo_url.rstrip("/").split("/")[-1].removesuffix(".git")
     dest = files.get_abs_path(files.USER_DIR, files.PLUGINS_DIR, plugin_name)

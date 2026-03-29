@@ -1,5 +1,4 @@
 import json
-import os
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -205,7 +204,7 @@ class Plugins(ApiHandler):
             if not files.exists(path):
                 return {"ok": True}
             try:
-                os.remove(path)
+                files.delete_file(files.deabsolute_path(path))
             except Exception as e:
                 return Response(status=500, response=f"Failed to delete config: {str(e)}")
             return {"ok": True}

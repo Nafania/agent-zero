@@ -540,12 +540,16 @@ def run():
         runtime.get_arg("host") or dotenv.get_dotenv_value("WEB_UI_HOST") or "localhost"
     )
 
-    def register_api_handler(app, handler: type[ApiHandler]):
+    def register_api_handler(app, handler: type[ApiHandler], route_prefix: str = ""):
         name = handler.__module__.split(".")[-1]
         instance = handler(app, lock)
 
-        def handler_wrap() -> BaseResponse:
-            return instance.handle_request_sync(request=request)
+        def make_wrap(inst):
+            def handler_wrap() -> BaseResponse:
+                return inst.handle_request_sync(request=request)
+            return handler_wrap
+
+        handler_wrap = make_wrap(instance)
 
         if handler.requires_loopback():
             handler_wrap = requires_loopback(handler_wrap)
@@ -556,9 +560,10 @@ def run():
         if handler.requires_csrf():
             handler_wrap = csrf_protect(handler_wrap)
 
+        route = f"{route_prefix}/{name}"
         app.add_url_rule(
-            f"/{name}",
-            f"/{name}",
+            route,
+            route,
             handler_wrap,
             methods=handler.get_methods(),
         )
@@ -576,31 +581,7 @@ def run():
             continue
         plugin_handlers = load_classes_from_folder(api_dir, "*.py", ApiHandler)
         for handler in plugin_handlers:
-            name = handler.__module__.split(".")[-1]
-            instance = handler(webapp, lock)
-
-            def make_wrap(inst):
-                def handler_wrap() -> BaseResponse:
-                    return inst.handle_request_sync(request=request)
-                return handler_wrap
-
-            handler_wrap = make_wrap(instance)
-            if handler.requires_loopback():
-                handler_wrap = requires_loopback(handler_wrap)
-            if handler.requires_auth():
-                handler_wrap = requires_auth(handler_wrap)
-            if handler.requires_api_key():
-                handler_wrap = requires_api_key(handler_wrap)
-            if handler.requires_csrf():
-                handler_wrap = csrf_protect(handler_wrap)
-
-            route = f"/plugins/{plugin_name}/{name}"
-            webapp.add_url_rule(
-                route,
-                route,
-                handler_wrap,
-                methods=handler.get_methods(),
-            )
+            register_api_handler(webapp, handler, route_prefix=f"/plugins/{plugin_name}")
 
     handlers_by_namespace = _build_websocket_handlers_by_namespace(socketio_server, lock)
     configure_websocket_namespaces(

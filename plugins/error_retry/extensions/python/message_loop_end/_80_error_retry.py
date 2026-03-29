@@ -18,6 +18,9 @@ class ErrorRetry(Extension):
         if not retry_on_critical:
             return
 
+        # TODO(a3): currently the call site `call_extensions("message_loop_end", loop_data=...)`
+        # does not pass an exception kwarg. Wire this up when the monologue loop is
+        # reworked with @extensible to pass exception context.
         last_exception = kwargs.get("exception")
         if last_exception is None:
             return
