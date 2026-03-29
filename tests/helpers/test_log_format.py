@@ -1,4 +1,4 @@
-"""Tests for python/helpers/log_format.py."""
+"""Tests for helpers/log_format.py."""
 
 import logging
 import sys

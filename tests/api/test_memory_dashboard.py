@@ -1,4 +1,4 @@
-"""Tests for python/api/memory_dashboard.py — Memory Dashboard API."""
+"""Tests for api/memory_dashboard.py — Memory Dashboard API."""
 
 import sys
 import os

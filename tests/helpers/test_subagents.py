@@ -1,4 +1,4 @@
-"""Tests for python/helpers/subagents.py."""
+"""Tests for helpers/subagents.py."""
 
 import json
 import sys

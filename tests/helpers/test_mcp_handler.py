@@ -1,4 +1,4 @@
-"""Tests for python/helpers/mcp_handler.py — MCP tool discovery, invocation, response parsing."""
+"""Tests for helpers/mcp_handler.py — MCP tool discovery, invocation, response parsing."""
 
 import sys
 import json

@@ -1,4 +1,4 @@
-"""Tests for python/helpers/history.py — History, Message, Topic, Bulk, and helpers."""
+"""Tests for helpers/history.py — History, Message, Topic, Bulk, and helpers."""
 
 import sys
 import json

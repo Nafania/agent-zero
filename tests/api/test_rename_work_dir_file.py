@@ -1,4 +1,4 @@
-"""Tests for python/api/rename_work_dir_file.py — RenameWorkDirFile API handler."""
+"""Tests for api/rename_work_dir_file.py — RenameWorkDirFile API handler."""
 
 import sys
 import threading

@@ -1,4 +1,4 @@
-"""Tests for python/helpers/login.py — get_credentials_hash, is_login_required."""
+"""Tests for helpers/login.py — get_credentials_hash, is_login_required."""
 
 import sys
 from pathlib import Path

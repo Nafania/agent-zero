@@ -1,4 +1,4 @@
-"""Tests for python/helpers/security.py — safe_filename, forbidden chars, Windows reserved names."""
+"""Tests for helpers/security.py — safe_filename, forbidden chars, Windows reserved names."""
 
 import sys
 from pathlib import Path

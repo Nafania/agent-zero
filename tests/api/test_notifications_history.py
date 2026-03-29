@@ -1,4 +1,4 @@
-"""Tests for python/api/notifications_history.py — NotificationsHistory API handler."""
+"""Tests for api/notifications_history.py — NotificationsHistory API handler."""
 
 import sys
 import threading

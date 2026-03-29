@@ -1,4 +1,4 @@
-"""Tests for python/tools/search_engine.py — SearchEngine tool."""
+"""Tests for tools/search_engine.py — SearchEngine tool."""
 
 import sys
 from pathlib import Path

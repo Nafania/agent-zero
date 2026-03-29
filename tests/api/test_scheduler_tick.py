@@ -1,4 +1,4 @@
-"""Tests for python/api/scheduler_tick.py — SchedulerTick API handler."""
+"""Tests for api/scheduler_tick.py — SchedulerTick API handler."""
 
 import sys
 import threading

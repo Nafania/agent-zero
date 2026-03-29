@@ -1,5 +1,5 @@
 """
-Unit tests for python/helpers/knowledge_import.py — knowledge file importing,
+Unit tests for helpers/knowledge_import.py — knowledge file importing,
 calculate_checksum, load_knowledge with change detection and metadata.
 """
 import sys

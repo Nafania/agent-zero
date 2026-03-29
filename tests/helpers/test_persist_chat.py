@@ -1,4 +1,4 @@
-"""Tests for python/helpers/persist_chat.py — serialize/deserialize, get_chat_folder_path, etc."""
+"""Tests for helpers/persist_chat.py — serialize/deserialize, get_chat_folder_path, etc."""
 
 from __future__ import annotations
 

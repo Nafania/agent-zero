@@ -1,4 +1,4 @@
-"""Tests for python/tools/vision_load.py — VisionLoad tool."""
+"""Tests for tools/vision_load.py — VisionLoad tool."""
 
 import sys
 from pathlib import Path

@@ -1,6 +1,6 @@
 """
 Tests for retry logic helpers and LLM usage callback system from models.py,
-and for python/helpers/call_llm.py (LLM call wrapper with streaming).
+and for helpers/call_llm.py (LLM call wrapper with streaming).
 """
 import sys
 import ast
@@ -265,10 +265,10 @@ class TestExponentialBackoffFormula:
             assert 5.0 <= jittered < 15.0
 
 
-# ─── python/helpers/call_llm.py ────────────────────────────────────────────────
+# ─── helpers/call_llm.py ────────────────────────────────────────────────
 
 class TestCallLlm:
-    """Tests for call_llm from python/helpers/call_llm.py."""
+    """Tests for call_llm from helpers/call_llm.py."""
 
     @pytest.fixture
     def mock_streaming_model(self):

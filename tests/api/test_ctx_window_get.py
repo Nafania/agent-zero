@@ -1,4 +1,4 @@
-"""Tests for python/api/ctx_window_get.py — GetCtxWindow API handler."""
+"""Tests for api/ctx_window_get.py — GetCtxWindow API handler."""
 
 import sys
 import threading

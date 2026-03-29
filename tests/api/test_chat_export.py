@@ -1,4 +1,4 @@
-"""Tests for python/api/chat_export.py — ExportChat API handler."""
+"""Tests for api/chat_export.py — ExportChat API handler."""
 
 import sys
 import threading

@@ -1,4 +1,4 @@
-"""Tests for python/helpers/backup.py — backup creation, restoration, validation, preview, rollback."""
+"""Tests for helpers/backup.py — backup creation, restoration, validation, preview, rollback."""
 
 import json
 import os

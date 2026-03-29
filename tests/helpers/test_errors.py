@@ -1,4 +1,4 @@
-"""Tests for python/helpers/errors.py — handle_error, error_text, format_error, RepairableException."""
+"""Tests for helpers/errors.py — handle_error, error_text, format_error, RepairableException."""
 
 import asyncio
 import sys

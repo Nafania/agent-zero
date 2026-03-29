@@ -1,4 +1,4 @@
-"""Tests for python/tools/a2a_chat.py — A2AChatTool."""
+"""Tests for tools/a2a_chat.py — A2AChatTool."""
 
 import sys
 from pathlib import Path

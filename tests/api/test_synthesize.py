@@ -1,4 +1,4 @@
-"""Tests for python/api/synthesize.py — Synthesize API handler."""
+"""Tests for api/synthesize.py — Synthesize API handler."""
 
 import sys
 import threading

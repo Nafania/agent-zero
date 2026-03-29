@@ -1,4 +1,4 @@
-"""Tests for python/helpers/cognee_init.py — Cognee configuration layer."""
+"""Tests for helpers/cognee_init.py — Cognee configuration layer."""
 
 import os
 import sys

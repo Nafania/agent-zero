@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unit tests for python/helpers/fasta2a_client.py and FastA2A agent card testing utility.
+Unit tests for helpers/fasta2a_client.py and FastA2A agent card testing utility.
 """
 
 import sys

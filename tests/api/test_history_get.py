@@ -1,4 +1,4 @@
-"""Tests for python/api/history_get.py — GetHistory API handler."""
+"""Tests for api/history_get.py — GetHistory API handler."""
 
 import sys
 import threading

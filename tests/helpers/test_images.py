@@ -1,4 +1,4 @@
-"""Tests for python/helpers/images.py — compress_image."""
+"""Tests for helpers/images.py — compress_image."""
 
 import sys
 from pathlib import Path

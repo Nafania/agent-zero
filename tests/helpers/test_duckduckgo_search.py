@@ -1,4 +1,4 @@
-"""Tests for python/helpers/duckduckgo_search.py."""
+"""Tests for helpers/duckduckgo_search.py."""
 
 import sys
 from pathlib import Path

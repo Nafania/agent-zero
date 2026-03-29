@@ -1,4 +1,4 @@
-"""Tests for python/helpers/print_catch.py."""
+"""Tests for helpers/print_catch.py."""
 
 import asyncio
 import sys

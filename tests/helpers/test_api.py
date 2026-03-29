@@ -1,4 +1,4 @@
-"""Tests for python/helpers/api.py — ApiHandler base class."""
+"""Tests for helpers/api.py — ApiHandler base class."""
 
 import sys
 from pathlib import Path

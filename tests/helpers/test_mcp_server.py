@@ -1,5 +1,5 @@
 """
-Unit tests for python/helpers/mcp_server.py — MCP server lifecycle, tool registration,
+Unit tests for helpers/mcp_server.py — MCP server lifecycle, tool registration,
 DynamicMcpProxy, send_message, finish_chat, routing, and middleware.
 """
 import sys

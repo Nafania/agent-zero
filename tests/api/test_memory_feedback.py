@@ -1,4 +1,4 @@
-"""Tests for python/api/memory_feedback.py — Memory feedback API handler."""
+"""Tests for api/memory_feedback.py — Memory feedback API handler."""
 
 import json
 import sys
@@ -132,7 +132,7 @@ class TestMemoryFeedbackHandler:
 
 
 def test_memory_feedback_discovered_like_run_ui():
-    """Same discovery mechanism as run_ui (load_classes_from_folder on python/api)."""
+    """Same discovery mechanism as run_ui (load_classes_from_folder on api)."""
     from helpers.api import ApiHandler
     from helpers.extract_tools import load_classes_from_file
     from helpers.files import get_abs_path

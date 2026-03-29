@@ -1043,7 +1043,7 @@ class Agent:
         classes = []
 
         # search for tools in agent's folder hierarchy
-        paths = subagents.get_paths(self, "tools", name + ".py", default_root="python")
+        paths = subagents.get_paths(self, "tools", name + ".py", default_root="")
         for path in paths:
             try:
                 classes = extract_tools.load_classes_from_file(path, Tool)  # type: ignore[arg-type]

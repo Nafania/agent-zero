@@ -1,4 +1,4 @@
-"""Tests for python/helpers/strings.py."""
+"""Tests for helpers/strings.py."""
 
 import sys
 from pathlib import Path

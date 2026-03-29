@@ -1,4 +1,4 @@
-"""Tests for python/helpers/defer.py."""
+"""Tests for helpers/defer.py."""
 
 import asyncio
 import sys

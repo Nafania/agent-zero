@@ -1,4 +1,4 @@
-"""Comprehensive unit tests for python/helpers/file_browser.py."""
+"""Comprehensive unit tests for helpers/file_browser.py."""
 
 import base64
 import os

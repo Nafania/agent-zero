@@ -1,4 +1,4 @@
-"""Tests for python/helpers/providers.py — ProviderManager, get_providers, get_provider_config."""
+"""Tests for helpers/providers.py — ProviderManager, get_providers, get_provider_config."""
 
 import sys
 from pathlib import Path

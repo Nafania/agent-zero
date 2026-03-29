@@ -1,4 +1,4 @@
-"""Tests for python/api/backup_restore_preview.py — BackupRestorePreview API handler."""
+"""Tests for api/backup_restore_preview.py — BackupRestorePreview API handler."""
 
 import sys
 import threading

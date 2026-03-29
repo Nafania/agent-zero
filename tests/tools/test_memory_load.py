@@ -1,4 +1,4 @@
-"""Tests for python/tools/memory_load.py — MemoryLoad tool."""
+"""Tests for tools/memory_load.py — MemoryLoad tool."""
 
 import sys
 from pathlib import Path

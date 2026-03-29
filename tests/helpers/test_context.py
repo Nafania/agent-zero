@@ -244,7 +244,7 @@ class TestAgentContextThreadName:
         pytest.fail("AgentContext.__init__ not found in agent.py")
 
 
-# ─── Context helpers (python/helpers/context.py) ─────────────────────────────────
+# ─── Context helpers (helpers/context.py) ─────────────────────────────────
 
 class TestContextHelpers:
     """Tests for set_context_data, get_context_data, delete_context_data, clear_context_data."""

@@ -1,4 +1,4 @@
-"""Tests for python/api/message_queue_add.py — MessageQueueAdd API handler."""
+"""Tests for api/message_queue_add.py — MessageQueueAdd API handler."""
 
 import sys
 import threading

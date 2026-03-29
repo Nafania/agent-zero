@@ -1,4 +1,4 @@
-"""Tests for python/helpers/searxng.py."""
+"""Tests for helpers/searxng.py."""
 
 import sys
 from pathlib import Path

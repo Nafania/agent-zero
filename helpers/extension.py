@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     from agent import Agent
 
 
-DEFAULT_EXTENSIONS_FOLDER = "python/extensions"
+DEFAULT_EXTENSIONS_FOLDER = "extensions/python"
 USER_EXTENSIONS_FOLDER = "usr/extensions"
 
 _cache: dict[str, list[type["Extension"]]] = {}
@@ -30,7 +30,7 @@ async def call_extensions(
     from helpers import projects, subagents
 
     # search for extension folders in all agent's paths
-    paths = subagents.get_paths(agent, "extensions", extension_point, default_root="python")
+    paths = subagents.get_paths(agent, "python", extension_point, default_root="extensions")
     all_exts = [cls for path in paths for cls in _get_extensions(path)]
 
     # merge: first ocurrence of file name is the override

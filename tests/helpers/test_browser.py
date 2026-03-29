@@ -1,4 +1,4 @@
-"""Tests for python/helpers/browser.py.
+"""Tests for helpers/browser.py.
 
 Note: The browser module is currently fully commented out. These tests verify
 module structure and prepare for when the implementation is restored.

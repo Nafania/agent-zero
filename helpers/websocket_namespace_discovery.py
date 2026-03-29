@@ -63,7 +63,7 @@ def _get_handler_classes(module: ModuleType) -> list[type[WebSocketHandler]]:
 
 def discover_websocket_namespaces(
     *,
-    handlers_folder: str = "python/websocket_handlers",
+    handlers_folder: str = "websocket_handlers",
     include_root_default: bool = True,
 ) -> list[NamespaceDiscovery]:
     """

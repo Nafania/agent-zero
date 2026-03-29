@@ -1,4 +1,4 @@
-"""Tests for python/helpers/perplexity_search.py."""
+"""Tests for helpers/perplexity_search.py."""
 
 import sys
 from pathlib import Path

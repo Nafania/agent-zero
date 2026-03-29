@@ -1,4 +1,4 @@
-"""Tests for python/tools/document_query.py — DocumentQueryTool."""
+"""Tests for tools/document_query.py — DocumentQueryTool."""
 
 import sys
 from pathlib import Path

@@ -5,7 +5,7 @@ from helpers.extension import call_extensions
 class GetBanners(ApiHandler):
     """
     API endpoint for Welcome Screen banners.
-    Add checks as extension scripts in python/extensions/banners/ or usr/extensions/banners/
+    Add checks as extension scripts in extensions/python/banners/ or usr/extensions/banners/
     """
 
     async def process(self, input: dict, request: Request) -> dict | Response:

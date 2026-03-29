@@ -1,4 +1,4 @@
-"""Tests for python/helpers/browser_use_monkeypatch.py."""
+"""Tests for helpers/browser_use_monkeypatch.py."""
 
 import sys
 from pathlib import Path

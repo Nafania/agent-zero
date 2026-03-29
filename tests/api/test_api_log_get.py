@@ -1,4 +1,4 @@
-"""Tests for python/api/api_log_get.py — ApiLogGet API handler."""
+"""Tests for api/api_log_get.py — ApiLogGet API handler."""
 
 import sys
 import threading

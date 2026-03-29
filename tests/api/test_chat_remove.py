@@ -1,4 +1,4 @@
-"""Tests for python/api/chat_remove.py — RemoveChat API handler."""
+"""Tests for api/chat_remove.py — RemoveChat API handler."""
 
 import sys
 import threading

@@ -1,4 +1,4 @@
-"""Tests for python/helpers/rfc_files.py."""
+"""Tests for helpers/rfc_files.py."""
 
 import base64
 import os

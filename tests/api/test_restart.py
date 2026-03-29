@@ -1,4 +1,4 @@
-"""Tests for python/api/restart.py — Restart API handler."""
+"""Tests for api/restart.py — Restart API handler."""
 
 import sys
 import threading

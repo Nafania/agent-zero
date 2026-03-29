@@ -1,4 +1,4 @@
-"""Tests for python/api/api_terminate_chat.py — ApiTerminateChat API handler."""
+"""Tests for api/api_terminate_chat.py — ApiTerminateChat API handler."""
 
 import sys
 import threading

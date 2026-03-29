@@ -1,4 +1,4 @@
-"""Tests for python/tools/notify_user.py — NotifyUserTool."""
+"""Tests for tools/notify_user.py — NotifyUserTool."""
 
 import sys
 from pathlib import Path

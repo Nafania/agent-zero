@@ -1,4 +1,4 @@
-"""Tests for python/api/health.py — HealthCheck API handler."""
+"""Tests for api/health.py — HealthCheck API handler."""
 
 import sys
 import threading

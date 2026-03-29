@@ -1,4 +1,4 @@
-"""Tests for python/helpers/guids.py — generate_id."""
+"""Tests for helpers/guids.py — generate_id."""
 
 import sys
 from pathlib import Path

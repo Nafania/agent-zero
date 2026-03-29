@@ -1,4 +1,4 @@
-"""Tests for python/api/delete_work_dir_file.py — DeleteWorkDirFile API handler."""
+"""Tests for api/delete_work_dir_file.py — DeleteWorkDirFile API handler."""
 
 import sys
 import threading

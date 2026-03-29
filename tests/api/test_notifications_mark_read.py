@@ -1,4 +1,4 @@
-"""Tests for python/api/notifications_mark_read.py — NotificationsMarkRead API handler."""
+"""Tests for api/notifications_mark_read.py — NotificationsMarkRead API handler."""
 
 import sys
 import threading

@@ -1,4 +1,4 @@
-"""Tests for python/helpers/runtime.py — initialize, get_arg, has_arg, is_dockerized, get_runtime_id, etc."""
+"""Tests for helpers/runtime.py — initialize, get_arg, has_arg, is_dockerized, get_runtime_id, etc."""
 
 import argparse
 import sys

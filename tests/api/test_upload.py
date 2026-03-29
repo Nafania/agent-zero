@@ -1,4 +1,4 @@
-"""Tests for python/api/upload.py — UploadFile API handler."""
+"""Tests for api/upload.py — UploadFile API handler."""
 
 import sys
 import threading

@@ -1,4 +1,4 @@
-"""Tests for python/api/backup_get_defaults.py — BackupGetDefaults API handler."""
+"""Tests for api/backup_get_defaults.py — BackupGetDefaults API handler."""
 
 import sys
 import threading

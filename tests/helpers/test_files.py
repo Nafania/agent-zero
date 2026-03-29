@@ -1,4 +1,4 @@
-"""Tests for python/helpers/files.py."""
+"""Tests for helpers/files.py."""
 
 import base64
 import os

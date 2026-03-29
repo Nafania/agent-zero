@@ -1,4 +1,4 @@
-"""Tests for python/api/chat_load.py — LoadChats API handler."""
+"""Tests for api/chat_load.py — LoadChats API handler."""
 
 import sys
 import threading

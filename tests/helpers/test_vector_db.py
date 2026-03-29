@@ -1,4 +1,4 @@
-"""Tests for python/helpers/vector_db.py — VectorDB, format_docs_plain, get_comparator."""
+"""Tests for helpers/vector_db.py — VectorDB, format_docs_plain, get_comparator."""
 
 import sys
 from pathlib import Path

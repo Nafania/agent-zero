@@ -1,4 +1,4 @@
-"""Tests for python/helpers/rfc_exchange.py."""
+"""Tests for helpers/rfc_exchange.py."""
 
 import sys
 from pathlib import Path

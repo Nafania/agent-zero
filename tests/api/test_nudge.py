@@ -1,4 +1,4 @@
-"""Tests for python/api/nudge.py — Nudge API handler."""
+"""Tests for api/nudge.py — Nudge API handler."""
 
 import sys
 import threading

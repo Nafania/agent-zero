@@ -1,4 +1,4 @@
-"""Tests for python/tools/code_execution_tool.py — CodeExecution tool."""
+"""Tests for tools/code_execution_tool.py — CodeExecution tool."""
 
 import sys
 from pathlib import Path

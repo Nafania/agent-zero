@@ -1,4 +1,4 @@
-"""Tests for python/api/projects.py — Projects API handler."""
+"""Tests for api/projects.py — Projects API handler."""
 
 import sys
 import threading

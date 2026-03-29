@@ -1,4 +1,4 @@
-"""Tests for python/api/message_queue_remove.py — MessageQueueRemove API handler."""
+"""Tests for api/message_queue_remove.py — MessageQueueRemove API handler."""
 
 import sys
 import threading

@@ -1,4 +1,4 @@
-"""Comprehensive unit tests for python/helpers/file_tree.py."""
+"""Comprehensive unit tests for helpers/file_tree.py."""
 
 from __future__ import annotations
 

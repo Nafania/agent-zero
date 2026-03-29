@@ -1,4 +1,4 @@
-"""Tests for python/helpers/attachment_manager.py — AttachmentManager."""
+"""Tests for helpers/attachment_manager.py — AttachmentManager."""
 
 import sys
 from pathlib import Path

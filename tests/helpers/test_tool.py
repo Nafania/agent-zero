@@ -1,4 +1,4 @@
-"""Tests for python/helpers/tool.py — Tool base class, Response, set_progress, nice_key."""
+"""Tests for helpers/tool.py — Tool base class, Response, set_progress, nice_key."""
 
 import sys
 from pathlib import Path

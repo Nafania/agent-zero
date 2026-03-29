@@ -1,4 +1,4 @@
-"""Tests for python/api/import_knowledge.py — ImportKnowledge API handler."""
+"""Tests for api/import_knowledge.py — ImportKnowledge API handler."""
 
 import sys
 import threading

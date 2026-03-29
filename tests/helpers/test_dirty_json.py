@@ -1,4 +1,4 @@
-"""Tests for python/helpers/dirty_json.py — invalid JSON parser."""
+"""Tests for helpers/dirty_json.py — invalid JSON parser."""
 
 import sys
 from pathlib import Path

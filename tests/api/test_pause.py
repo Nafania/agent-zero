@@ -1,4 +1,4 @@
-"""Tests for python/api/pause.py — Pause API handler."""
+"""Tests for api/pause.py — Pause API handler."""
 
 import sys
 import threading

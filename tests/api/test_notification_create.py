@@ -1,4 +1,4 @@
-"""Tests for python/api/notification_create.py — NotificationCreate API handler."""
+"""Tests for api/notification_create.py — NotificationCreate API handler."""
 
 import sys
 import threading

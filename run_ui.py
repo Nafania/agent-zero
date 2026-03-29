@@ -295,7 +295,7 @@ def _build_websocket_handlers_by_namespace(
     lock: threading.RLock,
 ) -> dict[str, list[WebSocketHandler]]:
     discoveries = discover_websocket_namespaces(
-        handlers_folder="python/websocket_handlers",
+        handlers_folder="websocket_handlers",
         include_root_default=True,
     )
 
@@ -509,7 +509,7 @@ def run():
             methods=handler.get_methods(),
         )
 
-    handlers = load_classes_from_folder("python/api", "*.py", ApiHandler)
+    handlers = load_classes_from_folder("api", "*.py", ApiHandler)
     for handler in handlers:
         register_api_handler(webapp, handler)
 

@@ -1,4 +1,4 @@
-"""Tests for python/tools/skills_tool.py — SkillsTool."""
+"""Tests for tools/skills_tool.py — SkillsTool."""
 
 import sys
 from pathlib import Path

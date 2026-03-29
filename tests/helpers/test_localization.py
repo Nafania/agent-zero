@@ -1,4 +1,4 @@
-"""Tests for python/helpers/localization.py."""
+"""Tests for helpers/localization.py."""
 
 from datetime import datetime, timezone, timedelta
 import sys

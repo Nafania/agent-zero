@@ -1,4 +1,4 @@
-"""Comprehensive unit tests for python/helpers/fasta2a_server.py — A2A protocol server."""
+"""Comprehensive unit tests for helpers/fasta2a_server.py — A2A protocol server."""
 
 import asyncio
 import json

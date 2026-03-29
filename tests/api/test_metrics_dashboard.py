@@ -1,4 +1,4 @@
-"""Tests for python/api/metrics_dashboard.py — MetricsDashboard API handler."""
+"""Tests for api/metrics_dashboard.py — MetricsDashboard API handler."""
 
 import sys
 import threading

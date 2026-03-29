@@ -1,4 +1,4 @@
-"""Tests for python/api/rfc.py — RFC API handler."""
+"""Tests for api/rfc.py — RFC API handler."""
 
 import sys
 import threading

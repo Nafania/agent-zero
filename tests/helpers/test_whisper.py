@@ -1,4 +1,4 @@
-"""Tests for python/helpers/whisper.py — preload, transcribe, is_downloading, is_downloaded (mocked)."""
+"""Tests for helpers/whisper.py — preload, transcribe, is_downloading, is_downloaded (mocked)."""
 
 import sys
 from pathlib import Path

@@ -1,4 +1,4 @@
-"""Tests for python/helpers/crypto.py — encryption/hashing."""
+"""Tests for helpers/crypto.py — encryption/hashing."""
 
 import sys
 from pathlib import Path

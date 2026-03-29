@@ -1,4 +1,4 @@
-"""Tests for python/api/tunnel_proxy.py — TunnelProxy API handler."""
+"""Tests for api/tunnel_proxy.py — TunnelProxy API handler."""
 
 import sys
 import threading

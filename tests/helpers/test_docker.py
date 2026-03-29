@@ -1,4 +1,4 @@
-"""Tests for python/helpers/docker.py."""
+"""Tests for helpers/docker.py."""
 
 import sys
 from pathlib import Path

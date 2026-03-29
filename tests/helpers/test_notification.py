@@ -1,4 +1,4 @@
-"""Tests for python/helpers/notification.py."""
+"""Tests for helpers/notification.py."""
 
 import sys
 from datetime import datetime, timezone

@@ -1,4 +1,4 @@
-"""Tests for python/helpers/shell_ssh.py."""
+"""Tests for helpers/shell_ssh.py."""
 
 import sys
 from pathlib import Path

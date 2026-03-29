@@ -1,4 +1,4 @@
-"""Tests for python/api/notifications_clear.py — NotificationsClear API handler."""
+"""Tests for api/notifications_clear.py — NotificationsClear API handler."""
 
 import sys
 import threading

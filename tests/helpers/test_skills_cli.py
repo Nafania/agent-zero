@@ -1,4 +1,4 @@
-"""Tests for python/helpers/skills_cli.py — npx skills CLI wrapper."""
+"""Tests for helpers/skills_cli.py — npx skills CLI wrapper."""
 
 import asyncio
 import sys

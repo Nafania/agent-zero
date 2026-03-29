@@ -1,4 +1,4 @@
-"""Tests for python/tools/input.py — Input tool."""
+"""Tests for tools/input.py — Input tool."""
 
 import sys
 from pathlib import Path

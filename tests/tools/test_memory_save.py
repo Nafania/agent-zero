@@ -1,4 +1,4 @@
-"""Tests for python/tools/memory_save.py — MemorySave tool."""
+"""Tests for tools/memory_save.py — MemorySave tool."""
 
 import sys
 from pathlib import Path

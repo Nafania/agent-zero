@@ -1,4 +1,4 @@
-"""Tests for python/helpers/cognee_feedback.py — Cognee feedback adapter and durable queue."""
+"""Tests for helpers/cognee_feedback.py — Cognee feedback adapter and durable queue."""
 
 import json
 import sys

@@ -1,4 +1,4 @@
-"""Tests for python/helpers/git.py — strip_auth_from_url, get_version, clone_repo, get_repo_status."""
+"""Tests for helpers/git.py — strip_auth_from_url, get_version, clone_repo, get_repo_status."""
 
 import os
 import sys

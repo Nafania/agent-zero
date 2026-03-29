@@ -1,4 +1,4 @@
-"""Tests for python/helpers/tokens.py — token counting."""
+"""Tests for helpers/tokens.py — token counting."""
 
 import sys
 from pathlib import Path

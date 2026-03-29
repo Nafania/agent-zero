@@ -1,4 +1,4 @@
-"""Tests for python/api/api_message.py — ApiMessage API handler."""
+"""Tests for api/api_message.py — ApiMessage API handler."""
 
 import base64
 import sys

@@ -1,4 +1,4 @@
-"""Tests for python/api/file_info.py — FileInfoApi handler."""
+"""Tests for api/file_info.py — FileInfoApi handler."""
 
 import sys
 import threading

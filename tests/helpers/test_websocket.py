@@ -1,4 +1,4 @@
-"""Tests for python/helpers/websocket.py."""
+"""Tests for helpers/websocket.py."""
 
 import sys
 from pathlib import Path

@@ -1,4 +1,4 @@
-"""Tests for python/helpers/dotenv.py — load_dotenv, get_dotenv_value, save_dotenv_value, get_dotenv_file_path."""
+"""Tests for helpers/dotenv.py — load_dotenv, get_dotenv_value, save_dotenv_value, get_dotenv_file_path."""
 
 import sys
 from pathlib import Path

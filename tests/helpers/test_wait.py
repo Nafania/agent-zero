@@ -1,4 +1,4 @@
-"""Tests for python/helpers/wait.py — format_remaining_time, managed_wait."""
+"""Tests for helpers/wait.py — format_remaining_time, managed_wait."""
 
 import asyncio
 import sys

@@ -1,4 +1,4 @@
-"""Tests for python/api/get_work_dir_files.py — GetWorkDirFiles API handler."""
+"""Tests for api/get_work_dir_files.py — GetWorkDirFiles API handler."""
 
 import sys
 import threading

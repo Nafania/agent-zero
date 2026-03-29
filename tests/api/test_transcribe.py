@@ -1,4 +1,4 @@
-"""Tests for python/api/transcribe.py — Transcribe API handler."""
+"""Tests for api/transcribe.py — Transcribe API handler."""
 
 import sys
 import threading

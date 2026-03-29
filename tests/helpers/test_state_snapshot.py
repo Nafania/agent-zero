@@ -1,4 +1,4 @@
-"""Tests for python/helpers/state_snapshot.py."""
+"""Tests for helpers/state_snapshot.py."""
 
 import sys
 from pathlib import Path

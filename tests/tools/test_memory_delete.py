@@ -1,4 +1,4 @@
-"""Tests for python/tools/memory_delete.py — MemoryDelete tool."""
+"""Tests for tools/memory_delete.py — MemoryDelete tool."""
 
 import sys
 from pathlib import Path

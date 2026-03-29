@@ -3,9 +3,9 @@ name: CI
 on:
   push:
     branches: [main, develop]
-    paths: ['python/**', 'tests/**', 'requirements*.txt', 'agent.py', 'initialize.py', 'models.py', 'Dockerfile', 'docker/**', '.github/workflows/**']
+    paths: ['helpers/**', 'tools/**', 'api/**', 'extensions/**', 'websocket_handlers/**', 'tests/**', 'requirements*.txt', 'agent.py', 'initialize.py', 'models.py', 'run_ui.py', 'prepare.py', 'Dockerfile', 'docker/**', '.github/workflows/**']
   pull_request:
-    paths: ['python/**', 'tests/**', 'requirements*.txt', '.github/workflows/**']
+    paths: ['helpers/**', 'tools/**', 'api/**', 'extensions/**', 'websocket_handlers/**', 'tests/**', 'requirements*.txt', 'agent.py', 'initialize.py', 'models.py', 'run_ui.py', 'prepare.py', '.github/workflows/**']
 
 jobs:
   unit-tests:

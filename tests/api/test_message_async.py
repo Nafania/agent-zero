@@ -1,4 +1,4 @@
-"""Tests for python/api/message_async.py — MessageAsync API handler."""
+"""Tests for api/message_async.py — MessageAsync API handler."""
 
 import sys
 import threading

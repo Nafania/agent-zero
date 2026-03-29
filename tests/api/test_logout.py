@@ -1,4 +1,4 @@
-"""Tests for python/api/logout.py — ApiLogout API handler."""
+"""Tests for api/logout.py — ApiLogout API handler."""
 
 import sys
 import threading

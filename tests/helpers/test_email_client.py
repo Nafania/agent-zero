@@ -1,4 +1,4 @@
-"""Comprehensive unit tests for python/helpers/email_client.py — email parsing, SMTP/IMAP."""
+"""Comprehensive unit tests for helpers/email_client.py — email parsing, SMTP/IMAP."""
 
 import os
 import sys

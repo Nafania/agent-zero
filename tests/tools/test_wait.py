@@ -1,4 +1,4 @@
-"""Tests for python/tools/wait.py — WaitTool."""
+"""Tests for tools/wait.py — WaitTool."""
 
 import sys
 from pathlib import Path

@@ -1,4 +1,4 @@
-"""Tests for python/api/chat_reset.py — Reset API handler."""
+"""Tests for api/chat_reset.py — Reset API handler."""
 
 import sys
 import threading

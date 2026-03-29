@@ -1,4 +1,4 @@
-"""Tests for python/tools/unknown.py — Unknown tool fallback."""
+"""Tests for tools/unknown.py — Unknown tool fallback."""
 
 import sys
 from pathlib import Path

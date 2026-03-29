@@ -1,4 +1,4 @@
-"""Tests for python/api/csrf_token.py — GetCsrfToken API handler."""
+"""Tests for api/csrf_token.py — GetCsrfToken API handler."""
 
 import sys
 import threading

@@ -1,4 +1,4 @@
-"""Tests for python/api/scheduler_task_create.py — SchedulerTaskCreate API handler."""
+"""Tests for api/scheduler_task_create.py — SchedulerTaskCreate API handler."""
 
 import sys
 import threading

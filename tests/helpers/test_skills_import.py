@@ -1,4 +1,4 @@
-"""Tests for python/helpers/skills_import.py."""
+"""Tests for helpers/skills_import.py."""
 
 import sys
 import zipfile

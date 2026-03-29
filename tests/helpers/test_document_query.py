@@ -1,4 +1,4 @@
-"""Tests for python/helpers/document_query.py — import verification and core logic."""
+"""Tests for helpers/document_query.py — import verification and core logic."""
 
 import sys
 from pathlib import Path

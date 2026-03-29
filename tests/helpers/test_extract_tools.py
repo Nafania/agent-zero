@@ -1,4 +1,4 @@
-"""Tests for python/helpers/extract_tools.py — tool call extraction from LLM responses."""
+"""Tests for helpers/extract_tools.py — tool call extraction from LLM responses."""
 
 import os
 import sys

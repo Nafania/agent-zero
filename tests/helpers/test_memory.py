@@ -1,4 +1,4 @@
-"""Tests for python/helpers/memory.py — Cognee memory layer."""
+"""Tests for helpers/memory.py — Cognee memory layer."""
 
 import sys
 import json

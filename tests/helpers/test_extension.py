@@ -1,4 +1,4 @@
-"""Tests for python/helpers/extension.py — Extension base class, call_extensions, _get_extensions."""
+"""Tests for helpers/extension.py — Extension base class, call_extensions, _get_extensions."""
 
 import sys
 from pathlib import Path
@@ -62,7 +62,7 @@ class TestGetExtensions:
 class TestCallExtensions:
     @pytest.mark.asyncio
     async def test_calls_extensions_in_order(self):
-        with patch("helpers.subagents.get_paths", return_value=["/a0/python/extensions"]), \
+        with patch("helpers.subagents.get_paths", return_value=["/a0/extensions/python"]), \
              patch("helpers.extension._get_extensions") as mg:
             mg.return_value = [ConcreteExtension]
             results = []

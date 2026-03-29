@@ -1,4 +1,4 @@
-"""Tests for python/api/knowledge_reindex.py — ReindexKnowledge API handler."""
+"""Tests for api/knowledge_reindex.py — ReindexKnowledge API handler."""
 
 import sys
 import threading

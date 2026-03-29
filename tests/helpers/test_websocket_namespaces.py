@@ -270,7 +270,7 @@ def test_namespace_discovery_maps_core_handlers_to_expected_namespaces() -> None
     from helpers.websocket_namespace_discovery import discover_websocket_namespaces
 
     discoveries = discover_websocket_namespaces(
-        handlers_folder="python/websocket_handlers",
+        handlers_folder="websocket_handlers",
         include_root_default=True,
     )
     by_namespace = {entry.namespace: entry for entry in discoveries}

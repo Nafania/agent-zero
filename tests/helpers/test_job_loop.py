@@ -1,4 +1,4 @@
-"""Tests for python/helpers/job_loop.py."""
+"""Tests for helpers/job_loop.py."""
 
 import asyncio
 import sys

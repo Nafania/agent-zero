@@ -1,4 +1,4 @@
-"""Tests for python/api/knowledge_path_get.py — GetKnowledgePath API handler."""
+"""Tests for api/knowledge_path_get.py — GetKnowledgePath API handler."""
 
 import sys
 import threading

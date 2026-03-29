@@ -1,5 +1,5 @@
 """
-Comprehensive unit tests for python/helpers/task_scheduler.py.
+Comprehensive unit tests for helpers/task_scheduler.py.
 
 Covers: TaskState, TaskType, TaskSchedule, TaskPlan, BaseTask, AdHocTask,
 ScheduledTask, PlannedTask, SchedulerTaskList, TaskScheduler, serialization

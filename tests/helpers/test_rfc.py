@@ -1,4 +1,4 @@
-"""Tests for python/helpers/rfc.py."""
+"""Tests for helpers/rfc.py."""
 
 import json
 import sys

@@ -1,4 +1,4 @@
-"""Tests for python/api/settings_workdir_file_structure.py — SettingsWorkdirFileStructure API handler."""
+"""Tests for api/settings_workdir_file_structure.py — SettingsWorkdirFileStructure API handler."""
 
 import sys
 import threading

@@ -1,4 +1,4 @@
-"""Tests for python/api/chat_files_path_get.py — GetChatFilesPath API handler."""
+"""Tests for api/chat_files_path_get.py — GetChatFilesPath API handler."""
 
 import sys
 import threading

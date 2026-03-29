@@ -1,4 +1,4 @@
-"""Tests for python/api/backup_inspect.py — BackupInspect API handler."""
+"""Tests for api/backup_inspect.py — BackupInspect API handler."""
 
 import sys
 import threading

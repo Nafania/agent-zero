@@ -1,4 +1,4 @@
-"""Tests for python/helpers/tty_session.py."""
+"""Tests for helpers/tty_session.py."""
 
 import asyncio
 import sys

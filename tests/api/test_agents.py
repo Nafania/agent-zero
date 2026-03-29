@@ -1,4 +1,4 @@
-"""Tests for python/api/agents.py — Agents API handler."""
+"""Tests for api/agents.py — Agents API handler."""
 
 import sys
 import threading

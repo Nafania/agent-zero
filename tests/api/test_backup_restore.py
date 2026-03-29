@@ -1,4 +1,4 @@
-"""Tests for python/api/backup_restore.py — BackupRestore API handler."""
+"""Tests for api/backup_restore.py — BackupRestore API handler."""
 
 import sys
 import threading

@@ -1,4 +1,4 @@
-"""Tests for python/helpers/migration.py — migrate_user_data, _move_dir, _move_file, _migrate_memory."""
+"""Tests for helpers/migration.py — migrate_user_data, _move_dir, _move_file, _migrate_memory."""
 
 import sys
 from pathlib import Path

@@ -1,4 +1,4 @@
-"""Tests for python/api/poll.py — Poll API handler."""
+"""Tests for api/poll.py — Poll API handler."""
 
 import sys
 import threading

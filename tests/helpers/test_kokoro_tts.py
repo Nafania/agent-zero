@@ -1,4 +1,4 @@
-"""Tests for python/helpers/kokoro_tts.py — preload, synthesize_sentences, is_downloading, is_downloaded (mocked)."""
+"""Tests for helpers/kokoro_tts.py — preload, synthesize_sentences, is_downloading, is_downloaded (mocked)."""
 
 import base64
 import sys

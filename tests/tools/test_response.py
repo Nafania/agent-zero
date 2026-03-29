@@ -1,4 +1,4 @@
-"""Tests for python/tools/response.py — ResponseTool."""
+"""Tests for tools/response.py — ResponseTool."""
 
 import sys
 from pathlib import Path

@@ -1,4 +1,4 @@
-"""Tests for python/api/settings_get.py — GetSettings API handler."""
+"""Tests for api/settings_get.py — GetSettings API handler."""
 
 import sys
 import threading

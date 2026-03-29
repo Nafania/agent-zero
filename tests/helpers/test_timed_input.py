@@ -1,4 +1,4 @@
-"""Tests for python/helpers/timed_input.py — timeout_input."""
+"""Tests for helpers/timed_input.py — timeout_input."""
 
 import sys
 from pathlib import Path

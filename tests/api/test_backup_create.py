@@ -1,4 +1,4 @@
-"""Tests for python/api/backup_create.py — BackupCreate API handler."""
+"""Tests for api/backup_create.py — BackupCreate API handler."""
 
 import sys
 import threading

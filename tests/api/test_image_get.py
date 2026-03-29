@@ -1,4 +1,4 @@
-"""Tests for python/api/image_get.py — ImageGet API handler."""
+"""Tests for api/image_get.py — ImageGet API handler."""
 
 import io
 import sys

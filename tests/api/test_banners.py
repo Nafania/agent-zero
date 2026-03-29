@@ -1,4 +1,4 @@
-"""Tests for python/api/banners.py — GetBanners API handler."""
+"""Tests for api/banners.py — GetBanners API handler."""
 
 import sys
 import threading

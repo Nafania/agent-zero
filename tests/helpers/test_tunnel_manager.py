@@ -1,4 +1,4 @@
-"""Tests for python/helpers/tunnel_manager.py — TunnelManager singleton, notifications, start/stop."""
+"""Tests for helpers/tunnel_manager.py — TunnelManager singleton, notifications, start/stop."""
 
 import sys
 from pathlib import Path

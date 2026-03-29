@@ -1,4 +1,4 @@
-"""Tests for python/api/message.py — Message API handler."""
+"""Tests for api/message.py — Message API handler."""
 
 import sys
 import threading

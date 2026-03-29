@@ -1,4 +1,4 @@
-"""Tests for python/helpers/cognee_background.py — Background cognify worker."""
+"""Tests for helpers/cognee_background.py — Background cognify worker."""
 
 import sys
 import time

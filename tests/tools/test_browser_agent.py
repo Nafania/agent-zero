@@ -1,4 +1,4 @@
-"""Tests for python/tools/browser_agent.py — BrowserAgent tool."""
+"""Tests for tools/browser_agent.py — BrowserAgent tool."""
 
 import base64
 import sys

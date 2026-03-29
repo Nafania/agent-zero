@@ -1,4 +1,4 @@
-"""Tests for python/helpers/projects.py — project CRUD, file structure, listing, switching, knowledge mapping."""
+"""Tests for helpers/projects.py — project CRUD, file structure, listing, switching, knowledge mapping."""
 
 import os
 import sys

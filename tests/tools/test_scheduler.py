@@ -1,4 +1,4 @@
-"""Tests for python/tools/scheduler.py — SchedulerTool."""
+"""Tests for tools/scheduler.py — SchedulerTool."""
 
 import sys
 import json

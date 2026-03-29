@@ -1,4 +1,4 @@
-"""Tests for python/tools/memory_forget.py — MemoryForget tool."""
+"""Tests for tools/memory_forget.py — MemoryForget tool."""
 
 import sys
 from pathlib import Path

@@ -1,4 +1,4 @@
-"""Tests for python/helpers/rate_limiter.py — RateLimiter (fully mocked, no external API calls)."""
+"""Tests for helpers/rate_limiter.py — RateLimiter (fully mocked, no external API calls)."""
 
 import asyncio
 import sys

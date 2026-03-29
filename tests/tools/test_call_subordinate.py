@@ -1,4 +1,4 @@
-"""Tests for python/tools/call_subordinate.py — Delegation (call_subordinate) tool."""
+"""Tests for tools/call_subordinate.py — Delegation (call_subordinate) tool."""
 
 import sys
 from pathlib import Path

@@ -1,4 +1,4 @@
-"""Tests for python/api/mcp_servers_apply.py — McpServersApply API handler."""
+"""Tests for api/mcp_servers_apply.py — McpServersApply API handler."""
 
 import sys
 import threading

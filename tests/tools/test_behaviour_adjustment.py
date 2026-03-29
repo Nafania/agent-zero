@@ -1,4 +1,4 @@
-"""Tests for python/tools/behaviour_adjustment.py — UpdateBehaviour tool."""
+"""Tests for tools/behaviour_adjustment.py — UpdateBehaviour tool."""
 
 import sys
 from pathlib import Path

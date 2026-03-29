@@ -1,4 +1,4 @@
-"""Tests for python/helpers/secrets.py — secret masking/unmasking/storage."""
+"""Tests for helpers/secrets.py — secret masking/unmasking/storage."""
 
 import re
 import sys

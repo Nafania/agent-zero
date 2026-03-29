@@ -1,4 +1,4 @@
-"""Tests for python/helpers/skills.py — skill discovery, loading, installation."""
+"""Tests for helpers/skills.py — skill discovery, loading, installation."""
 
 import sys
 from pathlib import Path
