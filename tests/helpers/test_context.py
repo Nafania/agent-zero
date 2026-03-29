@@ -21,7 +21,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 import sys as _sys
 _spec = importlib.util.spec_from_file_location(
     "defer",
-    PROJECT_ROOT / "python" / "helpers" / "defer.py",
+    PROJECT_ROOT / "helpers" / "defer.py",
 )
 _mod = importlib.util.module_from_spec(_spec)
 _sys.modules[_spec.name] = _mod

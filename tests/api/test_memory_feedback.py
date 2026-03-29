@@ -137,7 +137,7 @@ def test_memory_feedback_discovered_like_run_ui():
     from helpers.extract_tools import load_classes_from_file
     from helpers.files import get_abs_path
 
-    path = get_abs_path("python", "api", "memory_feedback.py")
+    path = get_abs_path("api", "memory_feedback.py")
     classes = load_classes_from_file(path, ApiHandler)
     names = {c.__name__ for c in classes}
     assert "MemoryFeedback" in names

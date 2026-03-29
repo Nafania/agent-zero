@@ -39,13 +39,13 @@ class TestBrowserModule:
 
     def test_browser_file_exists(self):
         """Source file exists at expected path."""
-        browser_path = PROJECT_ROOT / "python" / "helpers" / "browser.py"
+        browser_path = PROJECT_ROOT / "helpers" / "browser.py"
         assert browser_path.exists()
         assert browser_path.is_file()
 
     def test_browser_file_contains_browser_reference(self):
         """Source file contains expected class/exception names (in comments)."""
-        browser_path = PROJECT_ROOT / "python" / "helpers" / "browser.py"
+        browser_path = PROJECT_ROOT / "helpers" / "browser.py"
         content = browser_path.read_text()
         assert "Browser" in content
         assert "NoPageError" in content

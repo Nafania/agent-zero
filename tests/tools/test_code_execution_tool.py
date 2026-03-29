@@ -1,5 +1,6 @@
 """Tests for tools/code_execution_tool.py — CodeExecution tool."""
 
+import itertools
 import sys
 from pathlib import Path
 from unittest.mock import MagicMock, AsyncMock, patch
@@ -331,7 +332,7 @@ class TestCodeExecutionGetTerminalOutput:
         mock_shell.read_output = AsyncMock(return_value=("", ""))
         tool.state = State(shells={0: ShellWrap(0, mock_shell, False)}, ssh_enabled=False)
         with patch.object(tool, "prepare_state", new_callable=AsyncMock, return_value=tool.state):
-            with patch("tools.code_execution_tool.time.time", side_effect=[0, 0, 35]):
+            with patch("tools.code_execution_tool.time.time", side_effect=itertools.chain([0, 0], itertools.repeat(35))):
                 result = await tool.get_terminal_output(
                     session=0,
                     first_output_timeout=30,
