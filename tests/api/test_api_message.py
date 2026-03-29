@@ -1,4 +1,4 @@
-"""Tests for python/api/api_message.py — ApiMessage API handler."""
+"""Tests for api/api_message.py — ApiMessage API handler."""
 
 import base64
 import sys
@@ -14,7 +14,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from flask import Response
 
-from python.api.api_message import ApiMessage
+from api.api_message import ApiMessage
 
 
 def _make_handler(app=None, lock=None):
@@ -52,7 +52,7 @@ class TestApiMessage:
         mock_ctx.log = MagicMock()
         mock_ctx.communicate = MagicMock(return_value=MagicMock(result=AsyncMock(return_value="Hello!")))
 
-        with patch("python.api.api_message.AgentContext") as MockCtx:
+        with patch("api.api_message.AgentContext") as MockCtx:
             MockCtx.use.return_value = mock_ctx
             with patch.object(handler, "_chat_lifetimes", {}):
                 with patch.object(handler, "_cleanup_lock"):
@@ -69,7 +69,7 @@ class TestApiMessage:
         app, lock = mock_app
         handler = _make_handler(app, lock)
 
-        with patch("python.api.api_message.AgentContext") as MockCtx:
+        with patch("api.api_message.AgentContext") as MockCtx:
             MockCtx.use.return_value = None
             result = await handler.process({
                 "context_id": "nonexistent",
@@ -89,7 +89,7 @@ class TestApiMessage:
         mock_ctx.agent0 = MagicMock()
         mock_ctx.agent0.config.profile = "existing-profile"
 
-        with patch("python.api.api_message.AgentContext") as MockCtx:
+        with patch("api.api_message.AgentContext") as MockCtx:
             MockCtx.use.return_value = mock_ctx
             result = await handler.process({
                 "context_id": "ctx-1",
@@ -110,8 +110,8 @@ class TestApiMessage:
         mock_ctx.agent0 = MagicMock()
         mock_ctx.get_data = MagicMock(return_value="existing-project")
 
-        with patch("python.api.api_message.AgentContext") as MockCtx, \
-             patch("python.api.api_message.projects") as mock_projects:
+        with patch("api.api_message.AgentContext") as MockCtx, \
+             patch("api.api_message.projects") as mock_projects:
             MockCtx.use.return_value = mock_ctx
             mock_projects.CONTEXT_DATA_KEY_PROJECT = "project"
             result = await handler.process({
@@ -133,7 +133,7 @@ class TestApiMessage:
         mock_ctx.log = MagicMock()
         mock_ctx.communicate = MagicMock(return_value=MagicMock(result=AsyncMock(return_value="ok")))
 
-        with patch("python.api.api_message.AgentContext") as MockCtx, \
+        with patch("api.api_message.AgentContext") as MockCtx, \
              patch.object(handler, "_chat_lifetimes", {}), \
              patch.object(handler, "_cleanup_lock", MagicMock()):
             MockCtx.use.return_value = mock_ctx
@@ -157,7 +157,7 @@ class TestApiMessage:
         mock_task.result = AsyncMock(side_effect=Exception("LLM error"))
         mock_ctx.communicate = MagicMock(return_value=mock_task)
 
-        with patch("python.api.api_message.AgentContext") as MockCtx:
+        with patch("api.api_message.AgentContext") as MockCtx:
             MockCtx.use.return_value = mock_ctx
             with patch.object(handler, "_chat_lifetimes", {}):
                 with patch.object(handler, "_cleanup_lock"):

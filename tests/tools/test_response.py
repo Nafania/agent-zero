@@ -1,4 +1,4 @@
-"""Tests for python/tools/response.py — ResponseTool."""
+"""Tests for tools/response.py — ResponseTool."""
 
 import sys
 from pathlib import Path
@@ -18,7 +18,7 @@ def mock_agent():
 
 @pytest.fixture
 def tool(mock_agent):
-    from python.tools.response import ResponseTool
+    from tools.response import ResponseTool
     return ResponseTool(
         agent=mock_agent,
         name="response",
@@ -38,7 +38,7 @@ class TestResponseToolExecute:
 
     @pytest.mark.asyncio
     async def test_uses_message_if_no_text(self, mock_agent):
-        from python.tools.response import ResponseTool
+        from tools.response import ResponseTool
         t = ResponseTool(mock_agent, "r", None, {"message": "Alternative"}, "", None)
         resp = await t.execute()
         assert resp.message == "Alternative"

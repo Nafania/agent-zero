@@ -1,4 +1,4 @@
-"""Tests for python/api/notifications_mark_read.py — NotificationsMarkRead API handler."""
+"""Tests for api/notifications_mark_read.py — NotificationsMarkRead API handler."""
 
 import sys
 import threading
@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.notifications_mark_read import NotificationsMarkRead
+from api.notifications_mark_read import NotificationsMarkRead
 
 
 def _make_handler(app=None, lock=None):
@@ -29,7 +29,7 @@ class TestNotificationsMarkRead:
         mock_manager = MagicMock()
 
         with patch(
-            "python.api.notifications_mark_read.AgentContext.get_notification_manager",
+            "api.notifications_mark_read.AgentContext.get_notification_manager",
             return_value=mock_manager,
         ):
             result = await handler.process({"mark_all": True}, MagicMock())
@@ -45,7 +45,7 @@ class TestNotificationsMarkRead:
         mock_manager = MagicMock()
 
         with patch(
-            "python.api.notifications_mark_read.AgentContext.get_notification_manager",
+            "api.notifications_mark_read.AgentContext.get_notification_manager",
             return_value=mock_manager,
         ):
             result = await handler.process({}, MagicMock())
@@ -60,7 +60,7 @@ class TestNotificationsMarkRead:
         mock_manager = MagicMock()
 
         with patch(
-            "python.api.notifications_mark_read.AgentContext.get_notification_manager",
+            "api.notifications_mark_read.AgentContext.get_notification_manager",
             return_value=mock_manager,
         ):
             result = await handler.process(
@@ -78,7 +78,7 @@ class TestNotificationsMarkRead:
         mock_manager.mark_read_by_ids.return_value = 2
 
         with patch(
-            "python.api.notifications_mark_read.AgentContext.get_notification_manager",
+            "api.notifications_mark_read.AgentContext.get_notification_manager",
             return_value=mock_manager,
         ):
             result = await handler.process(

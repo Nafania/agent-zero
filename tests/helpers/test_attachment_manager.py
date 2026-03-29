@@ -1,4 +1,4 @@
-"""Tests for python/helpers/attachment_manager.py — AttachmentManager."""
+"""Tests for helpers/attachment_manager.py — AttachmentManager."""
 
 import sys
 from pathlib import Path
@@ -10,7 +10,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.helpers.attachment_manager import AttachmentManager
+from helpers.attachment_manager import AttachmentManager
 
 
 class TestAttachmentManagerAllowedExtensions:
@@ -95,7 +95,7 @@ class TestSaveFile:
         f = MagicMock()
         f.content_type = "image/png"
         f.save = MagicMock()
-        with patch("python.helpers.attachment_manager.safe_filename", return_value="photo.png"):
+        with patch("helpers.attachment_manager.safe_filename", return_value="photo.png"):
             with patch.object(am, "generate_image_preview", return_value=None):
                 path, meta = am.save_file(f, "photo.png")
         assert path is not None
@@ -106,8 +106,8 @@ class TestSaveFile:
     def test_save_file_returns_none_on_invalid_filename(self, tmp_path):
         am = AttachmentManager(str(tmp_path))
         f = MagicMock()
-        with patch("python.helpers.attachment_manager.safe_filename", return_value=None):
-            with patch("python.helpers.attachment_manager.PrintStyle"):
+        with patch("helpers.attachment_manager.safe_filename", return_value=None):
+            with patch("helpers.attachment_manager.PrintStyle"):
                 path, meta = am.save_file(f, "bad/name")
         assert path is None
         assert meta == {}

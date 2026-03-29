@@ -1,4 +1,4 @@
-"""Tests for python/api/csrf_token.py — GetCsrfToken API handler."""
+"""Tests for api/csrf_token.py — GetCsrfToken API handler."""
 
 import sys
 import threading
@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.csrf_token import GetCsrfToken
+from api.csrf_token import GetCsrfToken
 
 
 def _make_handler(app=None, lock=None):
@@ -30,7 +30,7 @@ class TestGetCsrfToken:
         handler = _make_handler()
         mock_session = {}
         with patch.object(handler, "check_allowed_origin", new_callable=AsyncMock, return_value={"ok": True}), \
-             patch("python.api.csrf_token.session", mock_session):
+             patch("api.csrf_token.session", mock_session):
             result = await handler.process({}, MagicMock())
         assert result["ok"] is True
         assert "token" in result
@@ -41,8 +41,8 @@ class TestGetCsrfToken:
         handler = _make_handler()
         mock_session = {"csrf_token": "existing-token"}
         with patch.object(handler, "check_allowed_origin", new_callable=AsyncMock, return_value={"ok": True}), \
-             patch("python.api.csrf_token.session", mock_session):
-            with patch("python.api.csrf_token.runtime.get_runtime_id", return_value="rt-1"):
+             patch("api.csrf_token.session", mock_session):
+            with patch("api.csrf_token.runtime.get_runtime_id", return_value="rt-1"):
                 result = await handler.process({}, MagicMock())
         assert result["ok"] is True
         assert result["token"] == "existing-token"
@@ -63,14 +63,14 @@ class TestCheckAllowedOrigin:
     @pytest.mark.asyncio
     async def test_returns_ok_when_login_required(self):
         handler = _make_handler()
-        with patch("python.api.csrf_token.login.is_login_required", return_value=True):
+        with patch("api.csrf_token.login.is_login_required", return_value=True):
             result = await handler.check_allowed_origin(MagicMock())
         assert result["ok"] is True
 
     @pytest.mark.asyncio
     async def test_checks_origin_when_login_not_required(self):
         handler = _make_handler()
-        with patch("python.api.csrf_token.login.is_login_required", return_value=False), \
+        with patch("api.csrf_token.login.is_login_required", return_value=False), \
              patch.object(handler, "initialize_allowed_origins"), \
              patch.object(handler, "is_allowed_origin", new_callable=AsyncMock, return_value={"ok": True, "origin": "", "allowed_origins": ""}):
             result = await handler.check_allowed_origin(MagicMock())

@@ -11,12 +11,12 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.oauth_authorize import OAuthAuthorize, _pending_states
-from python.api.oauth_callback import OAuthCallback
-from python.api.oauth_disconnect import OAuthDisconnect
-from python.api.oauth_providers import OAuthProviders
-from python.api.oauth_exchange import OAuthExchange
-from python.api.oauth_status import OAuthStatus
+from api.oauth_authorize import OAuthAuthorize, _pending_states
+from api.oauth_callback import OAuthCallback
+from api.oauth_disconnect import OAuthDisconnect
+from api.oauth_providers import OAuthProviders
+from api.oauth_exchange import OAuthExchange
+from api.oauth_status import OAuthStatus
 
 
 def _make(cls, app=None, lock=None):
@@ -27,7 +27,7 @@ class TestOAuthAuthorize:
     @pytest.mark.asyncio
     async def test_returns_authorization_url(self):
         handler = _make(OAuthAuthorize)
-        with patch("python.api.oauth_authorize.get_oauth_provider") as mock_get:
+        with patch("api.oauth_authorize.get_oauth_provider") as mock_get:
             mock_provider = MagicMock()
             mock_provider.get_authorization_url.return_value = (
                 "https://accounts.google.com/auth?client_id=test"
@@ -35,7 +35,7 @@ class TestOAuthAuthorize:
             mock_provider.supports_pkce = False
             mock_get.return_value = mock_provider
 
-            with patch("python.api.oauth_authorize.dotenv"):
+            with patch("api.oauth_authorize.dotenv"):
                 result = await handler.process(
                     {
                         "provider_id": "google",
@@ -53,7 +53,7 @@ class TestOAuthAuthorize:
     @pytest.mark.asyncio
     async def test_returns_error_for_unknown_provider(self):
         handler = _make(OAuthAuthorize)
-        with patch("python.api.oauth_authorize.get_oauth_provider", return_value=None):
+        with patch("api.oauth_authorize.get_oauth_provider", return_value=None):
             result = await handler.process({"provider_id": "unknown"}, MagicMock())
         assert "error" in result
 
@@ -61,13 +61,13 @@ class TestOAuthAuthorize:
     async def test_stores_pending_state(self):
         handler = _make(OAuthAuthorize)
         _pending_states.clear()
-        with patch("python.api.oauth_authorize.get_oauth_provider") as mock_get:
+        with patch("api.oauth_authorize.get_oauth_provider") as mock_get:
             mock_provider = MagicMock()
             mock_provider.get_authorization_url.return_value = "https://example.com/auth"
             mock_provider.supports_pkce = True
             mock_get.return_value = mock_provider
 
-            with patch("python.api.oauth_authorize.dotenv"):
+            with patch("api.oauth_authorize.dotenv"):
                 result = await handler.process(
                     {"provider_id": "anthropic", "flow": "manual"},
                     MagicMock(),
@@ -83,12 +83,12 @@ class TestOAuthAuthorize:
     @pytest.mark.asyncio
     async def test_default_flow_is_redirect(self):
         handler = _make(OAuthAuthorize)
-        with patch("python.api.oauth_authorize.get_oauth_provider") as mock_get:
+        with patch("api.oauth_authorize.get_oauth_provider") as mock_get:
             mock_provider = MagicMock()
             mock_provider.get_authorization_url.return_value = "https://example.com/auth"
             mock_provider.supports_pkce = False
             mock_get.return_value = mock_provider
-            with patch("python.api.oauth_authorize.dotenv"):
+            with patch("api.oauth_authorize.dotenv"):
                 result = await handler.process({"provider_id": "google"}, MagicMock())
         assert result["flow"] == "redirect"
         _pending_states.clear()
@@ -107,7 +107,7 @@ class TestOAuthCallback:
         request = MagicMock()
         request.args = {"error": "access_denied", "state": "", "code": ""}
 
-        with patch("python.api.oauth_callback.FlaskResponse") as mock_resp:
+        with patch("api.oauth_callback.FlaskResponse") as mock_resp:
             await handler.process({}, request)
 
         mock_resp.assert_called_once()
@@ -121,7 +121,7 @@ class TestOAuthCallback:
         request = MagicMock()
         request.args = {"code": "abc", "state": "bad-state", "error": ""}
 
-        with patch("python.api.oauth_callback.FlaskResponse") as mock_resp:
+        with patch("api.oauth_callback.FlaskResponse") as mock_resp:
             await handler.process({}, request)
 
         mock_resp.assert_called_once()
@@ -141,8 +141,8 @@ class TestOAuthCallback:
         request = MagicMock()
         request.args = {"code": "abc", "state": "unk-state", "error": ""}
 
-        with patch("python.api.oauth_callback.get_oauth_provider", return_value=None):
-            with patch("python.api.oauth_callback.FlaskResponse") as mock_resp:
+        with patch("api.oauth_callback.get_oauth_provider", return_value=None):
+            with patch("api.oauth_callback.FlaskResponse") as mock_resp:
                 await handler.process({}, request)
 
         mock_resp.assert_called_once()
@@ -164,15 +164,15 @@ class TestOAuthCallback:
         request = MagicMock()
         request.args = {"code": "auth-code", "state": "cb-state", "error": ""}
 
-        with patch("python.api.oauth_callback.get_oauth_provider") as mock_get:
+        with patch("api.oauth_callback.get_oauth_provider") as mock_get:
             mock_provider = MagicMock()
             mock_provider.exchange_code = AsyncMock(return_value=mock_tokens)
             mock_get.return_value = mock_provider
-            with patch("python.api.oauth_callback.dotenv"):
-                with patch("python.api.oauth_callback.ProviderPool") as mock_pool_cls:
+            with patch("api.oauth_callback.dotenv"):
+                with patch("api.oauth_callback.ProviderPool") as mock_pool_cls:
                     mock_pool = MagicMock()
                     mock_pool_cls.get_instance.return_value = mock_pool
-                    with patch("python.api.oauth_callback.FlaskResponse") as mock_resp:
+                    with patch("api.oauth_callback.FlaskResponse") as mock_resp:
                         await handler.process({}, request)
 
         html = mock_resp.call_args[0][0]
@@ -194,12 +194,12 @@ class TestOAuthExchange:
         }
 
         mock_tokens = MagicMock()
-        with patch("python.api.oauth_exchange.get_oauth_provider") as mock_get:
+        with patch("api.oauth_exchange.get_oauth_provider") as mock_get:
             mock_provider = MagicMock()
             mock_provider.exchange_code = AsyncMock(return_value=mock_tokens)
             mock_get.return_value = mock_provider
-            with patch("python.api.oauth_exchange.dotenv"):
-                with patch("python.api.oauth_exchange.ProviderPool") as mock_pool_cls:
+            with patch("api.oauth_exchange.dotenv"):
+                with patch("api.oauth_exchange.ProviderPool") as mock_pool_cls:
                     mock_pool = MagicMock()
                     mock_pool_cls.get_instance.return_value = mock_pool
                     result = await handler.process(
@@ -238,7 +238,7 @@ class TestOAuthExchange:
             "flow": "manual",
             "created": 9999999999,
         }
-        with patch("python.api.oauth_exchange.get_oauth_provider", return_value=None):
+        with patch("api.oauth_exchange.get_oauth_provider", return_value=None):
             result = await handler.process(
                 {"provider_id": "unknown", "code": "c", "state": "up-state"},
                 MagicMock(),
@@ -250,7 +250,7 @@ class TestOAuthDisconnect:
     @pytest.mark.asyncio
     async def test_disconnect_calls_pool(self):
         handler = _make(OAuthDisconnect)
-        with patch("python.api.oauth_disconnect.ProviderPool") as mock_pool_cls:
+        with patch("api.oauth_disconnect.ProviderPool") as mock_pool_cls:
             mock_pool = MagicMock()
             mock_pool_cls.get_instance.return_value = mock_pool
 
@@ -265,7 +265,7 @@ class TestOAuthProviders:
     @pytest.mark.asyncio
     async def test_returns_provider_list_with_status(self):
         handler = _make(OAuthProviders)
-        with patch("python.api.oauth_providers.get_oauth_providers") as mock_providers:
+        with patch("api.oauth_providers.get_oauth_providers") as mock_providers:
             mock_providers.return_value = [
                 {
                     "provider_id": "google",
@@ -274,7 +274,7 @@ class TestOAuthProviders:
                     "strategy": "google",
                 },
             ]
-            with patch("python.api.oauth_providers.ProviderPool") as mock_pool_cls:
+            with patch("api.oauth_providers.ProviderPool") as mock_pool_cls:
                 mock_pool = MagicMock()
                 mock_pool.is_connected.return_value = True
                 mock_pool_cls.get_instance.return_value = mock_pool
@@ -288,8 +288,8 @@ class TestOAuthProviders:
     @pytest.mark.asyncio
     async def test_returns_empty_list_when_no_providers(self):
         handler = _make(OAuthProviders)
-        with patch("python.api.oauth_providers.get_oauth_providers", return_value=[]):
-            with patch("python.api.oauth_providers.ProviderPool") as mock_pool_cls:
+        with patch("api.oauth_providers.get_oauth_providers", return_value=[]):
+            with patch("api.oauth_providers.ProviderPool") as mock_pool_cls:
                 mock_pool_cls.get_instance.return_value = MagicMock()
                 result = await handler.process({}, MagicMock())
         assert result["providers"] == []
@@ -307,7 +307,7 @@ class TestOAuthStatus:
         mock_tokens.expires_at.isoformat.return_value = "2026-12-31T00:00:00+00:00"
         mock_tokens.scope = "read write"
 
-        with patch("python.api.oauth_status.ProviderPool") as mock_pool_cls:
+        with patch("api.oauth_status.ProviderPool") as mock_pool_cls:
             mock_pool = MagicMock()
             mock_pool.store.load.return_value = mock_tokens
             mock_pool_cls.get_instance.return_value = mock_pool
@@ -322,7 +322,7 @@ class TestOAuthStatus:
     @pytest.mark.asyncio
     async def test_disconnected_provider(self):
         handler = _make(OAuthStatus)
-        with patch("python.api.oauth_status.ProviderPool") as mock_pool_cls:
+        with patch("api.oauth_status.ProviderPool") as mock_pool_cls:
             mock_pool = MagicMock()
             mock_pool.store.load.return_value = None
             mock_pool_cls.get_instance.return_value = mock_pool

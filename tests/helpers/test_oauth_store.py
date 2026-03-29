@@ -2,8 +2,8 @@ import pytest
 import json
 from datetime import datetime, timezone, timedelta
 from unittest.mock import patch
-from python.helpers.oauth import OAuthTokens
-from python.helpers.oauth_store import OAuthTokenStore
+from helpers.oauth import OAuthTokens
+from helpers.oauth_store import OAuthTokenStore
 
 
 @pytest.fixture

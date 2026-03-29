@@ -12,13 +12,13 @@ if str(PROJECT_ROOT) not in sys.path:
 
 
 def _make_handler():
-    from python.api.skill_install import SkillInstall
+    from api.skill_install import SkillInstall
     return SkillInstall(app=MagicMock(), thread_lock=MagicMock())
 
 
 @pytest.fixture
 def mock_skills_cli():
-    with patch("python.api.skill_install.skills_cli") as mock:
+    with patch("api.skill_install.skills_cli") as mock:
         mock.add = AsyncMock(return_value="Installed brainstorming")
         mock.SkillsCLIError = type("SkillsCLIError", (Exception,), {})
         yield mock

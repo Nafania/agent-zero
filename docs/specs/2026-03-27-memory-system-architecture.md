@@ -20,7 +20,7 @@ The memory stack has six layers:
 
 ---
 
-## 1. Cognee Initialization (`python/helpers/cognee_init.py`)
+## 1. Cognee Initialization (`helpers/cognee_init.py`)
 
 ### Why order matters
 
@@ -66,7 +66,7 @@ Cognee uses A0's **utility model** for LLM operations and A0's **embedding model
 
 ---
 
-## 2. Memory Class (`python/helpers/memory.py`)
+## 2. Memory Class (`helpers/memory.py`)
 
 ### Core abstraction
 
@@ -183,7 +183,7 @@ Each directory has sub-folders matching `Memory.Area` values (main, fragments, s
 
 ---
 
-## 3. Recall Pipeline (`python/extensions/message_loop_prompts_after/_50_recall_memories.py`)
+## 3. Recall Pipeline (`extensions/python/message_loop_prompts_after/_50_recall_memories.py`)
 
 ### When it runs
 
@@ -237,7 +237,7 @@ These become part of the system prompt for subsequent LLM calls. The log entry a
 
 ---
 
-## 4. Memorize Pipeline (`python/extensions/monologue_end/`)
+## 4. Memorize Pipeline (`extensions/python/monologue_end/`)
 
 ### When it runs
 
@@ -274,7 +274,7 @@ Both use `Memory.insert_text()` which prepends metadata header and calls `cognee
 
 ---
 
-## 5. Background Worker (`python/helpers/cognee_background.py`)
+## 5. Background Worker (`helpers/cognee_background.py`)
 
 ### Purpose
 
@@ -309,7 +309,7 @@ CogneeBackgroundWorker.run_pipeline()
 
 ---
 
-## 6. Feedback Loop (`python/helpers/cognee_feedback.py`)
+## 6. Feedback Loop (`helpers/cognee_feedback.py`)
 
 ### Purpose
 
@@ -362,7 +362,7 @@ usr/cognee_feedback_queue/
 
 ---
 
-## 7. Memory Dashboard API (`python/api/memory_dashboard.py`)
+## 7. Memory Dashboard API (`api/memory_dashboard.py`)
 
 ### Endpoint: `/memory_dashboard`
 
@@ -392,7 +392,7 @@ Auto-discovered via `run_ui.py` file scanning convention.
 
 ---
 
-## 8. VectorDB (`python/helpers/vector_db.py`)
+## 8. VectorDB (`helpers/vector_db.py`)
 
 Separate from the main memory system. Used by `document_query` tool for per-session document search (PDFs, CSVs, etc.).
 
@@ -403,7 +403,7 @@ Separate from the main memory system. Used by `document_query` tool for per-sess
 
 ---
 
-## 9. Settings (`python/helpers/settings.py`)
+## 9. Settings (`helpers/settings.py`)
 
 ### Memory recall settings
 
@@ -533,15 +533,15 @@ When Cognee results lack an `id` in metadata, a deterministic hash is computed f
 
 | File | Layer | Purpose |
 |------|-------|---------|
-| `python/helpers/cognee_init.py` | Init | Env vars, import, LLM/embed config |
-| `python/helpers/memory.py` | Core | Memory class, CRUD, knowledge preload |
-| `python/helpers/cognee_background.py` | Pipeline | Background cognify/memify worker |
-| `python/helpers/cognee_feedback.py` | Feedback | Feedback validation, forwarding, queue |
-| `python/helpers/vector_db.py` | Document | Per-session document search (separate from memory) |
-| `python/helpers/settings.py` | Config | Settings schema, defaults, apply logic |
-| `python/helpers/projects.py` | Isolation | Project memory subdir resolution |
-| `python/api/memory_dashboard.py` | API | Dashboard list/search/delete/update |
-| `python/extensions/.../recall_memories.py` | Recall | Auto-recall during message loop |
-| `python/extensions/.../memorize_fragments.py` | Memorize | Auto-memorize conversation fragments |
-| `python/extensions/.../memorize_solutions.py` | Memorize | Auto-memorize problem/solution pairs |
+| `helpers/cognee_init.py` | Init | Env vars, import, LLM/embed config |
+| `helpers/memory.py` | Core | Memory class, CRUD, knowledge preload |
+| `helpers/cognee_background.py` | Pipeline | Background cognify/memify worker |
+| `helpers/cognee_feedback.py` | Feedback | Feedback validation, forwarding, queue |
+| `helpers/vector_db.py` | Document | Per-session document search (separate from memory) |
+| `helpers/settings.py` | Config | Settings schema, defaults, apply logic |
+| `helpers/projects.py` | Isolation | Project memory subdir resolution |
+| `api/memory_dashboard.py` | API | Dashboard list/search/delete/update |
+| `extensions/python/.../recall_memories.py` | Recall | Auto-recall during message loop |
+| `extensions/python/.../memorize_fragments.py` | Memorize | Auto-memorize conversation fragments |
+| `extensions/python/.../memorize_solutions.py` | Memorize | Auto-memorize problem/solution pairs |
 | `initialize.py` | Boot | Cognee startup, migration, worker launch |

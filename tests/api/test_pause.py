@@ -1,4 +1,4 @@
-"""Tests for python/api/pause.py — Pause API handler."""
+"""Tests for api/pause.py — Pause API handler."""
 
 import sys
 import threading
@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.pause import Pause
+from api.pause import Pause
 
 
 def _make_handler(app=None, lock=None):

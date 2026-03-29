@@ -14,12 +14,12 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from agent import LoopData
-from python.extensions.message_loop_prompts_after._50_recall_memories import (
+from extensions.python.message_loop_prompts_after._50_recall_memories import (
     DATA_NAME_ITER,
     DATA_NAME_TASK,
     RecallMemories,
 )
-from python.extensions.message_loop_prompts_after._91_recall_wait import RecallWait
+from extensions.python.message_loop_prompts_after._91_recall_wait import RecallWait
 
 
 @pytest.fixture
@@ -107,9 +107,9 @@ async def test_recall_search_ignores_legacy_memory_recall_query_prep(_fake_cogne
     ext = RecallMemories(agent)
 
     with (
-        patch("python.helpers.settings.get_settings", return_value=settings),
-        patch("python.helpers.memory.Memory.get", new_callable=AsyncMock, return_value=db),
-        patch("python.helpers.cognee_init.get_cognee", return_value=(mock_cognee, MagicMock())),
+        patch("helpers.settings.get_settings", return_value=settings),
+        patch("helpers.memory.Memory.get", new_callable=AsyncMock, return_value=db),
+        patch("helpers.cognee_init.get_cognee", return_value=(mock_cognee, MagicMock())),
     ):
         await ext.search_memories(log_item=log_item, loop_data=loop_data)
 
@@ -136,9 +136,9 @@ async def test_recall_search_ignores_legacy_memory_recall_post_filter(_fake_cogn
     ext = RecallMemories(agent)
 
     with (
-        patch("python.helpers.settings.get_settings", return_value=settings),
-        patch("python.helpers.memory.Memory.get", new_callable=AsyncMock, return_value=db),
-        patch("python.helpers.cognee_init.get_cognee", return_value=(mock_cognee, MagicMock())),
+        patch("helpers.settings.get_settings", return_value=settings),
+        patch("helpers.memory.Memory.get", new_callable=AsyncMock, return_value=db),
+        patch("helpers.cognee_init.get_cognee", return_value=(mock_cognee, MagicMock())),
     ):
         await ext.search_memories(log_item=log_item, loop_data=loop_data)
 
@@ -166,9 +166,9 @@ async def test_recall_search_ignores_legacy_memory_recall_similarity_threshold(
     ext = RecallMemories(agent)
 
     with (
-        patch("python.helpers.settings.get_settings", return_value=settings),
-        patch("python.helpers.memory.Memory.get", new_callable=AsyncMock, return_value=db),
-        patch("python.helpers.cognee_init.get_cognee", return_value=(mock_cognee, MagicMock())),
+        patch("helpers.settings.get_settings", return_value=settings),
+        patch("helpers.memory.Memory.get", new_callable=AsyncMock, return_value=db),
+        patch("helpers.cognee_init.get_cognee", return_value=(mock_cognee, MagicMock())),
     ):
         await ext.search_memories(log_item=log_item, loop_data=loop_data)
 
@@ -208,7 +208,7 @@ async def test_recall_wait_delayed_same_iteration_does_not_await_task():
 
     try:
         with (
-            patch("python.helpers.settings.get_settings", return_value=settings),
+            patch("helpers.settings.get_settings", return_value=settings),
             patch.object(agent, "get_data", side_effect=_get_data),
         ):
             await ext.execute(loop_data)

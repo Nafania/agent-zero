@@ -1,4 +1,4 @@
-"""Tests for python/helpers/images.py — compress_image."""
+"""Tests for helpers/images.py — compress_image."""
 
 import sys
 from pathlib import Path
@@ -13,7 +13,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from PIL import Image
 
-from python.helpers.images import compress_image
+from helpers.images import compress_image
 
 
 class TestCompressImage:

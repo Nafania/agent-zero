@@ -1,6 +1,6 @@
 import pytest
 
-from python.helpers.providers import get_provider_config, get_oauth_providers, ProviderManager
+from helpers.providers import get_provider_config, get_oauth_providers, ProviderManager
 
 
 @pytest.fixture(autouse=True)

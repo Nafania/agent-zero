@@ -1,4 +1,4 @@
-"""Tests for python/api/backup_test.py — BackupTest API handler."""
+"""Tests for api/backup_test.py — BackupTest API handler."""
 
 import sys
 import threading
@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.backup_test import BackupTest
+from api.backup_test import BackupTest
 
 
 def _make_handler():
@@ -43,7 +43,7 @@ class TestBackupTest:
             {"path": "usr/settings.json", "size": 200},
         ]
 
-        with patch("python.api.backup_test.BackupService") as MockBackup:
+        with patch("api.backup_test.BackupService") as MockBackup:
             mock_svc = MagicMock()
             mock_svc.test_patterns = AsyncMock(return_value=matched_files)
             MockBackup.return_value = mock_svc
@@ -62,7 +62,7 @@ class TestBackupTest:
         handler = _make_handler()
         many_files = [{"path": f"usr/file{i}.json", "size": 10} for i in range(1000)]
 
-        with patch("python.api.backup_test.BackupService") as MockBackup:
+        with patch("api.backup_test.BackupService") as MockBackup:
             mock_svc = MagicMock()
             mock_svc.test_patterns = AsyncMock(return_value=many_files)
             MockBackup.return_value = mock_svc
@@ -79,7 +79,7 @@ class TestBackupTest:
     @pytest.mark.asyncio
     async def test_parses_legacy_patterns_string(self):
         handler = _make_handler()
-        with patch("python.api.backup_test.BackupService") as MockBackup:
+        with patch("api.backup_test.BackupService") as MockBackup:
             mock_svc = MagicMock()
             mock_svc.test_patterns = AsyncMock(return_value=[])
             MockBackup.return_value = mock_svc

@@ -1,4 +1,4 @@
-"""Tests for python/api/mcp_server_get_detail.py — McpServerGetDetail API handler."""
+"""Tests for api/mcp_server_get_detail.py — McpServerGetDetail API handler."""
 
 import sys
 import threading
@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.mcp_server_get_detail import McpServerGetDetail
+from api.mcp_server_get_detail import McpServerGetDetail
 
 
 def _make_handler(app=None, lock=None):
@@ -35,7 +35,7 @@ class TestMcpServerGetDetail:
         handler = _make_handler(app, lock)
         mock_detail = {"name": "filesystem", "command": "npx", "status": "running"}
 
-        with patch("python.api.mcp_server_get_detail.MCPConfig") as MockMCP:
+        with patch("api.mcp_server_get_detail.MCPConfig") as MockMCP:
             mock_instance = MagicMock()
             mock_instance.get_server_detail.return_value = mock_detail
             MockMCP.get_instance.return_value = mock_instance

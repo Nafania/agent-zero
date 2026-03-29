@@ -19,8 +19,8 @@ Full migration from browser-use 0.5.11 (Playwright-based) to 0.12.3 (CDP-based).
 | File | Change |
 |------|--------|
 | `requirements.txt` | `browser-use` 0.5.11 → 0.12.3, remove `playwright==1.52.0` |
-| `python/tools/browser_agent.py` | Adapt 6 API call sites to new CDP-based API |
-| `python/helpers/browser_use.py` | Verify compatibility, update if needed |
+| `tools/browser_agent.py` | Adapt 6 API call sites to new CDP-based API |
+| `helpers/browser_use.py` | Verify compatibility, update if needed |
 | `docker/run/fs/ins/install_playwright.sh` | Rewrite as `install_chrome.sh` — install Chromium via apt |
 | `Dockerfile` | Reference new install script |
 | `tests/tools/test_browser_agent.py` | Update mocks for new API |
@@ -31,7 +31,7 @@ Full migration from browser-use 0.5.11 (Playwright-based) to 0.12.3 (CDP-based).
 
 | File | Reason |
 |------|--------|
-| `python/helpers/playwright.py` | `ensure_playwright_binary()` no longer needed — CDP manages Chrome directly |
+| `helpers/playwright.py` | `ensure_playwright_binary()` no longer needed — CDP manages Chrome directly |
 
 ### Files Unchanged
 
@@ -47,7 +47,7 @@ Full migration from browser-use 0.5.11 (Playwright-based) to 0.12.3 (CDP-based).
 
 ```python
 # DELETE import:
-from python.helpers.playwright import ensure_playwright_binary
+from helpers.playwright import ensure_playwright_binary
 
 # DELETE from _initialize():
 pw_binary = ensure_playwright_binary()

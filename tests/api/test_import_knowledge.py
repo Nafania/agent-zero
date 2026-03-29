@@ -1,4 +1,4 @@
-"""Tests for python/api/import_knowledge.py — ImportKnowledge API handler."""
+"""Tests for api/import_knowledge.py — ImportKnowledge API handler."""
 
 import sys
 import threading
@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.import_knowledge import ImportKnowledge
+from api.import_knowledge import ImportKnowledge
 
 
 def _make_handler(app=None, lock=None):
@@ -70,15 +70,15 @@ class TestImportKnowledge:
 
         with patch.object(handler, "use_context", return_value=mock_ctx), \
              patch(
-                 "python.api.import_knowledge.files.get_abs_path",
+                 "api.import_knowledge.files.get_abs_path",
                  return_value=str(knowledge_dir),
              ), \
              patch(
-                 "python.api.import_knowledge.memory.get_custom_knowledge_subdir_abs",
+                 "api.import_knowledge.memory.get_custom_knowledge_subdir_abs",
                  return_value=str(tmp_path / "knowledge"),
              ), \
              patch(
-                 "python.api.import_knowledge.memory.Memory.reload",
+                 "api.import_knowledge.memory.Memory.reload",
                  new_callable=AsyncMock,
              ):
             result = await handler.process({}, request)
@@ -102,14 +102,14 @@ class TestImportKnowledge:
 
         with patch.object(handler, "use_context", return_value=mock_ctx), \
              patch(
-                 "python.api.import_knowledge.memory.get_custom_knowledge_subdir_abs",
+                 "api.import_knowledge.memory.get_custom_knowledge_subdir_abs",
                  return_value=str(tmp_path / "knowledge"),
              ), \
              patch(
-                 "python.api.import_knowledge.os.makedirs",
+                 "api.import_knowledge.os.makedirs",
              ), \
              patch(
-                 "python.api.import_knowledge.os.access",
+                 "api.import_knowledge.os.access",
                  return_value=False,
              ):
             with pytest.raises(Exception, match="not writable"):

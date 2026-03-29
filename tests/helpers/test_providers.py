@@ -1,4 +1,4 @@
-"""Tests for python/helpers/providers.py — ProviderManager, get_providers, get_provider_config."""
+"""Tests for helpers/providers.py — ProviderManager, get_providers, get_provider_config."""
 
 import sys
 from pathlib import Path
@@ -14,7 +14,7 @@ if str(PROJECT_ROOT) not in sys.path:
 @pytest.fixture(autouse=True)
 def reset_provider_manager():
     """Reset ProviderManager singleton between tests."""
-    from python.helpers.providers import ProviderManager
+    from helpers.providers import ProviderManager
     ProviderManager._instance = None
     ProviderManager._raw = None
     ProviderManager._options = None
@@ -23,7 +23,7 @@ def reset_provider_manager():
 
 class TestProviderManager:
     def test_get_instance_returns_singleton(self):
-        from python.helpers.providers import ProviderManager
+        from helpers.providers import ProviderManager
         a = ProviderManager.get_instance()
         b = ProviderManager.get_instance()
         assert a is b
@@ -41,9 +41,9 @@ embedding:
     name: OpenAI Embeddings
 """
         with patch("builtins.open", mock_open(read_data=yaml_content)):
-            with patch("python.helpers.providers.files") as mf:
+            with patch("helpers.providers.files") as mf:
                 mf.get_abs_path.return_value = "/conf/model_providers.yaml"
-                from python.helpers.providers import ProviderManager
+                from helpers.providers import ProviderManager
                 pm = ProviderManager.get_instance()
         chat = pm.get_providers("chat")
         assert len(chat) >= 2
@@ -59,9 +59,9 @@ chat:
 embedding: []
 """
         with patch("builtins.open", mock_open(read_data=yaml_content)):
-            with patch("python.helpers.providers.files") as mf:
+            with patch("helpers.providers.files") as mf:
                 mf.get_abs_path.return_value = "/conf/model_providers.yaml"
-                from python.helpers.providers import ProviderManager
+                from helpers.providers import ProviderManager
                 pm = ProviderManager.get_instance()
         chat = pm.get_providers("chat")
         assert len(chat) >= 1
@@ -69,9 +69,9 @@ embedding: []
 
     def test_get_providers_returns_empty_for_unknown_type(self):
         with patch("builtins.open", mock_open(read_data="{}")):
-            with patch("python.helpers.providers.files") as mf:
+            with patch("helpers.providers.files") as mf:
                 mf.get_abs_path.return_value = "/conf/model_providers.yaml"
-                from python.helpers.providers import ProviderManager
+                from helpers.providers import ProviderManager
                 pm = ProviderManager.get_instance()
         assert pm.get_providers("unknown") == []
 
@@ -83,9 +83,9 @@ chat:
     api_key_env: OPENAI_API_KEY
 """
         with patch("builtins.open", mock_open(read_data=yaml_content)):
-            with patch("python.helpers.providers.files") as mf:
+            with patch("helpers.providers.files") as mf:
                 mf.get_abs_path.return_value = "/conf/model_providers.yaml"
-                from python.helpers.providers import ProviderManager
+                from helpers.providers import ProviderManager
                 pm = ProviderManager.get_instance()
         cfg = pm.get_provider_config("chat", "OPENAI")
         assert cfg is not None
@@ -93,9 +93,9 @@ chat:
 
     def test_get_provider_config_returns_none_for_unknown(self):
         with patch("builtins.open", mock_open(read_data="{}")):
-            with patch("python.helpers.providers.files") as mf:
+            with patch("helpers.providers.files") as mf:
                 mf.get_abs_path.return_value = "/conf/model_providers.yaml"
-                from python.helpers.providers import ProviderManager
+                from helpers.providers import ProviderManager
                 pm = ProviderManager.get_instance()
         assert pm.get_provider_config("chat", "nonexistent") is None
 
@@ -103,16 +103,16 @@ chat:
 class TestConvenienceFunctions:
     def test_get_providers_returns_list(self):
         with patch("builtins.open", mock_open(read_data="chat:\n  x: {id: x, name: X}")):
-            with patch("python.helpers.providers.files") as mf:
+            with patch("helpers.providers.files") as mf:
                 mf.get_abs_path.return_value = "/conf/model_providers.yaml"
-                from python.helpers.providers import get_providers
+                from helpers.providers import get_providers
                 result = get_providers("chat")
         assert isinstance(result, list)
 
     def test_get_raw_providers_returns_list_of_dicts(self):
         with patch("builtins.open", mock_open(read_data="chat:\n  x: {id: x}")):
-            with patch("python.helpers.providers.files") as mf:
+            with patch("helpers.providers.files") as mf:
                 mf.get_abs_path.return_value = "/conf/model_providers.yaml"
-                from python.helpers.providers import get_raw_providers
+                from helpers.providers import get_raw_providers
                 result = get_raw_providers("chat")
         assert isinstance(result, list)

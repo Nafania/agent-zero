@@ -1,4 +1,4 @@
-"""Tests for python/helpers/shell_ssh.py."""
+"""Tests for helpers/shell_ssh.py."""
 
 import sys
 from pathlib import Path
@@ -16,7 +16,7 @@ class TestCleanString:
 
     def test_removes_ansi_escape_codes(self):
         """ANSI escape codes are removed."""
-        from python.helpers.shell_ssh import clean_string
+        from helpers.shell_ssh import clean_string
 
         text = "\x1b[31mred\x1b[0m normal"
         result = clean_string(text)
@@ -26,7 +26,7 @@ class TestCleanString:
 
     def test_removes_null_bytes(self):
         """Null bytes are removed."""
-        from python.helpers.shell_ssh import clean_string
+        from helpers.shell_ssh import clean_string
 
         result = clean_string("hello\x00world")
         assert "\x00" not in result
@@ -35,7 +35,7 @@ class TestCleanString:
 
     def test_replaces_crlf_with_lf(self):
         """\\r\\n is replaced with \\n."""
-        from python.helpers.shell_ssh import clean_string
+        from helpers.shell_ssh import clean_string
 
         result = clean_string("line1\r\nline2")
         assert "\r\n" not in result
@@ -43,14 +43,14 @@ class TestCleanString:
 
     def test_removes_ipython_prompt_sequences(self):
         """IPython > prompt sequences at start are removed."""
-        from python.helpers.shell_ssh import clean_string
+        from helpers.shell_ssh import clean_string
 
         result = clean_string("\r\r\n> \r\n> hello")
         assert result.lstrip().startswith("hello") or "hello" in result
 
     def test_removes_leading_gt_space(self):
         """Leading '> ' sequences are removed."""
-        from python.helpers.shell_ssh import clean_string
+        from helpers.shell_ssh import clean_string
 
         result = clean_string("> > > output")
         assert "output" in result
@@ -61,8 +61,8 @@ class TestSSHInteractiveSession:
 
     def test_init_stores_params(self):
         """__init__ stores hostname, port, username, password, cwd."""
-        with patch("python.helpers.shell_ssh.paramiko"):
-            from python.helpers.shell_ssh import SSHInteractiveSession
+        with patch("helpers.shell_ssh.paramiko"):
+            from helpers.shell_ssh import SSHInteractiveSession
 
             logger = MagicMock()
             session = SSHInteractiveSession(
@@ -89,11 +89,11 @@ class TestSSHInteractiveSession:
         mock_client.invoke_shell.return_value = mock_shell
         mock_client.get_transport.return_value = MagicMock()
 
-        with patch("python.helpers.shell_ssh.paramiko") as mock_paramiko:
+        with patch("helpers.shell_ssh.paramiko") as mock_paramiko:
             mock_paramiko.SSHClient.return_value = mock_client
             mock_paramiko.AutoAddPolicy.return_value = MagicMock()
 
-            from python.helpers.shell_ssh import SSHInteractiveSession
+            from helpers.shell_ssh import SSHInteractiveSession
 
             logger = MagicMock()
             session = SSHInteractiveSession(
@@ -117,8 +117,8 @@ class TestSSHInteractiveSession:
         mock_client = MagicMock()
         mock_shell = MagicMock()
 
-        with patch("python.helpers.shell_ssh.paramiko"):
-            from python.helpers.shell_ssh import SSHInteractiveSession
+        with patch("helpers.shell_ssh.paramiko"):
+            from helpers.shell_ssh import SSHInteractiveSession
 
             logger = MagicMock()
             session = SSHInteractiveSession(
@@ -135,8 +135,8 @@ class TestSSHInteractiveSession:
     @pytest.mark.asyncio
     async def test_send_command_raises_when_not_connected(self):
         """send_command raises when shell not connected."""
-        with patch("python.helpers.shell_ssh.paramiko"):
-            from python.helpers.shell_ssh import SSHInteractiveSession
+        with patch("helpers.shell_ssh.paramiko"):
+            from helpers.shell_ssh import SSHInteractiveSession
 
             logger = MagicMock()
             session = SSHInteractiveSession(
@@ -152,8 +152,8 @@ class TestSSHInteractiveSession:
         """send_command appends newline and sends encoded command."""
         mock_shell = MagicMock()
 
-        with patch("python.helpers.shell_ssh.paramiko"):
-            from python.helpers.shell_ssh import SSHInteractiveSession
+        with patch("helpers.shell_ssh.paramiko"):
+            from helpers.shell_ssh import SSHInteractiveSession
 
             logger = MagicMock()
             session = SSHInteractiveSession(
@@ -173,8 +173,8 @@ class TestSSHInteractiveSession:
     @pytest.mark.asyncio
     async def test_read_output_raises_when_not_connected(self):
         """read_output raises when shell not connected."""
-        with patch("python.helpers.shell_ssh.paramiko"):
-            from python.helpers.shell_ssh import SSHInteractiveSession
+        with patch("helpers.shell_ssh.paramiko"):
+            from helpers.shell_ssh import SSHInteractiveSession
 
             logger = MagicMock()
             session = SSHInteractiveSession(
@@ -187,8 +187,8 @@ class TestSSHInteractiveSession:
 
     def test_receive_bytes_raises_when_not_connected(self):
         """receive_bytes raises when shell not connected."""
-        with patch("python.helpers.shell_ssh.paramiko"):
-            from python.helpers.shell_ssh import SSHInteractiveSession
+        with patch("helpers.shell_ssh.paramiko"):
+            from helpers.shell_ssh import SSHInteractiveSession
 
             logger = MagicMock()
             session = SSHInteractiveSession(

@@ -1,9 +1,9 @@
-from python.helpers import dotenv, runtime, settings
+from helpers import dotenv, runtime, settings
 import asyncio
 import string
 import random
 import resource
-from python.helpers.print_style import PrintStyle
+from helpers.print_style import PrintStyle
 
 
 # Raise the file-descriptor soft limit to avoid "Too many open files" from LanceDB/Cognee
@@ -32,7 +32,7 @@ try:
 
     # Initialize Cognee memory system — must succeed, it's the foundation
     import time as _time
-    from python.helpers.cognee_init import init_cognee
+    from helpers.cognee_init import init_cognee
 
     _COGNEE_MAX_RETRIES = 3
     _COGNEE_RETRY_DELAY = 2  # seconds
@@ -40,7 +40,7 @@ try:
     for attempt in range(1, _COGNEE_MAX_RETRIES + 1):
         try:
             asyncio.get_event_loop().run_until_complete(init_cognee())
-            from python.helpers.cognee_background import CogneeBackgroundWorker
+            from helpers.cognee_background import CogneeBackgroundWorker
             CogneeBackgroundWorker.get_instance().start()
             break
         except Exception as e:
@@ -48,7 +48,7 @@ try:
             if attempt < _COGNEE_MAX_RETRIES:
                 PrintStyle.standard(f"Retrying in {_COGNEE_RETRY_DELAY}s...")
                 _time.sleep(_COGNEE_RETRY_DELAY)
-                from python.helpers.memory import reload
+                from helpers.memory import reload
                 reload()
             else:
                 raise RuntimeError(

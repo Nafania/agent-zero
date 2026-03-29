@@ -90,9 +90,9 @@ class TestInitializeAgent:
             patch("initialize.settings.get_settings", return_value=base.copy()),
             patch("initialize.settings.get_runtime_config", return_value={}),
             patch("initialize.runtime.args", {}),
-            patch("python.api.chat_model_override._load_override", return_value={"provider": "google", "model": "gemini-2.5-pro"}),
-            patch("python.helpers.connected_providers.ProviderPool.get_instance", return_value=mock_pool),
-            patch("python.helpers.providers.get_provider_config", return_value={"name": "Google", "litellm_provider": "gemini"}),
+            patch("api.chat_model_override._load_override", return_value={"provider": "google", "model": "gemini-2.5-pro"}),
+            patch("helpers.connected_providers.ProviderPool.get_instance", return_value=mock_pool),
+            patch("helpers.providers.get_provider_config", return_value={"name": "Google", "litellm_provider": "gemini"}),
         ):
             config = initialize_agent(chat_id="test-chat-123")
             assert config.chat_model.provider == "google"
@@ -110,9 +110,9 @@ class TestInitializeAgent:
             patch("initialize.settings.get_settings", return_value=base.copy()),
             patch("initialize.settings.get_runtime_config", return_value={}),
             patch("initialize.runtime.args", {}),
-            patch("python.api.chat_model_override._load_override", return_value={"provider": "a0_venice", "model": "venice-model"}),
-            patch("python.helpers.connected_providers.ProviderPool.get_instance", return_value=mock_pool),
-            patch("python.helpers.providers.get_provider_config", return_value=provider_cfg),
+            patch("api.chat_model_override._load_override", return_value={"provider": "a0_venice", "model": "venice-model"}),
+            patch("helpers.connected_providers.ProviderPool.get_instance", return_value=mock_pool),
+            patch("helpers.providers.get_provider_config", return_value=provider_cfg),
         ):
             config = initialize_agent(chat_id="test-chat-456")
             assert config.chat_model.api_base == "https://api.venice.ai/api/v1"
@@ -126,7 +126,7 @@ class TestInitializeAgent:
             patch("initialize.settings.get_settings", return_value=base.copy()),
             patch("initialize.settings.get_runtime_config", return_value={}),
             patch("initialize.runtime.args", {}),
-            patch("python.api.chat_model_override._load_override", return_value=None),
+            patch("api.chat_model_override._load_override", return_value=None),
         ):
             config = initialize_agent(chat_id="test-chat-123")
             assert config.chat_model.provider == "openai"
@@ -143,8 +143,8 @@ class TestInitializeAgent:
             patch("initialize.settings.get_settings", return_value=base.copy()),
             patch("initialize.settings.get_runtime_config", return_value={}),
             patch("initialize.runtime.args", {}),
-            patch("python.api.chat_model_override._load_override", return_value={"provider": "google", "model": "gemini-2.5-pro"}),
-            patch("python.helpers.connected_providers.ProviderPool.get_instance", return_value=mock_pool),
+            patch("api.chat_model_override._load_override", return_value={"provider": "google", "model": "gemini-2.5-pro"}),
+            patch("helpers.connected_providers.ProviderPool.get_instance", return_value=mock_pool),
         ):
             config = initialize_agent(chat_id="test-chat-123")
             assert config.chat_model.provider == "openai"
@@ -219,7 +219,7 @@ class TestInitializeChats:
     def test_initialize_chats_returns_deferred_task(self):
         from initialize import initialize_chats
 
-        with patch("python.helpers.persist_chat.load_tmp_chats"):
+        with patch("helpers.persist_chat.load_tmp_chats"):
             result = initialize_chats()
             assert result is not None
             assert hasattr(result, "start_task")
@@ -238,7 +238,7 @@ class TestInitializeJobLoop:
     def test_initialize_job_loop_returns_deferred_task(self):
         from initialize import initialize_job_loop
 
-        with patch("python.helpers.job_loop.run_loop", AsyncMock()):
+        with patch("helpers.job_loop.run_loop", AsyncMock()):
             result = initialize_job_loop()
             assert result is not None
             assert hasattr(result, "start_task")
@@ -261,8 +261,8 @@ class TestInitializeCognee:
         from initialize import initialize_cognee
 
         with (
-            patch("python.helpers.cognee_init.configure_cognee") as mock_configure,
-            patch("python.helpers.cognee_background.CogneeBackgroundWorker") as mock_worker,
+            patch("helpers.cognee_init.configure_cognee") as mock_configure,
+            patch("helpers.cognee_background.CogneeBackgroundWorker") as mock_worker,
         ):
             mock_instance = MagicMock()
             mock_worker.get_instance.return_value = mock_instance
@@ -286,9 +286,9 @@ class TestInitializeMigration:
         from initialize import initialize_migration
 
         with (
-            patch("python.helpers.migration.migrate_user_data") as mock_migrate,
-            patch("python.helpers.dotenv.load_dotenv") as mock_dotenv,
-            patch("python.helpers.settings.reload_settings") as mock_reload,
+            patch("helpers.migration.migrate_user_data") as mock_migrate,
+            patch("helpers.dotenv.load_dotenv") as mock_dotenv,
+            patch("helpers.settings.reload_settings") as mock_reload,
         ):
             initialize_migration()
             mock_migrate.assert_called_once()

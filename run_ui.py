@@ -17,24 +17,24 @@ from werkzeug.wrappers.response import Response as BaseResponse
 from werkzeug.wrappers.request import Request as WerkzeugRequest
 
 import initialize
-from python.helpers import files, git, mcp_server, fasta2a_server, settings as settings_helper
-from python.helpers.files import get_abs_path
-from python.helpers import runtime, dotenv, process
-from python.helpers.websocket import WebSocketHandler, validate_ws_origin
-from python.helpers.extract_tools import load_classes_from_folder
-from python.helpers.api import ApiHandler
-from python.helpers.print_style import PrintStyle
-from python.helpers import login
+from helpers import files, git, mcp_server, fasta2a_server, settings as settings_helper
+from helpers.files import get_abs_path
+from helpers import runtime, dotenv, process
+from helpers.websocket import WebSocketHandler, validate_ws_origin
+from helpers.extract_tools import load_classes_from_folder
+from helpers.api import ApiHandler
+from helpers.print_style import PrintStyle
+from helpers import login
 import socketio  # type: ignore[import-untyped]
 from socketio import ASGIApp, packet
 from starlette.applications import Starlette
 from starlette.routing import Mount
 from uvicorn.middleware.wsgi import WSGIMiddleware
-from python.helpers.websocket_manager import WebSocketManager
-from python.helpers.websocket_namespace_discovery import discover_websocket_namespaces
+from helpers.websocket_manager import WebSocketManager
+from helpers.websocket_namespace_discovery import discover_websocket_namespaces
 
 import logging
-from python.helpers.log_format import configure_logging
+from helpers.log_format import configure_logging
 configure_logging(root_level=logging.WARNING)
 
 
@@ -126,7 +126,7 @@ def requires_api_key(f):
     if inspect.iscoroutinefunction(f):
         @wraps(f)
         async def decorated_async(*args, **kwargs):
-            from python.helpers.settings import get_settings
+            from helpers.settings import get_settings
             valid_api_key = get_settings()["mcp_server_token"]
 
             if api_key := request.headers.get("X-API-KEY"):
@@ -144,7 +144,7 @@ def requires_api_key(f):
 
     @wraps(f)
     def decorated_sync(*args, **kwargs):
-        from python.helpers.settings import get_settings
+        from helpers.settings import get_settings
         valid_api_key = get_settings()["mcp_server_token"]
 
         if api_key := request.headers.get("X-API-KEY"):
@@ -295,7 +295,7 @@ def _build_websocket_handlers_by_namespace(
     lock: threading.RLock,
 ) -> dict[str, list[WebSocketHandler]]:
     discoveries = discover_websocket_namespaces(
-        handlers_folder="python/websocket_handlers",
+        handlers_folder="websocket_handlers",
         include_root_default=True,
     )
 
@@ -509,7 +509,7 @@ def run():
             methods=handler.get_methods(),
         )
 
-    handlers = load_classes_from_folder("python/api", "*.py", ApiHandler)
+    handlers = load_classes_from_folder("api", "*.py", ApiHandler)
     for handler in handlers:
         register_api_handler(webapp, handler)
 

@@ -78,7 +78,7 @@ Returns log items with `no < before`, sorted oldest-to-newest. `has_more` indica
 
 On chat switch, `setMessages` receives at most 50 items. If `has_earlier_logs` is true, a "Load earlier messages" indicator appears at the top of `#chat-history`. Clicking it (or scrolling to top) triggers `POST /chat_logs`. Returned items are prepended to the DOM with scroll-position preservation (`scrollHeight` delta applied to `scrollTop`).
 
-**Files:** `log.py`, `state_snapshot.py`, new `python/api/chat_logs.py`, `index.js`, `messages.js`.
+**Files:** `log.py`, `state_snapshot.py`, new `api/chat_logs.py`, `index.js`, `messages.js`.
 
 ### 3. Lazy deserialization at startup
 
@@ -128,13 +128,13 @@ A loading indicator at the top of `#chat-history` appears when `has_earlier_logs
 
 | File | Changes |
 |------|---------|
-| `python/helpers/state_snapshot.py` | `chat_list_since` in request, conditional `contexts`/`tasks`, `chat_list_updated_at` + `has_earlier_logs` in snapshot, `tail` parameter passthrough |
-| `python/helpers/log.py` | `tail` param in `output()`, switch `_notify_state_monitor` to `mark_dirty_for_context` |
-| `python/helpers/state_monitor.py` | No structural changes; existing `mark_dirty_for_context` and `mark_dirty_all` used as-is |
-| `python/helpers/persist_chat.py` | Two-phase deserialization: metadata-only in `load_tmp_chats`, lazy `_deserialize_agents` |
+| `helpers/state_snapshot.py` | `chat_list_since` in request, conditional `contexts`/`tasks`, `chat_list_updated_at` + `has_earlier_logs` in snapshot, `tail` parameter passthrough |
+| `helpers/log.py` | `tail` param in `output()`, switch `_notify_state_monitor` to `mark_dirty_for_context` |
+| `helpers/state_monitor.py` | No structural changes; existing `mark_dirty_for_context` and `mark_dirty_all` used as-is |
+| `helpers/persist_chat.py` | Two-phase deserialization: metadata-only in `load_tmp_chats`, lazy `_deserialize_agents` |
 | `agent.py` | `_raw_agents` field, `_ensure_hydrated()` method; `output()` works without hydration, guards on paths accessing `agent0`/chain |
-| `python/api/chat_logs.py` | New endpoint for paginated log history |
-| `python/api/chat_create.py`, `chat_remove.py`, `chat_reset.py` | Update `_chat_list_updated_at` on list mutations |
+| `api/chat_logs.py` | New endpoint for paginated log history |
+| `api/chat_create.py`, `chat_remove.py`, `chat_reset.py` | Update `_chat_list_updated_at` on list mutations |
 | `run_ui.py` | No edit needed — new `chat_logs.py` is auto-discovered by `load_classes_from_folder` in `run_ui.py` |
 | `webui/index.js` | Track `chat_list_updated_at`, pass `chat_list_since`, handle `has_earlier_logs`, call `/chat_logs` |
 | `webui/js/messages.js` | Batched `requestAnimationFrame` rendering, prepend logic with scroll preservation |

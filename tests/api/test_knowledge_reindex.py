@@ -1,4 +1,4 @@
-"""Tests for python/api/knowledge_reindex.py — ReindexKnowledge API handler."""
+"""Tests for api/knowledge_reindex.py — ReindexKnowledge API handler."""
 
 import sys
 import threading
@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.knowledge_reindex import ReindexKnowledge
+from api.knowledge_reindex import ReindexKnowledge
 
 
 def _make_handler(app=None, lock=None):
@@ -37,7 +37,7 @@ class TestReindexKnowledge:
 
         with patch.object(handler, "use_context", return_value=mock_ctx), \
              patch(
-                 "python.api.knowledge_reindex.memory.Memory.reload",
+                 "api.knowledge_reindex.memory.Memory.reload",
                  new_callable=AsyncMock,
              ):
             result = await handler.process({"ctxid": "ctx-1"}, MagicMock())
@@ -55,7 +55,7 @@ class TestReindexKnowledge:
 
         with patch.object(handler, "use_context", return_value=mock_ctx), \
              patch(
-                 "python.api.knowledge_reindex.memory.Memory.reload",
+                 "api.knowledge_reindex.memory.Memory.reload",
                  new_callable=AsyncMock,
              ) as mock_reload:
             await handler.process({"ctxid": "ctx-1"}, MagicMock())
@@ -72,7 +72,7 @@ class TestReindexKnowledge:
 
         with patch.object(handler, "use_context", return_value=mock_ctx), \
              patch(
-                 "python.api.knowledge_reindex.memory.Memory.reload",
+                 "api.knowledge_reindex.memory.Memory.reload",
                  new_callable=AsyncMock,
              ):
             await handler.process({"ctxid": "ctx-1"}, MagicMock())

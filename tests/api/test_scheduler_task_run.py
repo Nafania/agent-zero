@@ -1,4 +1,4 @@
-"""Tests for python/api/scheduler_task_run.py — SchedulerTaskRun API handler."""
+"""Tests for api/scheduler_task_run.py — SchedulerTaskRun API handler."""
 
 import sys
 import threading
@@ -11,8 +11,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.scheduler_task_run import SchedulerTaskRun
-from python.helpers.task_scheduler import TaskState
+from api.scheduler_task_run import SchedulerTaskRun
+from helpers.task_scheduler import TaskState
 
 
 def _make_handler():
@@ -23,7 +23,7 @@ class TestSchedulerTaskRun:
     @pytest.mark.asyncio
     async def test_returns_error_when_task_id_missing(self):
         handler = _make_handler()
-        with patch("python.api.scheduler_task_run.Localization"):
+        with patch("api.scheduler_task_run.Localization"):
             result = await handler.process({}, MagicMock())
 
         assert "error" in result
@@ -36,8 +36,8 @@ class TestSchedulerTaskRun:
         mock_scheduler.reload = AsyncMock()
         mock_scheduler.get_task_by_uuid = MagicMock(return_value=None)
 
-        with patch("python.api.scheduler_task_run.TaskScheduler.get", return_value=mock_scheduler), \
-             patch("python.api.scheduler_task_run.Localization"):
+        with patch("api.scheduler_task_run.TaskScheduler.get", return_value=mock_scheduler), \
+             patch("api.scheduler_task_run.Localization"):
             result = await handler.process({"task_id": "nonexistent"}, MagicMock())
 
         assert "error" in result
@@ -56,8 +56,8 @@ class TestSchedulerTaskRun:
         mock_scheduler.get_task_by_uuid = MagicMock(return_value=mock_task)
         mock_scheduler.serialize_task = MagicMock(return_value=serialized)
 
-        with patch("python.api.scheduler_task_run.TaskScheduler.get", return_value=mock_scheduler), \
-             patch("python.api.scheduler_task_run.Localization"):
+        with patch("api.scheduler_task_run.TaskScheduler.get", return_value=mock_scheduler), \
+             patch("api.scheduler_task_run.Localization"):
             result = await handler.process({"task_id": "task-123"}, MagicMock())
 
         assert "error" in result
@@ -78,8 +78,8 @@ class TestSchedulerTaskRun:
         mock_scheduler.run_task_by_uuid = AsyncMock()
         mock_scheduler.serialize_task = MagicMock(return_value=serialized)
 
-        with patch("python.api.scheduler_task_run.TaskScheduler.get", return_value=mock_scheduler), \
-             patch("python.api.scheduler_task_run.Localization"):
+        with patch("api.scheduler_task_run.TaskScheduler.get", return_value=mock_scheduler), \
+             patch("api.scheduler_task_run.Localization"):
             result = await handler.process({"task_id": "task-456"}, MagicMock())
 
         assert result["success"] is True
@@ -99,8 +99,8 @@ class TestSchedulerTaskRun:
         mock_scheduler.get_task_by_uuid = MagicMock(return_value=mock_task)
         mock_scheduler.run_task_by_uuid = AsyncMock(side_effect=ValueError("Invalid state"))
 
-        with patch("python.api.scheduler_task_run.TaskScheduler.get", return_value=mock_scheduler), \
-             patch("python.api.scheduler_task_run.Localization"):
+        with patch("api.scheduler_task_run.TaskScheduler.get", return_value=mock_scheduler), \
+             patch("api.scheduler_task_run.Localization"):
             result = await handler.process({"task_id": "task-789"}, MagicMock())
 
         assert "error" in result

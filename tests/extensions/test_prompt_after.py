@@ -20,11 +20,11 @@ class TestIncludeCurrentDatetime:
         mock_agent.read_prompt.return_value = "Current time: 2025-03-15 12:00:00"
 
         with patch(
-            "python.extensions.message_loop_prompts_after._60_include_current_datetime.Localization.get"
+            "extensions.python.message_loop_prompts_after._60_include_current_datetime.Localization.get"
         ) as mock_loc:
             mock_loc.return_value.utc_dt_to_localtime_str.return_value = "2025-03-15 12:00:00"
 
-            from python.extensions.message_loop_prompts_after._60_include_current_datetime import (
+            from extensions.python.message_loop_prompts_after._60_include_current_datetime import (
                 IncludeCurrentDatetime,
             )
 
@@ -44,7 +44,7 @@ class TestIncludeLoadedSkills:
         mock_agent.data = MagicMock()
         mock_agent.data.get.return_value = None
 
-        from python.extensions.message_loop_prompts_after._65_include_loaded_skills import (
+        from extensions.python.message_loop_prompts_after._65_include_loaded_skills import (
             IncludeLoadedSkills,
         )
 
@@ -62,10 +62,10 @@ class TestIncludeLoadedSkills:
         )
 
         with patch(
-            "python.extensions.message_loop_prompts_after._65_include_loaded_skills.skills.load_skill_for_agent",
+            "extensions.python.message_loop_prompts_after._65_include_loaded_skills.skills.load_skill_for_agent",
             side_effect=lambda **kw: "skill content",
         ):
-            from python.extensions.message_loop_prompts_after._65_include_loaded_skills import (
+            from extensions.python.message_loop_prompts_after._65_include_loaded_skills import (
                 IncludeLoadedSkills,
             )
 
@@ -87,7 +87,7 @@ class TestIncludeAgentInfo:
         mock_agent.config.chat_model.name = "gpt-4"
         mock_agent.read_prompt.return_value = "Agent 0 info"
 
-        from python.extensions.message_loop_prompts_after._70_include_agent_info import (
+        from extensions.python.message_loop_prompts_after._70_include_agent_info import (
             IncludeAgentInfo,
         )
 
@@ -111,13 +111,13 @@ class TestIncludeWorkdirExtras:
         mock_loop_data.extras_temporary = {}
 
         with patch(
-            "python.extensions.message_loop_prompts_after._75_include_workdir_extras.projects.get_context_project_name",
+            "extensions.python.message_loop_prompts_after._75_include_workdir_extras.projects.get_context_project_name",
             return_value=None,
         ), patch(
-            "python.extensions.message_loop_prompts_after._75_include_workdir_extras.settings.get_settings",
+            "extensions.python.message_loop_prompts_after._75_include_workdir_extras.settings.get_settings",
             return_value={"workdir_show": False},
         ):
-            from python.extensions.message_loop_prompts_after._75_include_workdir_extras import (
+            from extensions.python.message_loop_prompts_after._75_include_workdir_extras import (
                 IncludeWorkdirExtras,
             )
 
@@ -128,7 +128,7 @@ class TestIncludeWorkdirExtras:
 
     @pytest.mark.asyncio
     async def test_cleanup_gitignore_strips_comments(self):
-        from python.extensions.message_loop_prompts_after._75_include_workdir_extras import (
+        from extensions.python.message_loop_prompts_after._75_include_workdir_extras import (
             cleanup_gitignore,
         )
 
@@ -145,10 +145,10 @@ class TestRecallWait:
         mock_agent.get_data.return_value = None
 
         with patch(
-            "python.extensions.message_loop_prompts_after._91_recall_wait.settings.get_settings",
+            "extensions.python.message_loop_prompts_after._91_recall_wait.settings.get_settings",
             return_value={"memory_recall_delayed": False},
         ):
-            from python.extensions.message_loop_prompts_after._91_recall_wait import (
+            from extensions.python.message_loop_prompts_after._91_recall_wait import (
                 RecallWait,
             )
 
@@ -164,10 +164,10 @@ class TestRecallWait:
         )
 
         with patch(
-            "python.extensions.message_loop_prompts_after._91_recall_wait.settings.get_settings",
+            "extensions.python.message_loop_prompts_after._91_recall_wait.settings.get_settings",
             return_value={"memory_recall_delayed": True},
         ):
-            from python.extensions.message_loop_prompts_after._91_recall_wait import (
+            from extensions.python.message_loop_prompts_after._91_recall_wait import (
                 RecallWait,
             )
 

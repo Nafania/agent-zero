@@ -1,4 +1,4 @@
-"""Tests for python/api/banners.py — GetBanners API handler."""
+"""Tests for api/banners.py — GetBanners API handler."""
 
 import sys
 import threading
@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.banners import GetBanners
+from api.banners import GetBanners
 
 
 def _make_handler(app=None, lock=None):
@@ -29,7 +29,7 @@ class TestGetBanners:
         banners = []
 
         with patch(
-            "python.api.banners.call_extensions",
+            "api.banners.call_extensions",
             new_callable=AsyncMock,
         ) as mock_call:
             result = await handler.process(
@@ -51,7 +51,7 @@ class TestGetBanners:
             kwargs["banners"].append({"id": "b1", "title": "Welcome"})
 
         with patch(
-            "python.api.banners.call_extensions",
+            "api.banners.call_extensions",
             new_callable=AsyncMock,
             side_effect=append_banner,
         ):

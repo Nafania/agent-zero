@@ -1,4 +1,4 @@
-"""Comprehensive unit tests for python/helpers/file_tree.py."""
+"""Comprehensive unit tests for helpers/file_tree.py."""
 
 from __future__ import annotations
 
@@ -13,9 +13,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.helpers.files import create_dir, delete_dir, get_abs_path, write_file
-import python.helpers.files as _files_mod
-from python.helpers.file_tree import (
+from helpers.files import create_dir, delete_dir, get_abs_path, write_file
+import helpers.files as _files_mod
+from helpers.file_tree import (
     OUTPUT_MODE_FLAT,
     OUTPUT_MODE_NESTED,
     OUTPUT_MODE_STRING,

@@ -8,7 +8,7 @@ import pytest
 
 _spec = importlib.util.spec_from_file_location(
     "metrics_collector",
-    PROJECT_ROOT / "python" / "helpers" / "metrics_collector.py",
+    PROJECT_ROOT / "helpers" / "metrics_collector.py",
 )
 _mod = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_mod)

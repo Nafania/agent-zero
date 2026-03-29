@@ -1,4 +1,4 @@
-"""Tests for python/api/api_terminate_chat.py — ApiTerminateChat API handler."""
+"""Tests for api/api_terminate_chat.py — ApiTerminateChat API handler."""
 
 import sys
 import threading
@@ -13,7 +13,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from flask import Response
 
-from python.api.api_terminate_chat import ApiTerminateChat
+from api.api_terminate_chat import ApiTerminateChat
 
 
 def _make_handler(app=None, lock=None):
@@ -37,7 +37,7 @@ class TestApiTerminateChat:
         app, lock = mock_app
         handler = _make_handler(app, lock)
 
-        with patch("python.api.api_terminate_chat.AgentContext") as MockCtx:
+        with patch("api.api_terminate_chat.AgentContext") as MockCtx:
             MockCtx.use.return_value = None
             result = await handler.process({"context_id": "nonexistent"}, MagicMock())
 
@@ -52,8 +52,8 @@ class TestApiTerminateChat:
         mock_ctx = MagicMock()
         mock_ctx.id = "ctx-123"
 
-        with patch("python.api.api_terminate_chat.AgentContext") as MockCtx, \
-             patch("python.api.api_terminate_chat.remove_chat") as mock_remove:
+        with patch("api.api_terminate_chat.AgentContext") as MockCtx, \
+             patch("api.api_terminate_chat.remove_chat") as mock_remove:
             MockCtx.use.return_value = mock_ctx
             result = await handler.process({"context_id": "ctx-123"}, MagicMock())
 
@@ -68,7 +68,7 @@ class TestApiTerminateChat:
         app, lock = mock_app
         handler = _make_handler(app, lock)
 
-        with patch("python.api.api_terminate_chat.AgentContext") as MockCtx:
+        with patch("api.api_terminate_chat.AgentContext") as MockCtx:
             MockCtx.use.side_effect = Exception("DB error")
             result = await handler.process({"context_id": "ctx-1"}, MagicMock())
 

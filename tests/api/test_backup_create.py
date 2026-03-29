@@ -1,4 +1,4 @@
-"""Tests for python/api/backup_create.py — BackupCreate API handler."""
+"""Tests for api/backup_create.py — BackupCreate API handler."""
 
 import sys
 import threading
@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.backup_create import BackupCreate
+from api.backup_create import BackupCreate
 
 
 def _make_handler():
@@ -31,9 +31,9 @@ class TestBackupCreate:
         zip_path = "/tmp/backup.zip"
         mock_response = MagicMock()
 
-        with patch("python.api.backup_create.save_tmp_chats"), \
-             patch("python.api.backup_create.BackupService") as MockBackup, \
-             patch("python.api.backup_create.send_file", return_value=mock_response):
+        with patch("api.backup_create.save_tmp_chats"), \
+             patch("api.backup_create.BackupService") as MockBackup, \
+             patch("api.backup_create.send_file", return_value=mock_response):
             mock_svc = MagicMock()
             mock_svc.create_backup = AsyncMock(return_value=zip_path)
             MockBackup.return_value = mock_svc
@@ -57,9 +57,9 @@ class TestBackupCreate:
         zip_path = "/tmp/backup.zip"
         mock_response = MagicMock()
 
-        with patch("python.api.backup_create.save_tmp_chats"), \
-             patch("python.api.backup_create.BackupService") as MockBackup, \
-             patch("python.api.backup_create.send_file", return_value=mock_response):
+        with patch("api.backup_create.save_tmp_chats"), \
+             patch("api.backup_create.BackupService") as MockBackup, \
+             patch("api.backup_create.send_file", return_value=mock_response):
             mock_svc = MagicMock()
             mock_svc.create_backup = AsyncMock(return_value=zip_path)
             MockBackup.return_value = mock_svc
@@ -77,8 +77,8 @@ class TestBackupCreate:
     @pytest.mark.asyncio
     async def test_returns_error_dict_on_exception(self):
         handler = _make_handler()
-        with patch("python.api.backup_create.save_tmp_chats"), \
-             patch("python.api.backup_create.BackupService") as MockBackup:
+        with patch("api.backup_create.save_tmp_chats"), \
+             patch("api.backup_create.BackupService") as MockBackup:
             mock_svc = MagicMock()
             mock_svc.create_backup = AsyncMock(side_effect=Exception("Disk full"))
             MockBackup.return_value = mock_svc

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unit tests for python/helpers/fasta2a_client.py and FastA2A agent card testing utility.
+Unit tests for helpers/fasta2a_client.py and FastA2A agent card testing utility.
 """
 
 import sys
@@ -12,19 +12,19 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import asyncio
 import pytest
-from python.helpers import settings
+from helpers import settings
 
 
 # --- Unit tests for fasta2a_client module ---
 
 def test_is_client_available():
     """is_client_available returns module's FASTA2A_CLIENT_AVAILABLE."""
-    from python.helpers.fasta2a_client import is_client_available, FASTA2A_CLIENT_AVAILABLE
+    from helpers.fasta2a_client import is_client_available, FASTA2A_CLIENT_AVAILABLE
     assert is_client_available() is FASTA2A_CLIENT_AVAILABLE
 
 
 @pytest.mark.skipif(
-    not getattr(__import__("python.helpers.fasta2a_client", fromlist=["FASTA2A_CLIENT_AVAILABLE"]), "FASTA2A_CLIENT_AVAILABLE"),
+    not getattr(__import__("helpers.fasta2a_client", fromlist=["FASTA2A_CLIENT_AVAILABLE"]), "FASTA2A_CLIENT_AVAILABLE"),
     reason="FastA2A client not installed",
 )
 class TestAgentConnectionWhenAvailable:
@@ -47,33 +47,33 @@ class TestAgentConnectionWhenAvailable:
         return client
 
     def test_init_adds_http_scheme_when_missing(self):
-        from python.helpers.fasta2a_client import AgentConnection
-        with patch("python.helpers.fasta2a_client.httpx") as mock_httpx, \
-             patch("python.helpers.fasta2a_client.A2AClient"):
+        from helpers.fasta2a_client import AgentConnection
+        with patch("helpers.fasta2a_client.httpx") as mock_httpx, \
+             patch("helpers.fasta2a_client.A2AClient"):
             mock_httpx.AsyncClient.return_value = MagicMock()
             conn = AgentConnection("agent.example.com", timeout=10)
         assert conn.agent_url == "http://agent.example.com"
 
     def test_init_preserves_https(self):
-        from python.helpers.fasta2a_client import AgentConnection
-        with patch("python.helpers.fasta2a_client.httpx") as mock_httpx, \
-             patch("python.helpers.fasta2a_client.A2AClient"):
+        from helpers.fasta2a_client import AgentConnection
+        with patch("helpers.fasta2a_client.httpx") as mock_httpx, \
+             patch("helpers.fasta2a_client.A2AClient"):
             mock_httpx.AsyncClient.return_value = MagicMock()
             conn = AgentConnection("https://agent.example.com")
         assert conn.agent_url == "https://agent.example.com"
 
     def test_init_strips_trailing_slash(self):
-        from python.helpers.fasta2a_client import AgentConnection
-        with patch("python.helpers.fasta2a_client.httpx") as mock_httpx, \
-             patch("python.helpers.fasta2a_client.A2AClient"):
+        from helpers.fasta2a_client import AgentConnection
+        with patch("helpers.fasta2a_client.httpx") as mock_httpx, \
+             patch("helpers.fasta2a_client.A2AClient"):
             mock_httpx.AsyncClient.return_value = MagicMock()
             conn = AgentConnection("http://agent.example.com/")
         assert conn.agent_url == "http://agent.example.com"
 
     def test_init_uses_token_when_provided(self):
-        from python.helpers.fasta2a_client import AgentConnection
-        with patch("python.helpers.fasta2a_client.httpx") as mock_httpx, \
-             patch("python.helpers.fasta2a_client.A2AClient"):
+        from helpers.fasta2a_client import AgentConnection
+        with patch("helpers.fasta2a_client.httpx") as mock_httpx, \
+             patch("helpers.fasta2a_client.A2AClient"):
             mock_httpx.AsyncClient.return_value = MagicMock()
             conn = AgentConnection("http://agent.example.com", token="secret-token")
         mock_httpx.AsyncClient.assert_called_once()
@@ -84,15 +84,15 @@ class TestAgentConnectionWhenAvailable:
 
     @pytest.mark.asyncio
     async def test_get_agent_card_success(self, mock_http_client, mock_a2a_client):
-        from python.helpers.fasta2a_client import AgentConnection
+        from helpers.fasta2a_client import AgentConnection
 
         mock_resp = MagicMock()
         mock_resp.json.return_value = {"name": "TestAgent", "description": "A test"}
         mock_resp.raise_for_status = MagicMock()
         mock_http_client.get.return_value = mock_resp
 
-        with patch("python.helpers.fasta2a_client.httpx") as mock_httpx, \
-             patch("python.helpers.fasta2a_client.A2AClient") as mock_a2a_cls:
+        with patch("helpers.fasta2a_client.httpx") as mock_httpx, \
+             patch("helpers.fasta2a_client.A2AClient") as mock_a2a_cls:
             mock_httpx.AsyncClient.return_value = mock_http_client
             mock_a2a_cls.return_value = mock_a2a_client
             conn = AgentConnection("http://agent.example.com")
@@ -105,12 +105,12 @@ class TestAgentConnectionWhenAvailable:
     @pytest.mark.asyncio
     async def test_get_agent_card_tries_fallback_when_a2a_in_url(self, mock_http_client, mock_a2a_client):
         """When main URL fails and URL contains /a2a, a second request to root URL is attempted."""
-        from python.helpers.fasta2a_client import AgentConnection
+        from helpers.fasta2a_client import AgentConnection
 
         mock_http_client.get.side_effect = Exception("first fail")
 
-        with patch("python.helpers.fasta2a_client.httpx") as mock_httpx, \
-             patch("python.helpers.fasta2a_client.A2AClient") as mock_a2a_cls:
+        with patch("helpers.fasta2a_client.httpx") as mock_httpx, \
+             patch("helpers.fasta2a_client.A2AClient") as mock_a2a_cls:
             mock_httpx.AsyncClient.return_value = mock_http_client
             mock_a2a_cls.return_value = mock_a2a_client
             conn = AgentConnection("http://agent.example.com/a2a")
@@ -124,12 +124,12 @@ class TestAgentConnectionWhenAvailable:
 
     @pytest.mark.asyncio
     async def test_get_agent_card_raises_on_failure(self, mock_http_client, mock_a2a_client):
-        from python.helpers.fasta2a_client import AgentConnection
+        from helpers.fasta2a_client import AgentConnection
 
         mock_http_client.get.side_effect = Exception("Connection refused")
 
-        with patch("python.helpers.fasta2a_client.httpx") as mock_httpx, \
-             patch("python.helpers.fasta2a_client.A2AClient") as mock_a2a_cls:
+        with patch("helpers.fasta2a_client.httpx") as mock_httpx, \
+             patch("helpers.fasta2a_client.A2AClient") as mock_a2a_cls:
             mock_httpx.AsyncClient.return_value = mock_http_client
             mock_a2a_cls.return_value = mock_a2a_client
             conn = AgentConnection("http://agent.example.com")
@@ -138,7 +138,7 @@ class TestAgentConnectionWhenAvailable:
 
     @pytest.mark.asyncio
     async def test_send_message_success(self, mock_http_client, mock_a2a_client):
-        from python.helpers.fasta2a_client import AgentConnection
+        from helpers.fasta2a_client import AgentConnection
 
         mock_resp = MagicMock()
         mock_resp.json.return_value = {"name": "TestAgent"}
@@ -149,8 +149,8 @@ class TestAgentConnectionWhenAvailable:
             "result": {"context_id": "ctx-456", "output": "Hello"}
         }
 
-        with patch("python.helpers.fasta2a_client.httpx") as mock_httpx, \
-             patch("python.helpers.fasta2a_client.A2AClient") as mock_a2a_cls:
+        with patch("helpers.fasta2a_client.httpx") as mock_httpx, \
+             patch("helpers.fasta2a_client.A2AClient") as mock_a2a_cls:
             mock_httpx.AsyncClient.return_value = mock_http_client
             mock_a2a_cls.return_value = mock_a2a_client
             conn = AgentConnection("http://agent.example.com")
@@ -162,7 +162,7 @@ class TestAgentConnectionWhenAvailable:
 
     @pytest.mark.asyncio
     async def test_send_message_with_attachments(self, mock_http_client, mock_a2a_client):
-        from python.helpers.fasta2a_client import AgentConnection
+        from helpers.fasta2a_client import AgentConnection
 
         mock_resp = MagicMock()
         mock_resp.json.return_value = {"name": "TestAgent"}
@@ -170,8 +170,8 @@ class TestAgentConnectionWhenAvailable:
         mock_http_client.get.return_value = mock_resp
         mock_a2a_client.send_message.return_value = {"result": {}}
 
-        with patch("python.helpers.fasta2a_client.httpx") as mock_httpx, \
-             patch("python.helpers.fasta2a_client.A2AClient") as mock_a2a_cls:
+        with patch("helpers.fasta2a_client.httpx") as mock_httpx, \
+             patch("helpers.fasta2a_client.A2AClient") as mock_a2a_cls:
             mock_httpx.AsyncClient.return_value = mock_http_client
             mock_a2a_cls.return_value = mock_a2a_client
             conn = AgentConnection("http://agent.example.com")
@@ -186,7 +186,7 @@ class TestAgentConnectionWhenAvailable:
 
     @pytest.mark.asyncio
     async def test_get_task_success(self, mock_http_client, mock_a2a_client):
-        from python.helpers.fasta2a_client import AgentConnection
+        from helpers.fasta2a_client import AgentConnection
 
         mock_resp = MagicMock()
         mock_resp.json.return_value = {"name": "TestAgent"}
@@ -194,8 +194,8 @@ class TestAgentConnectionWhenAvailable:
         mock_http_client.get.return_value = mock_resp
         mock_a2a_client.get_task = AsyncMock(return_value={"result": {"status": "running"}})
 
-        with patch("python.helpers.fasta2a_client.httpx") as mock_httpx, \
-             patch("python.helpers.fasta2a_client.A2AClient") as mock_a2a_cls:
+        with patch("helpers.fasta2a_client.httpx") as mock_httpx, \
+             patch("helpers.fasta2a_client.A2AClient") as mock_a2a_cls:
             mock_httpx.AsyncClient.return_value = mock_http_client
             mock_a2a_cls.return_value = mock_a2a_client
             conn = AgentConnection("http://agent.example.com")
@@ -205,7 +205,7 @@ class TestAgentConnectionWhenAvailable:
 
     @pytest.mark.asyncio
     async def test_get_task_raises_on_failure(self, mock_http_client, mock_a2a_client):
-        from python.helpers.fasta2a_client import AgentConnection
+        from helpers.fasta2a_client import AgentConnection
 
         mock_resp = MagicMock()
         mock_resp.json.return_value = {"name": "TestAgent"}
@@ -213,8 +213,8 @@ class TestAgentConnectionWhenAvailable:
         mock_http_client.get.return_value = mock_resp
         mock_a2a_client.get_task = AsyncMock(side_effect=Exception("Task not found"))
 
-        with patch("python.helpers.fasta2a_client.httpx") as mock_httpx, \
-             patch("python.helpers.fasta2a_client.A2AClient") as mock_a2a_cls:
+        with patch("helpers.fasta2a_client.httpx") as mock_httpx, \
+             patch("helpers.fasta2a_client.A2AClient") as mock_a2a_cls:
             mock_httpx.AsyncClient.return_value = mock_http_client
             mock_a2a_cls.return_value = mock_a2a_client
             conn = AgentConnection("http://agent.example.com")
@@ -223,7 +223,7 @@ class TestAgentConnectionWhenAvailable:
 
     @pytest.mark.asyncio
     async def test_wait_for_completion_returns_when_completed(self, mock_http_client, mock_a2a_client):
-        from python.helpers.fasta2a_client import AgentConnection
+        from helpers.fasta2a_client import AgentConnection
 
         mock_resp = MagicMock()
         mock_resp.json.return_value = {"name": "TestAgent"}
@@ -233,8 +233,8 @@ class TestAgentConnectionWhenAvailable:
             "result": {"status": {"state": "completed"}, "output": "done"}
         })
 
-        with patch("python.helpers.fasta2a_client.httpx") as mock_httpx, \
-             patch("python.helpers.fasta2a_client.A2AClient") as mock_a2a_cls:
+        with patch("helpers.fasta2a_client.httpx") as mock_httpx, \
+             patch("helpers.fasta2a_client.A2AClient") as mock_a2a_cls:
             mock_httpx.AsyncClient.return_value = mock_http_client
             mock_a2a_cls.return_value = mock_a2a_client
             conn = AgentConnection("http://agent.example.com")
@@ -244,7 +244,7 @@ class TestAgentConnectionWhenAvailable:
 
     @pytest.mark.asyncio
     async def test_wait_for_completion_timeout(self, mock_http_client, mock_a2a_client):
-        from python.helpers.fasta2a_client import AgentConnection
+        from helpers.fasta2a_client import AgentConnection
 
         mock_resp = MagicMock()
         mock_resp.json.return_value = {"name": "TestAgent"}
@@ -254,8 +254,8 @@ class TestAgentConnectionWhenAvailable:
             "result": {"status": {"state": "running"}}
         })
 
-        with patch("python.helpers.fasta2a_client.httpx") as mock_httpx, \
-             patch("python.helpers.fasta2a_client.A2AClient") as mock_a2a_cls:
+        with patch("helpers.fasta2a_client.httpx") as mock_httpx, \
+             patch("helpers.fasta2a_client.A2AClient") as mock_a2a_cls:
             mock_httpx.AsyncClient.return_value = mock_http_client
             mock_a2a_cls.return_value = mock_a2a_client
             conn = AgentConnection("http://agent.example.com")
@@ -264,15 +264,15 @@ class TestAgentConnectionWhenAvailable:
 
     @pytest.mark.asyncio
     async def test_close_calls_aclose(self, mock_http_client, mock_a2a_client):
-        from python.helpers.fasta2a_client import AgentConnection
+        from helpers.fasta2a_client import AgentConnection
 
         mock_resp = MagicMock()
         mock_resp.json.return_value = {"name": "TestAgent"}
         mock_resp.raise_for_status = MagicMock()
         mock_http_client.get.return_value = mock_resp
 
-        with patch("python.helpers.fasta2a_client.httpx") as mock_httpx, \
-             patch("python.helpers.fasta2a_client.A2AClient") as mock_a2a_cls:
+        with patch("helpers.fasta2a_client.httpx") as mock_httpx, \
+             patch("helpers.fasta2a_client.A2AClient") as mock_a2a_cls:
             mock_httpx.AsyncClient.return_value = mock_http_client
             mock_a2a_cls.return_value = mock_a2a_client
             conn = AgentConnection("http://agent.example.com")
@@ -282,15 +282,15 @@ class TestAgentConnectionWhenAvailable:
 
     @pytest.mark.asyncio
     async def test_context_manager(self, mock_http_client, mock_a2a_client):
-        from python.helpers.fasta2a_client import AgentConnection
+        from helpers.fasta2a_client import AgentConnection
 
         mock_resp = MagicMock()
         mock_resp.json.return_value = {"name": "TestAgent"}
         mock_resp.raise_for_status = MagicMock()
         mock_http_client.get.return_value = mock_resp
 
-        with patch("python.helpers.fasta2a_client.httpx") as mock_httpx, \
-             patch("python.helpers.fasta2a_client.A2AClient") as mock_a2a_cls:
+        with patch("helpers.fasta2a_client.httpx") as mock_httpx, \
+             patch("helpers.fasta2a_client.A2AClient") as mock_a2a_cls:
             mock_httpx.AsyncClient.return_value = mock_http_client
             mock_a2a_cls.return_value = mock_a2a_client
             async with AgentConnection("http://agent.example.com") as conn:
@@ -300,21 +300,21 @@ class TestAgentConnectionWhenAvailable:
 
 
 @pytest.mark.skipif(
-    not getattr(__import__("python.helpers.fasta2a_client", fromlist=["FASTA2A_CLIENT_AVAILABLE"]), "FASTA2A_CLIENT_AVAILABLE"),
+    not getattr(__import__("helpers.fasta2a_client", fromlist=["FASTA2A_CLIENT_AVAILABLE"]), "FASTA2A_CLIENT_AVAILABLE"),
     reason="FastA2A client not installed",
 )
 class TestConnectToAgent:
     @pytest.mark.asyncio
     async def test_connect_to_agent_returns_connection(self):
-        from python.helpers.fasta2a_client import connect_to_agent, AgentConnection
+        from helpers.fasta2a_client import connect_to_agent, AgentConnection
 
         mock_resp = MagicMock()
         mock_resp.json.return_value = {"name": "TestAgent"}
         mock_resp.raise_for_status = MagicMock()
 
-        with patch("python.helpers.fasta2a_client.AgentConnection") as mock_cls, \
-             patch("python.helpers.fasta2a_client.httpx") as mock_httpx, \
-             patch("python.helpers.fasta2a_client.A2AClient"):
+        with patch("helpers.fasta2a_client.AgentConnection") as mock_cls, \
+             patch("helpers.fasta2a_client.httpx") as mock_httpx, \
+             patch("helpers.fasta2a_client.A2AClient"):
             mock_conn = MagicMock()
             mock_conn.get_agent_card = AsyncMock()
             mock_conn.agent_url = "http://agent.example.com"
@@ -328,7 +328,7 @@ class TestAgentConnectionWhenUnavailable:
     """Tests when FastA2A is not available."""
 
     def test_init_raises_when_unavailable(self):
-        from python.helpers import fasta2a_client
+        from helpers import fasta2a_client
         orig = fasta2a_client.FASTA2A_CLIENT_AVAILABLE
         try:
             fasta2a_client.FASTA2A_CLIENT_AVAILABLE = False

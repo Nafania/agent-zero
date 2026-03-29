@@ -1,4 +1,4 @@
-"""Tests for python/api/settings_workdir_file_structure.py — SettingsWorkdirFileStructure API handler."""
+"""Tests for api/settings_workdir_file_structure.py — SettingsWorkdirFileStructure API handler."""
 
 import sys
 import threading
@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.settings_workdir_file_structure import SettingsWorkdirFileStructure
+from api.settings_workdir_file_structure import SettingsWorkdirFileStructure
 
 
 def _make_handler():
@@ -25,8 +25,8 @@ class TestSettingsWorkdirFileStructure:
         abs_path = "/tmp/test"
         tree_str = "usr/\n  data.json\n  settings.json"
 
-        with patch("python.api.settings_workdir_file_structure.files.get_abs_path_development", return_value=abs_path), \
-             patch("python.api.settings_workdir_file_structure.file_tree.file_tree", return_value=tree_str):
+        with patch("api.settings_workdir_file_structure.files.get_abs_path_development", return_value=abs_path), \
+             patch("api.settings_workdir_file_structure.file_tree.file_tree", return_value=tree_str):
             result = await handler.process({"workdir_path": "usr"}, MagicMock())
 
         assert result["data"] == tree_str
@@ -34,22 +34,22 @@ class TestSettingsWorkdirFileStructure:
     @pytest.mark.asyncio
     async def test_raises_when_workdir_path_empty(self):
         handler = _make_handler()
-        with patch("python.api.settings_workdir_file_structure.files.get_abs_path_development", return_value=""):
+        with patch("api.settings_workdir_file_structure.files.get_abs_path_development", return_value=""):
             with pytest.raises(Exception, match="workdir_path is required"):
                 await handler.process({"workdir_path": ""}, MagicMock())
 
     @pytest.mark.asyncio
     async def test_raises_when_workdir_path_returns_none(self):
         handler = _make_handler()
-        with patch("python.api.settings_workdir_file_structure.files.get_abs_path_development", return_value=None):
+        with patch("api.settings_workdir_file_structure.files.get_abs_path_development", return_value=None):
             with pytest.raises(Exception, match="workdir_path is required"):
                 await handler.process({}, MagicMock())
 
     @pytest.mark.asyncio
     async def test_passes_max_depth_max_files_to_file_tree(self):
         handler = _make_handler()
-        with patch("python.api.settings_workdir_file_structure.files.get_abs_path_development", return_value="/tmp"), \
-             patch("python.api.settings_workdir_file_structure.file_tree.file_tree") as mock_tree:
+        with patch("api.settings_workdir_file_structure.files.get_abs_path_development", return_value="/tmp"), \
+             patch("api.settings_workdir_file_structure.file_tree.file_tree") as mock_tree:
             mock_tree.return_value = "tree"
             await handler.process({
                 "workdir_path": "usr",
@@ -71,8 +71,8 @@ class TestSettingsWorkdirFileStructure:
     @pytest.mark.asyncio
     async def test_appends_empty_marker_when_no_newline_in_tree(self):
         handler = _make_handler()
-        with patch("python.api.settings_workdir_file_structure.files.get_abs_path_development", return_value="/tmp"), \
-             patch("python.api.settings_workdir_file_structure.file_tree.file_tree", return_value="single_line"):
+        with patch("api.settings_workdir_file_structure.files.get_abs_path_development", return_value="/tmp"), \
+             patch("api.settings_workdir_file_structure.file_tree.file_tree", return_value="single_line"):
             result = await handler.process({"workdir_path": "usr"}, MagicMock())
 
         assert result["data"] == "single_line\n # Empty"

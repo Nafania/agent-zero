@@ -1,4 +1,4 @@
-"""Tests for python/api/edit_work_dir_file.py — EditWorkDirFile API handler."""
+"""Tests for api/edit_work_dir_file.py — EditWorkDirFile API handler."""
 
 import sys
 import threading
@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.edit_work_dir_file import EditWorkDirFile
+from api.edit_work_dir_file import EditWorkDirFile
 
 
 def _make_handler(app=None, lock=None):
@@ -44,7 +44,7 @@ class TestEditWorkDirFile:
         request.args = {"path": "a0/file.txt"}
 
         with patch(
-            "python.api.edit_work_dir_file.runtime.call_development_function",
+            "api.edit_work_dir_file.runtime.call_development_function",
             new_callable=AsyncMock,
             return_value={"path": "/a0/file.txt", "content": "hello"},
         ):
@@ -96,7 +96,7 @@ class TestEditWorkDirFile:
         request.method = "POST"
 
         with patch(
-            "python.api.edit_work_dir_file.runtime.call_development_function",
+            "api.edit_work_dir_file.runtime.call_development_function",
             new_callable=AsyncMock,
             return_value=True,
         ):
@@ -114,7 +114,7 @@ class TestEditWorkDirFile:
         request.method = "POST"
 
         with patch(
-            "python.api.edit_work_dir_file.runtime.call_development_function",
+            "api.edit_work_dir_file.runtime.call_development_function",
             new_callable=AsyncMock,
             side_effect=Exception("Traceback:\n  File x\n  File y\nValueError: actual error"),
         ):

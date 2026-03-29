@@ -1,4 +1,4 @@
-"""Tests for python/api/api_log_get.py — ApiLogGet API handler."""
+"""Tests for api/api_log_get.py — ApiLogGet API handler."""
 
 import sys
 import threading
@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.api_log_get import ApiLogGet
+from api.api_log_get import ApiLogGet
 
 
 def _make_handler(app=None, lock=None):
@@ -50,7 +50,7 @@ class TestApiLogGet:
         request = MagicMock()
         request.method = "POST"
 
-        with patch("python.api.api_log_get.AgentContext") as MockCtx:
+        with patch("api.api_log_get.AgentContext") as MockCtx:
             MockCtx.use.return_value = None
             result = await handler.process({"context_id": "nonexistent"}, request)
 
@@ -72,7 +72,7 @@ class TestApiLogGet:
         mock_context.log.progress_active = False
         mock_context.log.output = MagicMock(return_value=["item2", "item3"])
 
-        with patch("python.api.api_log_get.AgentContext") as MockCtx:
+        with patch("api.api_log_get.AgentContext") as MockCtx:
             MockCtx.use.return_value = mock_context
             result = await handler.process(
                 {"context_id": "ctx-1", "length": 10}, request

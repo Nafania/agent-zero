@@ -2,8 +2,8 @@ import pytest
 from datetime import datetime, timezone, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
-from python.helpers.oauth import OAuthTokens, ModelInfo
-from python.helpers.connected_providers import (
+from helpers.oauth import OAuthTokens, ModelInfo
+from helpers.connected_providers import (
     ProviderPool,
     ConnectedProvider,
     _list_models_via_api,
@@ -41,13 +41,13 @@ def pool(tmp_path):
 
 class TestProviderPool:
     def test_get_credential_returns_api_key_when_no_oauth(self, pool):
-        with patch("python.helpers.connected_providers._get_api_key", return_value="sk-test"):
+        with patch("helpers.connected_providers._get_api_key", return_value="sk-test"):
             cred = pool.get_credential("openrouter")
         assert cred == "sk-test"
 
     def test_get_credential_prefers_oauth_over_api_key(self, pool, valid_tokens):
         pool.store.save("google", valid_tokens)
-        with patch("python.helpers.connected_providers._get_api_key", return_value="api-key"):
+        with patch("helpers.connected_providers._get_api_key", return_value="api-key"):
             cred = pool.get_credential("google")
         assert cred == "test-access"
 
@@ -64,7 +64,7 @@ class TestProviderPool:
             assert cred == "new-access"
 
     def test_get_credential_falls_back_to_api_key_on_missing_oauth(self, pool):
-        with patch("python.helpers.connected_providers._get_api_key", return_value="fallback-key"):
+        with patch("helpers.connected_providers._get_api_key", return_value="fallback-key"):
             cred = pool.get_credential("google")
         assert cred == "fallback-key"
 
@@ -73,17 +73,17 @@ class TestProviderPool:
         assert pool.is_connected("google") is True
 
     def test_is_connected_true_with_api_key(self, pool):
-        with patch("python.helpers.connected_providers._get_api_key", return_value="sk-test"):
+        with patch("helpers.connected_providers._get_api_key", return_value="sk-test"):
             assert pool.is_connected("openrouter") is True
 
     def test_is_connected_false_when_nothing(self, pool):
-        with patch("python.helpers.connected_providers._get_api_key", return_value="None"):
+        with patch("helpers.connected_providers._get_api_key", return_value="None"):
             assert pool.is_connected("google") is False
 
     def test_get_connected_lists_all(self, pool, valid_tokens):
         pool.store.save("google", valid_tokens)
-        with patch("python.helpers.connected_providers._get_api_key", side_effect=lambda p: "sk-test" if p == "openai" else "None"):
-            with patch("python.helpers.connected_providers._get_all_provider_ids", return_value=["google", "openai", "anthropic"]):
+        with patch("helpers.connected_providers._get_api_key", side_effect=lambda p: "sk-test" if p == "openai" else "None"):
+            with patch("helpers.connected_providers._get_all_provider_ids", return_value=["google", "openai", "anthropic"]):
                 connected = pool.get_connected()
         ids = [c.provider_id for c in connected]
         assert "google" in ids
@@ -104,7 +104,7 @@ class TestProviderPool:
 
     def test_disconnect_revokes_via_run_async(self, pool, valid_tokens):
         pool.store.save("google", valid_tokens)
-        with patch("python.helpers.connected_providers.get_oauth_provider") as mock_get:
+        with patch("helpers.connected_providers.get_oauth_provider") as mock_get:
             mock_strategy = MagicMock()
             mock_strategy.revoke = AsyncMock(return_value=None)
             mock_get.return_value = mock_strategy
@@ -118,17 +118,17 @@ class TestProviderPool:
 class TestListModelsApiKeyFallback:
     @pytest.mark.asyncio
     async def test_list_models_returns_empty_for_no_credential(self, pool):
-        with patch("python.helpers.connected_providers._get_api_key", return_value="None"):
-            with patch("python.helpers.connected_providers.get_oauth_provider", return_value=None):
+        with patch("helpers.connected_providers._get_api_key", return_value="None"):
+            with patch("helpers.connected_providers.get_oauth_provider", return_value=None):
                 result = await pool.list_models("openrouter")
         assert result == []
 
     @pytest.mark.asyncio
     async def test_list_models_uses_api_key_when_no_oauth_strategy(self, pool):
         mock_models = [ModelInfo(id="gpt-4o", name="GPT-4o", context_length=128000, supports_vision=True)]
-        with patch("python.helpers.connected_providers._get_api_key", return_value="sk-test"):
-            with patch("python.helpers.connected_providers.get_oauth_provider", return_value=None):
-                with patch("python.helpers.connected_providers._list_models_via_api", new_callable=AsyncMock, return_value=mock_models):
+        with patch("helpers.connected_providers._get_api_key", return_value="sk-test"):
+            with patch("helpers.connected_providers.get_oauth_provider", return_value=None):
+                with patch("helpers.connected_providers._list_models_via_api", new_callable=AsyncMock, return_value=mock_models):
                     result = await pool.list_models("openai")
         assert len(result) == 1
         assert result[0].id == "gpt-4o"
@@ -136,9 +136,9 @@ class TestListModelsApiKeyFallback:
     @pytest.mark.asyncio
     async def test_list_models_caches_api_key_result(self, pool):
         mock_models = [ModelInfo(id="m1", name="Model 1", context_length=4096, supports_vision=False)]
-        with patch("python.helpers.connected_providers._get_api_key", return_value="sk-test"):
-            with patch("python.helpers.connected_providers.get_oauth_provider", return_value=None):
-                with patch("python.helpers.connected_providers._list_models_via_api", new_callable=AsyncMock, return_value=mock_models) as mock_api:
+        with patch("helpers.connected_providers._get_api_key", return_value="sk-test"):
+            with patch("helpers.connected_providers.get_oauth_provider", return_value=None):
+                with patch("helpers.connected_providers._list_models_via_api", new_callable=AsyncMock, return_value=mock_models) as mock_api:
                     await pool.list_models("openai")
                     result2 = await pool.list_models("openai")
         mock_api.assert_called_once()
@@ -150,9 +150,9 @@ class TestListModelsApiKeyFallback:
             datetime.now(timezone.utc) - timedelta(hours=2),
             [ModelInfo(id="old", name="Old", context_length=0, supports_vision=False)],
         )
-        with patch("python.helpers.connected_providers._get_api_key", return_value="sk-test"):
-            with patch("python.helpers.connected_providers.get_oauth_provider", return_value=None):
-                with patch("python.helpers.connected_providers._list_models_via_api", new_callable=AsyncMock, return_value=[]):
+        with patch("helpers.connected_providers._get_api_key", return_value="sk-test"):
+            with patch("helpers.connected_providers.get_oauth_provider", return_value=None):
+                with patch("helpers.connected_providers._list_models_via_api", new_callable=AsyncMock, return_value=[]):
                     result = await pool.list_models("openai")
         assert len(result) == 1
         assert result[0].id == "old"
@@ -174,7 +174,7 @@ class TestListModelsViaApi:
         mock_resp.status_code = 200
         mock_resp.json.return_value = response_data
 
-        with patch("python.helpers.connected_providers._resolve_api_base", return_value="https://api.openai.com/v1"):
+        with patch("helpers.connected_providers._resolve_api_base", return_value="https://api.openai.com/v1"):
             with patch("httpx.AsyncClient") as mock_client_cls:
                 mock_client = AsyncMock()
                 mock_client.get.return_value = mock_resp
@@ -197,7 +197,7 @@ class TestListModelsViaApi:
         mock_resp = MagicMock()
         mock_resp.status_code = 401
 
-        with patch("python.helpers.connected_providers._resolve_api_base", return_value="https://api.openai.com/v1"):
+        with patch("helpers.connected_providers._resolve_api_base", return_value="https://api.openai.com/v1"):
             with patch("httpx.AsyncClient") as mock_client_cls:
                 mock_client = AsyncMock()
                 mock_client.get.return_value = mock_resp
@@ -211,7 +211,7 @@ class TestListModelsViaApi:
 
     @pytest.mark.asyncio
     async def test_network_error_returns_empty(self):
-        with patch("python.helpers.connected_providers._resolve_api_base", return_value="https://api.openai.com/v1"):
+        with patch("helpers.connected_providers._resolve_api_base", return_value="https://api.openai.com/v1"):
             with patch("httpx.AsyncClient") as mock_client_cls:
                 mock_client = AsyncMock()
                 mock_client.get.side_effect = httpx.ConnectError("connection refused")
@@ -229,7 +229,7 @@ class TestListModelsViaApi:
         mock_resp.status_code = 200
         mock_resp.json.return_value = {"data": []}
 
-        with patch("python.helpers.connected_providers._resolve_api_base", return_value="https://api.openai.com/v1"):
+        with patch("helpers.connected_providers._resolve_api_base", return_value="https://api.openai.com/v1"):
             with patch("httpx.AsyncClient") as mock_client_cls:
                 mock_client = AsyncMock()
                 mock_client.get.return_value = mock_resp
@@ -243,7 +243,7 @@ class TestListModelsViaApi:
 
     @pytest.mark.asyncio
     async def test_no_api_base_returns_empty(self):
-        with patch("python.helpers.connected_providers._resolve_api_base", return_value=""):
+        with patch("helpers.connected_providers._resolve_api_base", return_value=""):
             result = await _list_models_via_api("unknown", "sk-test")
         assert result == []
 
@@ -269,7 +269,7 @@ class TestListModelsViaApi:
         mock_resp.status_code = 200
         mock_resp.json.return_value = response_data
 
-        with patch("python.helpers.connected_providers._resolve_api_base", return_value="https://openrouter.ai/api/v1"):
+        with patch("helpers.connected_providers._resolve_api_base", return_value="https://openrouter.ai/api/v1"):
             with patch("httpx.AsyncClient") as mock_client_cls:
                 mock_client = AsyncMock()
                 mock_client.get.return_value = mock_resp

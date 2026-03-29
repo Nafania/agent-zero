@@ -1,4 +1,4 @@
-"""Tests for python/tools/document_query.py — DocumentQueryTool."""
+"""Tests for tools/document_query.py — DocumentQueryTool."""
 
 import sys
 from pathlib import Path
@@ -20,7 +20,7 @@ def mock_agent():
 
 @pytest.fixture
 def tool(mock_agent):
-    from python.tools.document_query import DocumentQueryTool
+    from tools.document_query import DocumentQueryTool
     t = DocumentQueryTool(
         agent=mock_agent,
         name="document_query",
@@ -47,7 +47,7 @@ class TestDocumentQueryToolExecute:
 
     @pytest.mark.asyncio
     async def test_single_document_no_queries_returns_content(self, tool):
-        with patch("python.tools.document_query.DocumentQueryHelper") as MockHelper:
+        with patch("tools.document_query.DocumentQueryHelper") as MockHelper:
             mock_helper = MagicMock()
             mock_helper.document_get_content = AsyncMock(return_value="Document content here")
             MockHelper.return_value = mock_helper
@@ -57,7 +57,7 @@ class TestDocumentQueryToolExecute:
 
     @pytest.mark.asyncio
     async def test_exception_returns_error_message(self, tool):
-        with patch("python.tools.document_query.DocumentQueryHelper") as MockHelper:
+        with patch("tools.document_query.DocumentQueryHelper") as MockHelper:
             MockHelper.side_effect = Exception("Processing failed")
             resp = await tool.execute(document="file:///doc.pdf")
         assert "Error" in resp.message

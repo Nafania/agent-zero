@@ -1,4 +1,4 @@
-"""Tests for python/api/chat_load.py — LoadChats API handler."""
+"""Tests for api/chat_load.py — LoadChats API handler."""
 
 import sys
 import threading
@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.chat_load import LoadChats
+from api.chat_load import LoadChats
 
 
 def _make_handler(app=None, lock=None):
@@ -24,7 +24,7 @@ class TestLoadChats:
         app, lock = mock_app
         handler = _make_handler(app, lock)
 
-        with patch("python.api.chat_load.persist_chat") as mock_persist:
+        with patch("api.chat_load.persist_chat") as mock_persist:
             mock_persist.load_json_chats.return_value = ["ctx-1", "ctx-2"]
             result = await handler.process({"chats": [{"id": "c1"}, {"id": "c2"}]}, MagicMock())
 
@@ -54,7 +54,7 @@ class TestLoadChats:
         handler = _make_handler(app, lock)
         chats = [{"id": "chat-1", "name": "Test"}]
 
-        with patch("python.api.chat_load.persist_chat") as mock_persist:
+        with patch("api.chat_load.persist_chat") as mock_persist:
             mock_persist.load_json_chats.return_value = ["loaded-ctx"]
             result = await handler.process({"chats": chats}, MagicMock())
 

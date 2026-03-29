@@ -1,4 +1,4 @@
-"""Tests for python/api/agents.py — Agents API handler."""
+"""Tests for api/agents.py — Agents API handler."""
 
 import sys
 import threading
@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.agents import Agents
+from api.agents import Agents
 
 
 def _make_handler(app=None, lock=None):
@@ -22,7 +22,7 @@ class TestAgents:
     @pytest.mark.asyncio
     async def test_list_action_returns_ok_with_data(self):
         handler = _make_handler()
-        with patch("python.api.agents.subagents.get_all_agents_list", return_value=[]) as mock_get:
+        with patch("api.agents.subagents.get_all_agents_list", return_value=[]) as mock_get:
             result = await handler.process({"action": "list"}, MagicMock())
         assert result["ok"] is True
         assert result["data"] == []
@@ -32,7 +32,7 @@ class TestAgents:
     async def test_list_action_returns_agents_list(self):
         handler = _make_handler()
         agents = [{"name": "agent1"}, {"name": "agent2"}]
-        with patch("python.api.agents.subagents.get_all_agents_list", return_value=agents):
+        with patch("api.agents.subagents.get_all_agents_list", return_value=agents):
             result = await handler.process({"action": "list"}, MagicMock())
         assert result["ok"] is True
         assert result["data"] == agents
@@ -54,7 +54,7 @@ class TestAgents:
     @pytest.mark.asyncio
     async def test_exception_returns_error_with_message(self):
         handler = _make_handler()
-        with patch("python.api.agents.subagents.get_all_agents_list", side_effect=Exception("backend error")):
+        with patch("api.agents.subagents.get_all_agents_list", side_effect=Exception("backend error")):
             result = await handler.process({"action": "list"}, MagicMock())
         assert result["ok"] is False
         assert "backend error" in result["error"]

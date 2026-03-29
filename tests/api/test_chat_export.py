@@ -1,4 +1,4 @@
-"""Tests for python/api/chat_export.py — ExportChat API handler."""
+"""Tests for api/chat_export.py — ExportChat API handler."""
 
 import sys
 import threading
@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.chat_export import ExportChat
+from api.chat_export import ExportChat
 
 
 def _make_handler(app=None, lock=None):
@@ -27,7 +27,7 @@ class TestExportChat:
         mock_ctx.id = "ctx-123"
 
         with patch.object(handler, "use_context", return_value=mock_ctx), \
-             patch("python.api.chat_export.persist_chat") as mock_persist:
+             patch("api.chat_export.persist_chat") as mock_persist:
             mock_persist.export_json_chat.return_value = '{"messages": []}'
             result = await handler.process({"ctxid": "ctx-123"}, MagicMock())
 

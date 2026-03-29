@@ -1,4 +1,4 @@
-"""Tests for python/helpers/skills_import.py."""
+"""Tests for helpers/skills_import.py."""
 
 import sys
 import zipfile
@@ -31,12 +31,12 @@ def tmp_skills_source(tmp_path):
 @pytest.fixture
 def patch_files_and_skills(tmp_path):
     """Patch files.get_abs_path and skills.discover_skill_md_files."""
-    with patch("python.helpers.skills_import.files") as mock_files:
+    with patch("helpers.skills_import.files") as mock_files:
         mock_files.get_abs_path.side_effect = lambda *parts: str(
             tmp_path.joinpath(*[str(p) for p in parts])
         )
         with patch(
-            "python.helpers.skills_import.discover_skill_md_files"
+            "helpers.skills_import.discover_skill_md_files"
         ) as mock_discover:
             yield mock_files, mock_discover, tmp_path
 
@@ -46,7 +46,7 @@ def patch_files_and_skills(tmp_path):
 
 class TestIsWithin:
     def test_child_inside_parent(self, tmp_path):
-        from python.helpers.skills_import import _is_within
+        from helpers.skills_import import _is_within
 
         parent = tmp_path / "a" / "b"
         parent.mkdir(parents=True)
@@ -56,7 +56,7 @@ class TestIsWithin:
         assert _is_within(child, parent) is True
 
     def test_child_outside_parent(self, tmp_path):
-        from python.helpers.skills_import import _is_within
+        from helpers.skills_import import _is_within
 
         parent = tmp_path / "a" / "b"
         parent.mkdir(parents=True)
@@ -70,12 +70,12 @@ class TestIsWithin:
 
 class TestDeriveNamespace:
     def test_zip_stem(self):
-        from python.helpers.skills_import import _derive_namespace
+        from helpers.skills_import import _derive_namespace
 
         assert _derive_namespace(Path("/x/repo.zip")) == "repo"
 
     def test_dir_name(self):
-        from python.helpers.skills_import import _derive_namespace
+        from helpers.skills_import import _derive_namespace
 
         assert _derive_namespace(Path("/x/my-repo")) == "my-repo"
 
@@ -85,21 +85,21 @@ class TestDeriveNamespace:
 
 class TestResolveConflict:
     def test_nonexistent_returns_copy_true(self):
-        from python.helpers.skills_import import _resolve_conflict
+        from helpers.skills_import import _resolve_conflict
 
         dest = Path("/nonexistent/path")
         result, should_copy = _resolve_conflict(dest, "skip")
         assert should_copy is True
 
     def test_skip_policy_returns_false_when_exists(self, tmp_path):
-        from python.helpers.skills_import import _resolve_conflict
+        from helpers.skills_import import _resolve_conflict
 
         (tmp_path / "exists").mkdir()
         _, should_copy = _resolve_conflict(tmp_path / "exists", "skip")
         assert should_copy is False
 
     def test_overwrite_policy_removes_existing(self, tmp_path):
-        from python.helpers.skills_import import _resolve_conflict
+        from helpers.skills_import import _resolve_conflict
 
         existing = tmp_path / "existing"
         existing.mkdir()
@@ -109,7 +109,7 @@ class TestResolveConflict:
         assert not existing.exists()
 
     def test_rename_policy_creates_new_name(self, tmp_path):
-        from python.helpers.skills_import import _resolve_conflict
+        from helpers.skills_import import _resolve_conflict
 
         (tmp_path / "skill").mkdir()
         result, should_copy = _resolve_conflict(tmp_path / "skill", "rename")
@@ -122,7 +122,7 @@ class TestResolveConflict:
 
 class TestBuildImportPlan:
     def test_builds_plan_from_skill_dirs(self, tmp_skills_source, patch_files_and_skills):
-        from python.helpers.skills_import import build_import_plan
+        from helpers.skills_import import build_import_plan
 
         src_root, skills_dir = tmp_skills_source
         mock_files, mock_discover, tmp_path = patch_files_and_skills
@@ -138,7 +138,7 @@ class TestBuildImportPlan:
         assert "my-skill" in str(plan[0].dest_skill_dir)
 
     def test_skips_skills_already_in_dest(self, tmp_path, patch_files_and_skills):
-        from python.helpers.skills_import import build_import_plan
+        from helpers.skills_import import build_import_plan
 
         mock_files, mock_discover, tmp_path = patch_files_and_skills
         dest_root = tmp_path / "dest"
@@ -159,10 +159,10 @@ class TestBuildImportPlan:
 
 class TestResolveSkillsDestinationRoot:
     def test_project_and_profile(self):
-        from python.helpers.skills_import import resolve_skills_destination_root
+        from helpers.skills_import import resolve_skills_destination_root
 
         with patch(
-            "python.helpers.skills_import.get_project_agent_profile_skills_folder"
+            "helpers.skills_import.get_project_agent_profile_skills_folder"
         ) as mock_get:
             mock_get.return_value = Path("/proj/agent/skills")
             result = resolve_skills_destination_root("proj", "agent")
@@ -170,29 +170,29 @@ class TestResolveSkillsDestinationRoot:
             mock_get.assert_called_once_with("proj", "agent")
 
     def test_project_only(self):
-        from python.helpers.skills_import import resolve_skills_destination_root
+        from helpers.skills_import import resolve_skills_destination_root
 
         with patch(
-            "python.helpers.skills_import.get_project_skills_folder"
+            "helpers.skills_import.get_project_skills_folder"
         ) as mock_get:
             mock_get.return_value = Path("/proj/skills")
             result = resolve_skills_destination_root("proj", None)
             assert result == Path("/proj/skills")
 
     def test_profile_only(self):
-        from python.helpers.skills_import import resolve_skills_destination_root
+        from helpers.skills_import import resolve_skills_destination_root
 
         with patch(
-            "python.helpers.skills_import.get_agent_profile_skills_folder"
+            "helpers.skills_import.get_agent_profile_skills_folder"
         ) as mock_get:
             mock_get.return_value = Path("/agent/skills")
             result = resolve_skills_destination_root(None, "agent")
             assert result == Path("/agent/skills")
 
     def test_default_usr_skills(self):
-        from python.helpers.skills_import import resolve_skills_destination_root
+        from helpers.skills_import import resolve_skills_destination_root
 
-        with patch("python.helpers.skills_import.files") as mock_files:
+        with patch("helpers.skills_import.files") as mock_files:
             mock_files.get_abs_path.return_value = "/usr/skills"
             result = resolve_skills_destination_root(None, None)
             assert "skills" in str(result)
@@ -203,7 +203,7 @@ class TestResolveSkillsDestinationRoot:
 
 class TestImportSkills:
     def test_raises_when_source_not_found(self, patch_files_and_skills):
-        from python.helpers.skills_import import import_skills
+        from helpers.skills_import import import_skills
 
         mock_files, mock_discover, tmp_path = patch_files_and_skills
 
@@ -211,7 +211,7 @@ class TestImportSkills:
             import_skills("/nonexistent/path")
 
     def test_raises_for_non_dir_non_zip(self, tmp_path, patch_files_and_skills):
-        from python.helpers.skills_import import import_skills
+        from helpers.skills_import import import_skills
 
         mock_files, mock_discover, tmp_path = patch_files_and_skills
         (tmp_path / "file.txt").write_text("x")
@@ -220,7 +220,7 @@ class TestImportSkills:
             import_skills(str(tmp_path / "file.txt"))
 
     def test_imports_from_directory(self, tmp_skills_source, patch_files_and_skills):
-        from python.helpers.skills_import import import_skills
+        from helpers.skills_import import import_skills
 
         src_root, skills_dir = tmp_skills_source
         mock_files, mock_discover, tmp_path = patch_files_and_skills
@@ -241,7 +241,7 @@ class TestImportSkills:
         assert result.source_root == skills_dir
 
     def test_dry_run_does_not_copy(self, tmp_skills_source, patch_files_and_skills):
-        from python.helpers.skills_import import import_skills
+        from helpers.skills_import import import_skills
 
         src_root, skills_dir = tmp_skills_source
         mock_files, mock_discover, tmp_path = patch_files_and_skills

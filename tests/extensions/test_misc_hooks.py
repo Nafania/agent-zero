@@ -16,7 +16,7 @@ class TestMaskHistoryContent:
 
     @pytest.mark.asyncio
     async def test_returns_early_without_content_data(self, mock_agent):
-        from python.extensions.hist_add_before._10_mask_content import MaskHistoryContent
+        from extensions.python.hist_add_before._10_mask_content import MaskHistoryContent
 
         ext = MaskHistoryContent(agent=mock_agent)
         await ext.execute(content_data=None)
@@ -26,11 +26,11 @@ class TestMaskHistoryContent:
         content_data = {"content": "secret123"}
 
         with patch(
-            "python.extensions.hist_add_before._10_mask_content.get_secrets_manager"
+            "extensions.python.hist_add_before._10_mask_content.get_secrets_manager"
         ) as mock_mgr:
             mock_mgr.return_value.mask_values.return_value = "***"
 
-            from python.extensions.hist_add_before._10_mask_content import (
+            from extensions.python.hist_add_before._10_mask_content import (
                 MaskHistoryContent,
             )
 
@@ -45,7 +45,7 @@ class TestSaveToolCallFile:
 
     @pytest.mark.asyncio
     async def test_returns_early_without_data(self, mock_agent):
-        from python.extensions.hist_add_tool_result._90_save_tool_call_file import (
+        from extensions.python.hist_add_tool_result._90_save_tool_call_file import (
             SaveToolCallFile,
         )
 
@@ -57,10 +57,10 @@ class TestSaveToolCallFile:
         data = {"tool_result": "short"}
 
         with patch(
-            "python.extensions.hist_add_tool_result._90_save_tool_call_file.persist_chat.get_chat_msg_files_folder",
+            "extensions.python.hist_add_tool_result._90_save_tool_call_file.persist_chat.get_chat_msg_files_folder",
             return_value="/tmp/msgs",
         ):
-            from python.extensions.hist_add_tool_result._90_save_tool_call_file import (
+            from extensions.python.hist_add_tool_result._90_save_tool_call_file import (
                 SaveToolCallFile,
             )
 
@@ -77,15 +77,15 @@ class TestSaveToolCallFile:
         msgs_dir.mkdir(exist_ok=True)
 
         with patch(
-            "python.extensions.hist_add_tool_result._90_save_tool_call_file.persist_chat.get_chat_msg_files_folder",
+            "extensions.python.hist_add_tool_result._90_save_tool_call_file.persist_chat.get_chat_msg_files_folder",
             return_value=str(msgs_dir),
         ), patch(
-            "python.extensions.hist_add_tool_result._90_save_tool_call_file.files.get_abs_path",
+            "extensions.python.hist_add_tool_result._90_save_tool_call_file.files.get_abs_path",
             side_effect=lambda *a: str(msgs_dir / "1.txt"),
         ), patch(
-            "python.extensions.hist_add_tool_result._90_save_tool_call_file.files.write_file",
+            "extensions.python.hist_add_tool_result._90_save_tool_call_file.files.write_file",
         ) as mock_write:
-            from python.extensions.hist_add_tool_result._90_save_tool_call_file import (
+            from extensions.python.hist_add_tool_result._90_save_tool_call_file import (
                 SaveToolCallFile,
             )
 
@@ -101,7 +101,7 @@ class TestMaskErrorSecrets:
 
     @pytest.mark.asyncio
     async def test_returns_early_without_msg(self, mock_agent):
-        from python.extensions.error_format._10_mask_errors import MaskErrorSecrets
+        from extensions.python.error_format._10_mask_errors import MaskErrorSecrets
 
         ext = MaskErrorSecrets(agent=mock_agent)
         await ext.execute(msg=None)
@@ -111,11 +111,11 @@ class TestMaskErrorSecrets:
         msg = {"message": "error: secret_key leaked"}
 
         with patch(
-            "python.extensions.error_format._10_mask_errors.get_secrets_manager"
+            "extensions.python.error_format._10_mask_errors.get_secrets_manager"
         ) as mock_mgr:
             mock_mgr.return_value.mask_values.return_value = "error: ***"
 
-            from python.extensions.error_format._10_mask_errors import MaskErrorSecrets
+            from extensions.python.error_format._10_mask_errors import MaskErrorSecrets
 
             ext = MaskErrorSecrets(agent=mock_agent)
             await ext.execute(msg=msg)
@@ -131,9 +131,9 @@ class TestProcessQueue:
         mock_agent.number = 1
 
         with patch(
-            "python.extensions.process_chain_end._50_process_queue.asyncio.create_task",
+            "extensions.python.process_chain_end._50_process_queue.asyncio.create_task",
         ) as mock_create:
-            from python.extensions.process_chain_end._50_process_queue import (
+            from extensions.python.process_chain_end._50_process_queue import (
                 ProcessQueue,
             )
 
@@ -151,12 +151,14 @@ class TestTaskStatusSync:
     async def test_skips_for_subordinate_agent(self, mock_agent, mock_loop_data):
         mock_agent.number = 1
 
-        from python.extensions.process_chain_end._60_task_status_sync import (
+        from extensions.python.process_chain_end._60_task_status_sync import (
             TaskStatusSync,
         )
 
         ext = TaskStatusSync(agent=mock_agent)
         await ext.execute(loop_data=mock_loop_data)
+
+
 
 
 class TestUtilModelCallMaskSecrets:
@@ -167,11 +169,11 @@ class TestUtilModelCallMaskSecrets:
         call_data = {"system": "sys with secret", "message": "msg with secret"}
 
         with patch(
-            "python.extensions.util_model_call_before._10_mask_secrets.get_secrets_manager"
+            "extensions.python.util_model_call_before._10_mask_secrets.get_secrets_manager"
         ) as mock_mgr:
             mock_mgr.return_value.mask_values.side_effect = lambda x: "***"
 
-            from python.extensions.util_model_call_before._10_mask_secrets import (
+            from extensions.python.util_model_call_before._10_mask_secrets import (
                 MaskToolSecrets,
             )
 

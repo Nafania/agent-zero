@@ -1,4 +1,4 @@
-"""Tests for python/api/backup_get_defaults.py — BackupGetDefaults API handler."""
+"""Tests for api/backup_get_defaults.py — BackupGetDefaults API handler."""
 
 import sys
 import threading
@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.backup_get_defaults import BackupGetDefaults
+from api.backup_get_defaults import BackupGetDefaults
 
 
 def _make_handler():
@@ -34,7 +34,7 @@ class TestBackupGetDefaults:
             "backup_name": "agent-zero-backup",
         }
 
-        with patch("python.api.backup_get_defaults.BackupService") as MockBackup:
+        with patch("api.backup_get_defaults.BackupService") as MockBackup:
             mock_svc = MagicMock()
             mock_svc.get_default_backup_metadata = MagicMock(return_value=default_metadata)
             MockBackup.return_value = mock_svc
@@ -49,7 +49,7 @@ class TestBackupGetDefaults:
     @pytest.mark.asyncio
     async def test_returns_error_on_exception(self):
         handler = _make_handler()
-        with patch("python.api.backup_get_defaults.BackupService") as MockBackup:
+        with patch("api.backup_get_defaults.BackupService") as MockBackup:
             MockBackup.side_effect = Exception("Init failed")
 
             result = await handler.process({}, MagicMock())

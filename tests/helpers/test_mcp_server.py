@@ -1,5 +1,5 @@
 """
-Unit tests for python/helpers/mcp_server.py — MCP server lifecycle, tool registration,
+Unit tests for helpers/mcp_server.py — MCP server lifecycle, tool registration,
 DynamicMcpProxy, send_message, finish_chat, routing, and middleware.
 """
 import sys
@@ -20,19 +20,19 @@ if str(PROJECT_ROOT) not in sys.path:
 def _patch_mcp_dependencies():
     """Patch external deps so mcp_server can be imported without full Agent Zero stack."""
     with (
-        patch("python.helpers.mcp_server.AgentContext"),
-        patch("python.helpers.mcp_server.initialize_agent"),
-        patch("python.helpers.mcp_server.remove_chat"),
-        patch("python.helpers.mcp_server.projects"),
-        patch("python.helpers.mcp_server.settings"),
-        patch("python.helpers.mcp_server.PrintStyle"),
+        patch("helpers.mcp_server.AgentContext"),
+        patch("helpers.mcp_server.initialize_agent"),
+        patch("helpers.mcp_server.remove_chat"),
+        patch("helpers.mcp_server.projects"),
+        patch("helpers.mcp_server.settings"),
+        patch("helpers.mcp_server.PrintStyle"),
     ):
         yield
 
 
 def _import_mcp_server():
     """Import mcp_server under patches (call inside test or fixture)."""
-    import python.helpers.mcp_server as mcp
+    import helpers.mcp_server as mcp
     return mcp
 
 
@@ -228,8 +228,8 @@ class TestDynamicMcpProxy:
         mcp = _import_mcp_server()
         mcp.DynamicMcpProxy._instance = None
         with (
-            patch("python.helpers.mcp_server.settings.get_settings") as gs,
-            patch("python.helpers.mcp_server.create_sse_app"),
+            patch("helpers.mcp_server.settings.get_settings") as gs,
+            patch("helpers.mcp_server.create_sse_app"),
             patch.object(mcp.DynamicMcpProxy, "_create_custom_http_app", return_value=MagicMock()),
         ):
             gs.return_value = {"mcp_server_token": "tok1"}
@@ -241,8 +241,8 @@ class TestDynamicMcpProxy:
         mcp = _import_mcp_server()
         mcp.DynamicMcpProxy._instance = None
         with (
-            patch("python.helpers.mcp_server.settings.get_settings") as gs,
-            patch("python.helpers.mcp_server.create_sse_app") as sse,
+            patch("helpers.mcp_server.settings.get_settings") as gs,
+            patch("helpers.mcp_server.create_sse_app") as sse,
             patch.object(mcp.DynamicMcpProxy, "_create_custom_http_app", return_value=MagicMock()),
         ):
             gs.return_value = {"mcp_server_token": "tok1"}
@@ -255,8 +255,8 @@ class TestDynamicMcpProxy:
         mcp = _import_mcp_server()
         mcp.DynamicMcpProxy._instance = None
         with (
-            patch("python.helpers.mcp_server.create_sse_app") as sse,
-            patch("python.helpers.mcp_server.settings.get_settings") as gs,
+            patch("helpers.mcp_server.create_sse_app") as sse,
+            patch("helpers.mcp_server.settings.get_settings") as gs,
             patch.object(mcp.DynamicMcpProxy, "_create_custom_http_app", return_value=MagicMock()),
         ):
             gs.return_value = {"mcp_server_token": "tok1"}
@@ -274,8 +274,8 @@ class TestDynamicMcpProxyRouting:
         mcp = _import_mcp_server()
         mcp.DynamicMcpProxy._instance = None
         with (
-            patch("python.helpers.mcp_server.settings.get_settings") as gs,
-            patch("python.helpers.mcp_server.create_sse_app", return_value=MagicMock()),
+            patch("helpers.mcp_server.settings.get_settings") as gs,
+            patch("helpers.mcp_server.create_sse_app", return_value=MagicMock()),
             patch.object(mcp.DynamicMcpProxy, "_create_custom_http_app", return_value=MagicMock()),
         ):
             gs.return_value = {"mcp_server_token": "t123"}
@@ -287,8 +287,8 @@ class TestDynamicMcpProxyRouting:
         mcp = _import_mcp_server()
         mcp.DynamicMcpProxy._instance = None
         with (
-            patch("python.helpers.mcp_server.settings.get_settings") as gs,
-            patch("python.helpers.mcp_server.create_sse_app"),
+            patch("helpers.mcp_server.settings.get_settings") as gs,
+            patch("helpers.mcp_server.create_sse_app"),
             patch.object(mcp.DynamicMcpProxy, "_create_custom_http_app", return_value=MagicMock()),
         ):
             gs.return_value = {"mcp_server_token": "t"}

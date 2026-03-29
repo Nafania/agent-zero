@@ -1,4 +1,4 @@
-"""Tests for python/helpers/duckduckgo_search.py."""
+"""Tests for helpers/duckduckgo_search.py."""
 
 import sys
 from pathlib import Path
@@ -13,14 +13,14 @@ if str(PROJECT_ROOT) not in sys.path:
 
 class TestDuckDuckGoSearch:
     def test_search_returns_list_of_strings(self):
-        from python.helpers import duckduckgo_search
+        from helpers import duckduckgo_search
 
         mock_results = [
             {"title": "Result 1", "body": "Content 1"},
             {"title": "Result 2", "body": "Content 2"},
         ]
 
-        with patch("python.helpers.duckduckgo_search.DDGS") as mock_ddgs_cls:
+        with patch("helpers.duckduckgo_search.DDGS") as mock_ddgs_cls:
             mock_ddgs = MagicMock()
             mock_ddgs.text.return_value = mock_results
             mock_ddgs_cls.return_value = mock_ddgs
@@ -38,9 +38,9 @@ class TestDuckDuckGoSearch:
             )
 
     def test_search_with_custom_params(self):
-        from python.helpers import duckduckgo_search
+        from helpers import duckduckgo_search
 
-        with patch("python.helpers.duckduckgo_search.DDGS") as mock_ddgs_cls:
+        with patch("helpers.duckduckgo_search.DDGS") as mock_ddgs_cls:
             mock_ddgs = MagicMock()
             mock_ddgs.text.return_value = []
             mock_ddgs_cls.return_value = mock_ddgs
@@ -61,11 +61,11 @@ class TestDuckDuckGoSearch:
             )
 
     def test_search_converts_results_to_strings(self):
-        from python.helpers import duckduckgo_search
+        from helpers import duckduckgo_search
 
         mock_results = [{"title": "A", "body": "B"}, 123, "plain string"]
 
-        with patch("python.helpers.duckduckgo_search.DDGS") as mock_ddgs_cls:
+        with patch("helpers.duckduckgo_search.DDGS") as mock_ddgs_cls:
             mock_ddgs = MagicMock()
             mock_ddgs.text.return_value = mock_results
             mock_ddgs_cls.return_value = mock_ddgs

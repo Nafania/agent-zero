@@ -1,4 +1,4 @@
-"""Tests for python/helpers/secrets.py — secret masking/unmasking/storage."""
+"""Tests for helpers/secrets.py — secret masking/unmasking/storage."""
 
 import re
 import sys
@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-import python.helpers.secrets as _secrets_mod
+import helpers.secrets as _secrets_mod
 
 # --- Fixtures ---
 
@@ -19,7 +19,7 @@ import python.helpers.secrets as _secrets_mod
 @pytest.fixture(autouse=True)
 def _reset_secrets_manager():
     """Reset SecretsManager class-level state before each test."""
-    from python.helpers import secrets as secrets_module
+    from helpers import secrets as secrets_module
 
     orig_instances = secrets_module.SecretsManager._instances.copy()
     secrets_module.SecretsManager._instances.clear()
@@ -42,17 +42,17 @@ def mock_files(tmp_path):
 
 class TestAliasForKey:
     def test_uppercases_key(self):
-        from python.helpers.secrets import alias_for_key
+        from helpers.secrets import alias_for_key
 
         assert alias_for_key("api_key") == "§§secret(API_KEY)"
 
     def test_default_placeholder_format(self):
-        from python.helpers.secrets import alias_for_key
+        from helpers.secrets import alias_for_key
 
         assert alias_for_key("foo") == "§§secret(FOO)"
 
     def test_custom_placeholder_format(self):
-        from python.helpers.secrets import alias_for_key
+        from helpers.secrets import alias_for_key
 
         result = alias_for_key("bar", placeholder="{{secret:{key}}}")
         assert result == "{secret:BAR}"
@@ -63,28 +63,28 @@ class TestAliasForKey:
 
 class TestAliasPattern:
     def test_matches_valid_placeholder(self):
-        from python.helpers.secrets import ALIAS_PATTERN
+        from helpers.secrets import ALIAS_PATTERN
 
         m = re.search(ALIAS_PATTERN, "Use §§secret(API_KEY) here")
         assert m is not None
         assert m.group(1) == "API_KEY"
 
     def test_matches_lowercase_key(self):
-        from python.helpers.secrets import ALIAS_PATTERN
+        from helpers.secrets import ALIAS_PATTERN
 
         m = re.search(ALIAS_PATTERN, "§§secret(api_key)")
         assert m is not None
         assert m.group(1) == "api_key"
 
     def test_matches_underscore_key(self):
-        from python.helpers.secrets import ALIAS_PATTERN
+        from helpers.secrets import ALIAS_PATTERN
 
         m = re.search(ALIAS_PATTERN, "§§secret(MY_SECRET_KEY)")
         assert m is not None
         assert m.group(1) == "MY_SECRET_KEY"
 
     def test_no_match_plain_text(self):
-        from python.helpers.secrets import ALIAS_PATTERN
+        from helpers.secrets import ALIAS_PATTERN
 
         assert re.search(ALIAS_PATTERN, "no placeholder here") is None
 
@@ -94,7 +94,7 @@ class TestAliasPattern:
 
 class TestStreamingSecretsFilter:
     def test_process_chunk_replaces_full_secret(self):
-        from python.helpers.secrets import StreamingSecretsFilter
+        from helpers.secrets import StreamingSecretsFilter
 
         f = StreamingSecretsFilter({"API_KEY": "sk-abc123"})
         result = f.process_chunk("The key is sk-abc123")
@@ -102,7 +102,7 @@ class TestStreamingSecretsFilter:
         assert "§§secret(API_KEY)" in result
 
     def test_process_chunk_holds_partial_prefix(self):
-        from python.helpers.secrets import StreamingSecretsFilter
+        from helpers.secrets import StreamingSecretsFilter
 
         f = StreamingSecretsFilter({"API_KEY": "sk-abc123"}, min_trigger=3)
         # Send "sk-" which is a prefix of the secret
@@ -113,7 +113,7 @@ class TestStreamingSecretsFilter:
         assert "§§secret(API_KEY)" in (out1 + out2)
 
     def test_finalize_masks_unresolved_partial(self):
-        from python.helpers.secrets import StreamingSecretsFilter
+        from helpers.secrets import StreamingSecretsFilter
 
         f = StreamingSecretsFilter({"API_KEY": "sk-abc123"}, min_trigger=3)
         f.process_chunk("The key is sk-")
@@ -122,7 +122,7 @@ class TestStreamingSecretsFilter:
         assert "sk-" not in result
 
     def test_finalize_empty_when_no_pending(self):
-        from python.helpers.secrets import StreamingSecretsFilter
+        from helpers.secrets import StreamingSecretsFilter
 
         f = StreamingSecretsFilter({"API_KEY": "secret"})
         f.process_chunk("hello")
@@ -131,13 +131,13 @@ class TestStreamingSecretsFilter:
         assert result == ""
 
     def test_empty_chunk_returns_empty(self):
-        from python.helpers.secrets import StreamingSecretsFilter
+        from helpers.secrets import StreamingSecretsFilter
 
         f = StreamingSecretsFilter({"K": "val"})
         assert f.process_chunk("") == ""
 
     def test_nested_secrets_longest_first(self):
-        from python.helpers.secrets import StreamingSecretsFilter
+        from helpers.secrets import StreamingSecretsFilter
 
         # "short" is substring of "shortsecret"
         f = StreamingSecretsFilter({"A": "shortsecret", "B": "short"})
@@ -148,7 +148,7 @@ class TestStreamingSecretsFilter:
         assert "§§secret(B)" in result
 
     def test_ignores_empty_values(self):
-        from python.helpers.secrets import StreamingSecretsFilter
+        from helpers.secrets import StreamingSecretsFilter
 
         f = StreamingSecretsFilter({"K1": "val", "K2": ""})
         result = f.process_chunk("val")
@@ -161,21 +161,21 @@ class TestStreamingSecretsFilter:
 
 class TestSecretsManagerGetInstance:
     def test_singleton_per_files_tuple(self):
-        from python.helpers.secrets import SecretsManager
+        from helpers.secrets import SecretsManager
 
         a = SecretsManager.get_instance("a.env")
         b = SecretsManager.get_instance("a.env")
         assert a is b
 
     def test_different_files_different_instances(self):
-        from python.helpers.secrets import SecretsManager
+        from helpers.secrets import SecretsManager
 
         a = SecretsManager.get_instance("a.env")
         b = SecretsManager.get_instance("b.env")
         assert a is not b
 
     def test_default_file_when_empty(self):
-        from python.helpers.secrets import SecretsManager, DEFAULT_SECRETS_FILE
+        from helpers.secrets import SecretsManager, DEFAULT_SECRETS_FILE
 
         m = SecretsManager.get_instance()
         assert m._files == (DEFAULT_SECRETS_FILE,)
@@ -183,7 +183,7 @@ class TestSecretsManagerGetInstance:
 
 class TestSecretsManagerReadSecretsRaw:
     def test_reads_single_file(self, mock_files):
-        from python.helpers.secrets import SecretsManager
+        from helpers.secrets import SecretsManager
 
         mock_files.read_file.return_value = "API_KEY=secret123"
         m = SecretsManager("usr/secrets.env")
@@ -192,7 +192,7 @@ class TestSecretsManagerReadSecretsRaw:
         mock_files.read_file.assert_called_with("usr/secrets.env")
 
     def test_reads_multiple_files_joined(self, mock_files):
-        from python.helpers.secrets import SecretsManager
+        from helpers.secrets import SecretsManager
 
         mock_files.read_file.side_effect = ["A=1", "B=2"]
         m = SecretsManager("f1.env", "f2.env")
@@ -200,7 +200,7 @@ class TestSecretsManagerReadSecretsRaw:
         assert result == "A=1\nB=2"
 
     def test_handles_read_exception(self, mock_files):
-        from python.helpers.secrets import SecretsManager
+        from helpers.secrets import SecretsManager
 
         mock_files.read_file.side_effect = OSError("not found")
         m = SecretsManager("missing.env")
@@ -210,7 +210,7 @@ class TestSecretsManagerReadSecretsRaw:
 
 class TestSecretsManagerLoadSecrets:
     def test_parses_env_content(self, mock_files):
-        from python.helpers.secrets import SecretsManager
+        from helpers.secrets import SecretsManager
 
         mock_files.read_file.return_value = "API_KEY=sk-123\nOTHER=val"
         m = SecretsManager("usr/secrets.env")
@@ -219,7 +219,7 @@ class TestSecretsManagerLoadSecrets:
         assert secrets["OTHER"] == "val"
 
     def test_keys_uppercased(self, mock_files):
-        from python.helpers.secrets import SecretsManager
+        from helpers.secrets import SecretsManager
 
         mock_files.read_file.return_value = "api_key=secret"
         m = SecretsManager("usr/secrets.env")
@@ -228,7 +228,7 @@ class TestSecretsManagerLoadSecrets:
         assert secrets["API_KEY"] == "secret"
 
     def test_caches_result(self, mock_files):
-        from python.helpers.secrets import SecretsManager
+        from helpers.secrets import SecretsManager
 
         mock_files.read_file.return_value = "K=v"
         m = SecretsManager("usr/secrets.env")
@@ -237,7 +237,7 @@ class TestSecretsManagerLoadSecrets:
         assert mock_files.read_file.call_count == 1
 
     def test_empty_content_returns_empty_dict(self, mock_files):
-        from python.helpers.secrets import SecretsManager
+        from helpers.secrets import SecretsManager
 
         mock_files.read_file.return_value = ""
         m = SecretsManager("usr/secrets.env")
@@ -246,7 +246,7 @@ class TestSecretsManagerLoadSecrets:
 
 class TestSecretsManagerSaveSecrets:
     def test_saves_content(self, mock_files):
-        from python.helpers.secrets import SecretsManager
+        from helpers.secrets import SecretsManager
 
         m = SecretsManager("usr/secrets.env")
         m.save_secrets("API_KEY=newval")
@@ -256,7 +256,7 @@ class TestSecretsManagerSaveSecrets:
         assert call_args[0][1] == "API_KEY=newval"
 
     def test_raises_for_multiple_files(self, mock_files):
-        from python.helpers.secrets import SecretsManager
+        from helpers.secrets import SecretsManager
 
         m = SecretsManager("f1.env", "f2.env")
         with pytest.raises(RuntimeError, match="multiple files"):
@@ -265,7 +265,7 @@ class TestSecretsManagerSaveSecrets:
 
 class TestSecretsManagerSaveSecretsWithMerge:
     def test_merge_preserves_masked_values(self, mock_files):
-        from python.helpers.secrets import SecretsManager
+        from helpers.secrets import SecretsManager
 
         mock_files.read_file.return_value = "API_KEY=actual_secret"
         m = SecretsManager("usr/secrets.env")
@@ -277,7 +277,7 @@ class TestSecretsManagerSaveSecretsWithMerge:
         assert "API_KEY" in written
 
     def test_merge_deletes_omitted_keys(self, mock_files):
-        from python.helpers.secrets import SecretsManager
+        from helpers.secrets import SecretsManager
 
         existing = "OLD_KEY=oldval\n"
         mock_files.read_file.return_value = existing
@@ -289,7 +289,7 @@ class TestSecretsManagerSaveSecretsWithMerge:
         assert "NEW_KEY" in written
 
     def test_merge_ignores_masked_only_new_key(self, mock_files):
-        from python.helpers.secrets import SecretsManager
+        from helpers.secrets import SecretsManager
 
         m = SecretsManager("usr/secrets.env")
         m._last_raw_text = ""
@@ -298,8 +298,8 @@ class TestSecretsManagerSaveSecretsWithMerge:
         assert "NEW_KEY" not in written
 
     def test_merge_raises_repairable_when_read_fails_and_masked_present(self, mock_files):
-        from python.helpers.secrets import SecretsManager
-        from python.helpers.errors import RepairableException
+        from helpers.secrets import SecretsManager
+        from helpers.errors import RepairableException
 
         mock_files.read_file.side_effect = OSError("read failed")
         m = SecretsManager("usr/secrets.env")
@@ -308,7 +308,7 @@ class TestSecretsManagerSaveSecretsWithMerge:
             m.save_secrets_with_merge("API_KEY=***")
 
     def test_merge_raises_for_multiple_files(self, mock_files):
-        from python.helpers.secrets import SecretsManager
+        from helpers.secrets import SecretsManager
 
         m = SecretsManager("f1.env", "f2.env")
         with pytest.raises(RuntimeError, match="multiple files"):
@@ -317,7 +317,7 @@ class TestSecretsManagerSaveSecretsWithMerge:
 
 class TestSecretsManagerReplacePlaceholders:
     def test_replaces_placeholder_with_value(self, mock_files):
-        from python.helpers.secrets import SecretsManager
+        from helpers.secrets import SecretsManager
 
         mock_files.read_file.return_value = "API_KEY=secret123"
         m = SecretsManager("usr/secrets.env")
@@ -325,8 +325,8 @@ class TestSecretsManagerReplacePlaceholders:
         assert result == "Use secret123 here"
 
     def test_raises_for_unknown_placeholder(self, mock_files):
-        from python.helpers.secrets import SecretsManager
-        from python.helpers.errors import RepairableException
+        from helpers.secrets import SecretsManager
+        from helpers.errors import RepairableException
 
         mock_files.read_file.return_value = "API_KEY=secret"
         m = SecretsManager("usr/secrets.env")
@@ -334,7 +334,7 @@ class TestSecretsManagerReplacePlaceholders:
             m.replace_placeholders("§§secret(UNKNOWN_KEY)")
 
     def test_empty_text_returns_unchanged(self, mock_files):
-        from python.helpers.secrets import SecretsManager
+        from helpers.secrets import SecretsManager
 
         m = SecretsManager("usr/secrets.env")
         assert m.replace_placeholders("") == ""
@@ -342,7 +342,7 @@ class TestSecretsManagerReplacePlaceholders:
 
 class TestSecretsManagerMaskValues:
     def test_masks_secret_values(self, mock_files):
-        from python.helpers.secrets import SecretsManager
+        from helpers.secrets import SecretsManager
 
         mock_files.read_file.return_value = "API_KEY=sk-12345"
         m = SecretsManager("usr/secrets.env")
@@ -351,7 +351,7 @@ class TestSecretsManagerMaskValues:
         assert "§§secret(API_KEY)" in result
 
     def test_respects_min_length(self, mock_files):
-        from python.helpers.secrets import SecretsManager
+        from helpers.secrets import SecretsManager
 
         mock_files.read_file.return_value = "SHORT=abc"
         m = SecretsManager("usr/secrets.env")
@@ -359,7 +359,7 @@ class TestSecretsManagerMaskValues:
         assert "abc" in result  # len 3 < 4, not masked
 
     def test_empty_text_returns_unchanged(self, mock_files):
-        from python.helpers.secrets import SecretsManager
+        from helpers.secrets import SecretsManager
 
         m = SecretsManager("usr/secrets.env")
         assert m.mask_values("") == ""
@@ -367,7 +367,7 @@ class TestSecretsManagerMaskValues:
 
 class TestSecretsManagerGetMaskedSecrets:
     def test_masks_values_for_display(self, mock_files):
-        from python.helpers.secrets import SecretsManager
+        from helpers.secrets import SecretsManager
 
         mock_files.read_file.return_value = "API_KEY=secret123\n# comment"
         m = SecretsManager("usr/secrets.env")
@@ -379,21 +379,21 @@ class TestSecretsManagerGetMaskedSecrets:
 
 class TestSecretsManagerParseEnvContent:
     def test_parses_key_value_pairs(self):
-        from python.helpers.secrets import SecretsManager
+        from helpers.secrets import SecretsManager
 
         m = SecretsManager("x.env")
         result = m.parse_env_content("FOO=bar\nBAZ=qux")
         assert result == {"FOO": "bar", "BAZ": "qux"}
 
     def test_uppercases_keys(self):
-        from python.helpers.secrets import SecretsManager
+        from helpers.secrets import SecretsManager
 
         m = SecretsManager("x.env")
         result = m.parse_env_content("foo=bar")
         assert result == {"FOO": "bar"}
 
     def test_empty_value(self):
-        from python.helpers.secrets import SecretsManager
+        from helpers.secrets import SecretsManager
 
         m = SecretsManager("x.env")
         result = m.parse_env_content("EMPTY=")
@@ -402,7 +402,7 @@ class TestSecretsManagerParseEnvContent:
 
 class TestSecretsManagerParseEnvLines:
     def test_parses_pairs_comments_blanks(self):
-        from python.helpers.secrets import SecretsManager
+        from helpers.secrets import SecretsManager
 
         content = "KEY=val\n# comment\n\nOTHER=val2"
         m = SecretsManager("x.env")
@@ -412,7 +412,7 @@ class TestSecretsManagerParseEnvLines:
         assert "comment" in types
 
     def test_pair_has_key_and_value(self):
-        from python.helpers.secrets import SecretsManager
+        from helpers.secrets import SecretsManager
 
         m = SecretsManager("x.env")
         lines = m.parse_env_lines("MY_KEY=my_value")
@@ -423,7 +423,7 @@ class TestSecretsManagerParseEnvLines:
 
 class TestSecretsManagerClearCache:
     def test_clears_cache(self, mock_files):
-        from python.helpers.secrets import SecretsManager
+        from helpers.secrets import SecretsManager
 
         mock_files.read_file.return_value = "K=v"
         m = SecretsManager("usr/secrets.env")
@@ -435,7 +435,7 @@ class TestSecretsManagerClearCache:
 
 class TestSecretsManagerGetKeys:
     def test_returns_key_list(self, mock_files):
-        from python.helpers.secrets import SecretsManager
+        from helpers.secrets import SecretsManager
 
         mock_files.read_file.return_value = "A=1\nB=2"
         m = SecretsManager("usr/secrets.env")
@@ -445,7 +445,7 @@ class TestSecretsManagerGetKeys:
 
 class TestSecretsManagerCreateStreamingFilter:
     def test_creates_filter_with_current_secrets(self, mock_files):
-        from python.helpers.secrets import SecretsManager
+        from helpers.secrets import SecretsManager
 
         mock_files.read_file.return_value = "API_KEY=secret"
         m = SecretsManager("usr/secrets.env")
@@ -457,7 +457,7 @@ class TestSecretsManagerCreateStreamingFilter:
 
 class TestSecretsManagerChangePlaceholders:
     def test_changes_placeholder_format(self, mock_files):
-        from python.helpers.secrets import SecretsManager
+        from helpers.secrets import SecretsManager
 
         mock_files.read_file.return_value = "API_KEY=secret"
         m = SecretsManager("usr/secrets.env")
@@ -472,25 +472,25 @@ class TestSecretsManagerChangePlaceholders:
 
 class TestGetSecretsManager:
     def test_get_default_secrets_manager(self):
-        from python.helpers.secrets import get_default_secrets_manager, DEFAULT_SECRETS_FILE
+        from helpers.secrets import get_default_secrets_manager, DEFAULT_SECRETS_FILE
 
         m = get_default_secrets_manager()
         assert m._files == (DEFAULT_SECRETS_FILE,)
 
     def test_get_project_secrets_manager(self):
-        with patch("python.helpers.projects.get_project_meta_folder", return_value="/proj/meta"):
+        with patch("helpers.projects.get_project_meta_folder", return_value="/proj/meta"):
             with patch.object(_secrets_mod, "files") as mock_files:
                 mock_files.get_abs_path.return_value = "/proj/meta/secrets.env"
-                from python.helpers.secrets import get_project_secrets_manager
+                from helpers.secrets import get_project_secrets_manager
 
                 m = get_project_secrets_manager("myproject")
                 assert "secrets.env" in str(m._files[-1])
 
     def test_get_project_secrets_manager_merge_with_global(self):
-        with patch("python.helpers.projects.get_project_meta_folder", return_value="/proj/meta"):
+        with patch("helpers.projects.get_project_meta_folder", return_value="/proj/meta"):
             with patch.object(_secrets_mod, "files") as mock_files:
                 mock_files.get_abs_path.return_value = "/proj/meta/secrets.env"
-                from python.helpers.secrets import get_project_secrets_manager, DEFAULT_SECRETS_FILE
+                from helpers.secrets import get_project_secrets_manager, DEFAULT_SECRETS_FILE
 
                 m = get_project_secrets_manager("myproject", merge_with_global=True)
                 assert len(m._files) == 2

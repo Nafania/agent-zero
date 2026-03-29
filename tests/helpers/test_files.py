@@ -1,4 +1,4 @@
-"""Tests for python/helpers/files.py."""
+"""Tests for helpers/files.py."""
 
 import base64
 import os
@@ -14,8 +14,8 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 # Import for patch.object targets (avoids patch resolution issues with namespace packages)
-import python.helpers.files as _files_mod
-import python.helpers.extract_tools as _extract_tools_mod
+import helpers.files as _files_mod
+import helpers.extract_tools as _extract_tools_mod
 
 # --- Fixtures ---
 
@@ -32,27 +32,27 @@ def patch_base_dir(tmp_workdir):
 
 class TestLoadPluginVariables:
     def test_returns_empty_for_non_md_file(self):
-        from python.helpers.files import load_plugin_variables
+        from helpers.files import load_plugin_variables
 
         assert load_plugin_variables("script.py") == {}
         assert load_plugin_variables("data.json") == {}
 
     def test_returns_empty_when_plugin_file_not_found(self):
-        from python.helpers.files import load_plugin_variables
+        from helpers.files import load_plugin_variables
 
         with patch.object(_files_mod, "find_file_in_dirs") as mock_find:
             mock_find.side_effect = FileNotFoundError
             assert load_plugin_variables("prompt.md") == {}
 
     def test_returns_empty_when_plugin_file_does_not_exist(self):
-        from python.helpers.files import load_plugin_variables
+        from helpers.files import load_plugin_variables
 
         with patch.object(_files_mod, "find_file_in_dirs", return_value="/nonexistent/prompt.py"):
             with patch.object(_files_mod, "exists", return_value=False):
                 assert load_plugin_variables("prompt.md") == {}
 
     def test_returns_variables_from_plugin_class(self):
-        from python.helpers.files import load_plugin_variables
+        from helpers.files import load_plugin_variables
 
         mock_cls = MagicMock()
         mock_instance = MagicMock()
@@ -76,25 +76,25 @@ class TestLoadPluginVariables:
 
 class TestEvaluateTextConditions:
     def test_returns_unchanged_when_no_if_block(self):
-        from python.helpers.files import evaluate_text_conditions
+        from helpers.files import evaluate_text_conditions
 
         text = "Hello {{name}}"
         assert evaluate_text_conditions(text, name="World") == "Hello {{name}}"
 
     def test_keeps_content_when_condition_true(self):
-        from python.helpers.files import evaluate_text_conditions
+        from helpers.files import evaluate_text_conditions
 
         text = "A {{if x}}B{{endif}} C"
         assert evaluate_text_conditions(text, x=True) == "A B C"
 
     def test_removes_content_when_condition_false(self):
-        from python.helpers.files import evaluate_text_conditions
+        from helpers.files import evaluate_text_conditions
 
         text = "A {{if x}}B{{endif}} C"
         assert evaluate_text_conditions(text, x=False) == "A  C"
 
     def test_nested_conditions(self):
-        from python.helpers.files import evaluate_text_conditions
+        from helpers.files import evaluate_text_conditions
 
         text = "A {{if a}}B {{if b}}C{{endif}} D{{endif}} E"
         assert evaluate_text_conditions(text, a=True, b=True) == "A B C D E"
@@ -107,29 +107,29 @@ class TestEvaluateTextConditions:
 
 class TestIsProbablyBinaryBytes:
     def test_empty_returns_false(self):
-        from python.helpers.files import is_probably_binary_bytes
+        from helpers.files import is_probably_binary_bytes
 
         assert is_probably_binary_bytes(b"") is False
 
     def test_nul_byte_returns_true(self):
-        from python.helpers.files import is_probably_binary_bytes
+        from helpers.files import is_probably_binary_bytes
 
         assert is_probably_binary_bytes(b"hello\x00world") is True
 
     def test_plain_text_returns_false(self):
-        from python.helpers.files import is_probably_binary_bytes
+        from helpers.files import is_probably_binary_bytes
 
         assert is_probably_binary_bytes(b"Hello world\n") is False
 
     def test_high_ratio_of_control_chars_returns_true(self):
-        from python.helpers.files import is_probably_binary_bytes
+        from helpers.files import is_probably_binary_bytes
 
         # Many control chars (excluding \t\n\f\r\b)
         data = bytes([0x01] * 40 + [0x20] * 10)  # 80% control
         assert is_probably_binary_bytes(data, threshold=0.3) is True
 
     def test_low_ratio_returns_false(self):
-        from python.helpers.files import is_probably_binary_bytes
+        from helpers.files import is_probably_binary_bytes
 
         data = b"Normal text with few control chars"
         assert is_probably_binary_bytes(data, threshold=0.3) is False
@@ -140,18 +140,18 @@ class TestIsProbablyBinaryBytes:
 
 class TestReplacePlaceholdersText:
     def test_replaces_single_placeholder(self):
-        from python.helpers.files import replace_placeholders_text
+        from helpers.files import replace_placeholders_text
 
         assert replace_placeholders_text("Hi {{name}}", name="Alice") == "Hi Alice"
 
     def test_replaces_multiple_placeholders(self):
-        from python.helpers.files import replace_placeholders_text
+        from helpers.files import replace_placeholders_text
 
         result = replace_placeholders_text("{{a}} + {{b}}", a=1, b=2)
         assert result == "1 + 2"
 
     def test_unchanged_when_no_placeholders(self):
-        from python.helpers.files import replace_placeholders_text
+        from helpers.files import replace_placeholders_text
 
         assert replace_placeholders_text("No placeholders") == "No placeholders"
 
@@ -161,13 +161,13 @@ class TestReplacePlaceholdersText:
 
 class TestReplacePlaceholdersJson:
     def test_replaces_with_json_serialization(self):
-        from python.helpers.files import replace_placeholders_json
+        from helpers.files import replace_placeholders_json
 
         result = replace_placeholders_json('{"x": {{val}}}', val=[1, 2])
         assert result == '{"x": [1, 2]}'
 
     def test_skips_placeholder_not_in_content(self):
-        from python.helpers.files import replace_placeholders_json
+        from helpers.files import replace_placeholders_json
 
         result = replace_placeholders_json('{"a": 1}', other=99)
         assert result == '{"a": 1}'
@@ -178,19 +178,19 @@ class TestReplacePlaceholdersJson:
 
 class TestReplacePlaceholdersDict:
     def test_replaces_in_string_value(self):
-        from python.helpers.files import replace_placeholders_dict
+        from helpers.files import replace_placeholders_dict
 
         result = replace_placeholders_dict({"key": "{{x}}"}, x="val")
         assert result == {"key": "val"}
 
     def test_replaces_nested(self):
-        from python.helpers.files import replace_placeholders_dict
+        from helpers.files import replace_placeholders_dict
 
         result = replace_placeholders_dict({"a": {"b": "{{x}}"}}, x=1)
         assert result == {"a": {"b": 1}}
 
     def test_replaces_in_list(self):
-        from python.helpers.files import replace_placeholders_dict
+        from helpers.files import replace_placeholders_dict
 
         result = replace_placeholders_dict({"items": ["{{a}}", "{{b}}"]}, a=1, b=2)
         assert result == {"items": [1, 2]}
@@ -201,19 +201,19 @@ class TestReplacePlaceholdersDict:
 
 class TestRemoveCodeFences:
     def test_removes_triple_backtick_fences(self):
-        from python.helpers.files import remove_code_fences
+        from helpers.files import remove_code_fences
 
         text = "```\ncode here\n```"
         assert remove_code_fences(text) == "code here\n"
 
     def test_removes_triple_tilde_fences(self):
-        from python.helpers.files import remove_code_fences
+        from helpers.files import remove_code_fences
 
         text = "~~~\ncode here\n~~~"
         assert remove_code_fences(text) == "code here\n"
 
     def test_removes_language_specifier(self):
-        from python.helpers.files import remove_code_fences
+        from helpers.files import remove_code_fences
 
         text = "```python\nprint(1)\n```"
         assert remove_code_fences(text) == "print(1)\n"
@@ -224,24 +224,24 @@ class TestRemoveCodeFences:
 
 class TestIsFullJsonTemplate:
     def test_true_for_json_fenced(self):
-        from python.helpers.files import is_full_json_template
+        from helpers.files import is_full_json_template
 
         text = "```json\n{}\n```"
         assert is_full_json_template(text) is True
 
     def test_true_for_tilde_json_fenced(self):
-        from python.helpers.files import is_full_json_template
+        from helpers.files import is_full_json_template
 
         text = "~~~json\n{\"a\":1}\n~~~"
         assert is_full_json_template(text) is True
 
     def test_false_for_plain_json(self):
-        from python.helpers.files import is_full_json_template
+        from helpers.files import is_full_json_template
 
         assert is_full_json_template("{}") is False
 
     def test_false_for_plain_text(self):
-        from python.helpers.files import is_full_json_template
+        from helpers.files import is_full_json_template
 
         assert is_full_json_template("hello") is False
 
@@ -251,7 +251,7 @@ class TestIsFullJsonTemplate:
 
 class TestFindFileInDirs:
     def test_returns_first_found(self, patch_base_dir):
-        from python.helpers.files import find_file_in_dirs
+        from helpers.files import find_file_in_dirs
 
         d1 = patch_base_dir / "dir1"
         d2 = patch_base_dir / "dir2"
@@ -265,7 +265,7 @@ class TestFindFileInDirs:
         assert result.endswith("a.txt")
 
     def test_raises_when_not_found(self, patch_base_dir):
-        from python.helpers.files import find_file_in_dirs
+        from helpers.files import find_file_in_dirs
 
         with pytest.raises(FileNotFoundError, match="not found"):
             find_file_in_dirs("nonexistent.txt", [str(patch_base_dir)])
@@ -276,7 +276,7 @@ class TestFindFileInDirs:
 
 class TestGetUniqueFilenamesInDirs:
     def test_returns_unique_by_basename(self, patch_base_dir):
-        from python.helpers.files import get_unique_filenames_in_dirs
+        from helpers.files import get_unique_filenames_in_dirs
 
         d1 = patch_base_dir / "d1"
         d2 = patch_base_dir / "d2"
@@ -290,7 +290,7 @@ class TestGetUniqueFilenamesInDirs:
         assert "same.txt" in result[0]
 
     def test_filters_by_type_file(self, patch_base_dir):
-        from python.helpers.files import get_unique_filenames_in_dirs
+        from helpers.files import get_unique_filenames_in_dirs
 
         d = patch_base_dir / "d"
         d.mkdir()
@@ -308,12 +308,12 @@ class TestGetUniqueFilenamesInDirs:
 
 class TestFindExistingPathsByPattern:
     def test_empty_pattern_returns_empty(self):
-        from python.helpers.files import find_existing_paths_by_pattern
+        from helpers.files import find_existing_paths_by_pattern
 
         assert find_existing_paths_by_pattern("") == []
 
     def test_returns_sorted_matches(self, patch_base_dir):
-        from python.helpers.files import find_existing_paths_by_pattern
+        from helpers.files import find_existing_paths_by_pattern
 
         (patch_base_dir / "work_dir").mkdir(exist_ok=True)
         (patch_base_dir / "work_dir" / "a.txt").write_text("")
@@ -329,27 +329,27 @@ class TestFindExistingPathsByPattern:
 
 class TestReadWriteFile:
     def test_write_and_read_file(self, patch_base_dir):
-        from python.helpers.files import read_file, write_file
+        from helpers.files import read_file, write_file
 
         write_file("work_dir/test.txt", "hello world")
         assert read_file("work_dir/test.txt") == "hello world"
 
     def test_write_and_read_binary(self, patch_base_dir):
-        from python.helpers.files import read_file_bin, write_file_bin
+        from helpers.files import read_file_bin, write_file_bin
 
         data = b"\x00\x01\x02"
         write_file_bin("work_dir/binary.bin", data)
         assert read_file_bin("work_dir/binary.bin") == data
 
     def test_write_and_read_base64(self, patch_base_dir):
-        from python.helpers.files import read_file_base64, write_file_base64
+        from helpers.files import read_file_base64, write_file_base64
 
         encoded = base64.b64encode(b"binary data").decode("utf-8")
         write_file_base64("work_dir/b64.txt", encoded)
         assert read_file_base64("work_dir/b64.txt") == encoded
 
     def test_read_file_raises_for_nonexistent(self, patch_base_dir):
-        from python.helpers.files import read_file
+        from helpers.files import read_file
 
         with pytest.raises(FileNotFoundError):
             read_file("work_dir/nonexistent.txt")
@@ -360,21 +360,21 @@ class TestReadWriteFile:
 
 class TestIsProbablyBinaryFile:
     def test_text_file_returns_false(self, patch_base_dir):
-        from python.helpers.files import is_probably_binary_file
+        from helpers.files import is_probably_binary_file
 
         p = patch_base_dir / "text.txt"
         p.write_text("Hello world")
         assert is_probably_binary_file(str(p)) is False
 
     def test_binary_file_returns_true(self, patch_base_dir):
-        from python.helpers.files import is_probably_binary_file
+        from helpers.files import is_probably_binary_file
 
         p = patch_base_dir / "bin.dat"
         p.write_bytes(b"hello\x00world")
         assert is_probably_binary_file(str(p)) is True
 
     def test_raises_for_nonexistent_file(self):
-        from python.helpers.files import is_probably_binary_file
+        from helpers.files import is_probably_binary_file
 
         with pytest.raises(OSError, match="Unable to read"):
             is_probably_binary_file("/nonexistent/path/file.dat")
@@ -385,13 +385,13 @@ class TestIsProbablyBinaryFile:
 
 class TestCreateDeleteDir:
     def test_create_dir(self, patch_base_dir):
-        from python.helpers.files import create_dir, exists
+        from helpers.files import create_dir, exists
 
         create_dir("work_dir/new_folder")
         assert exists("work_dir/new_folder")
 
     def test_delete_dir(self, patch_base_dir):
-        from python.helpers.files import create_dir, delete_dir, exists
+        from helpers.files import create_dir, delete_dir, exists
 
         create_dir("work_dir/to_delete")
         (patch_base_dir / "work_dir" / "to_delete" / "f.txt").write_text("x")
@@ -404,7 +404,7 @@ class TestCreateDeleteDir:
 
 class TestMoveCreateDirSafe:
     def test_move_dir(self, patch_base_dir):
-        from python.helpers.files import create_dir, exists, move_dir
+        from helpers.files import create_dir, exists, move_dir
 
         create_dir("work_dir/old")
         (patch_base_dir / "work_dir" / "old" / "f.txt").write_text("x")
@@ -413,7 +413,7 @@ class TestMoveCreateDirSafe:
         assert not exists("work_dir/old")
 
     def test_move_dir_safe_renames_when_exists(self, patch_base_dir):
-        from python.helpers.files import create_dir, move_dir_safe
+        from helpers.files import create_dir, move_dir_safe
 
         create_dir("work_dir/dst")
         create_dir("work_dir/src")
@@ -422,7 +422,7 @@ class TestMoveCreateDirSafe:
         assert "dst_2" in result or "2" in result
 
     def test_create_dir_safe_renames_when_exists(self, patch_base_dir):
-        from python.helpers.files import create_dir, create_dir_safe, exists
+        from helpers.files import create_dir, create_dir_safe, exists
 
         create_dir("work_dir/target")
         result = create_dir_safe("work_dir/target")
@@ -435,7 +435,7 @@ class TestMoveCreateDirSafe:
 
 class TestListFiles:
     def test_list_files_with_filter(self, patch_base_dir):
-        from python.helpers.files import list_files, write_file
+        from helpers.files import list_files, write_file
 
         write_file("work_dir/a.txt", "")
         write_file("work_dir/b.txt", "")
@@ -444,13 +444,13 @@ class TestListFiles:
         assert set(result) == {"a.txt", "b.txt"}
 
     def test_list_files_returns_empty_for_nonexistent(self):
-        from python.helpers.files import list_files
+        from helpers.files import list_files
 
         with patch.object(_files_mod, "get_abs_path", return_value="/nonexistent/dir"):
             assert list_files("nonexistent") == []
 
     def test_list_files_in_dir_recursively(self, patch_base_dir):
-        from python.helpers.files import create_dir, list_files_in_dir_recursively, write_file
+        from helpers.files import create_dir, list_files_in_dir_recursively, write_file
 
         create_dir("work_dir/sub1/sub2")
         write_file("work_dir/a.txt", "")
@@ -467,13 +467,13 @@ class TestListFiles:
 
 class TestPathHelpers:
     def test_get_abs_path_joins_with_base(self):
-        from python.helpers.files import get_abs_path, get_base_dir
+        from helpers.files import get_abs_path, get_base_dir
 
         result = get_abs_path("a", "b")
         assert result == os.path.join(get_base_dir(), "a", "b")
 
     def test_deabsolute_path(self, patch_base_dir):
-        from python.helpers.files import deabsolute_path, get_abs_path
+        from helpers.files import deabsolute_path, get_abs_path
 
         abs_p = get_abs_path("work_dir", "f.txt")
         rel = deabsolute_path(abs_p)
@@ -481,17 +481,17 @@ class TestPathHelpers:
         assert "f.txt" in rel
 
     def test_basename_without_suffix(self):
-        from python.helpers.files import basename
+        from helpers.files import basename
 
         assert basename("/path/to/file.txt") == "file.txt"
 
     def test_basename_with_suffix(self):
-        from python.helpers.files import basename
+        from helpers.files import basename
 
         assert basename("/path/to/file.txt", ".txt") == "file"
 
     def test_dirname(self):
-        from python.helpers.files import dirname
+        from helpers.files import dirname
 
         assert dirname("/path/to/file.txt") == "/path/to"
 
@@ -501,12 +501,12 @@ class TestPathHelpers:
 
 class TestIsInDir:
     def test_is_in_dir_true(self):
-        from python.helpers.files import is_in_dir
+        from helpers.files import is_in_dir
 
         assert is_in_dir("/a/b/c/file.txt", "/a/b") is True
 
     def test_is_in_dir_false(self):
-        from python.helpers.files import is_in_dir
+        from helpers.files import is_in_dir
 
         assert is_in_dir("/x/y/file.txt", "/a/b") is False
 
@@ -516,7 +516,7 @@ class TestIsInDir:
 
 class TestGetSubdirectories:
     def test_returns_matching_subdirs(self, patch_base_dir):
-        from python.helpers.files import create_dir, get_subdirectories
+        from helpers.files import create_dir, get_subdirectories
 
         create_dir("work_dir/foo")
         create_dir("work_dir/bar")
@@ -526,7 +526,7 @@ class TestGetSubdirectories:
         assert "bar" not in result
 
     def test_exclude_pattern(self, patch_base_dir):
-        from python.helpers.files import create_dir, get_subdirectories
+        from helpers.files import create_dir, get_subdirectories
 
         create_dir("work_dir/keep")
         create_dir("work_dir/skip")
@@ -540,7 +540,7 @@ class TestGetSubdirectories:
 
 class TestZipDir:
     def test_zip_dir_creates_valid_zip(self, patch_base_dir):
-        from python.helpers.files import create_dir, write_file, zip_dir
+        from helpers.files import create_dir, write_file, zip_dir
 
         create_dir("work_dir/sub")
         write_file("work_dir/a.txt", "content")
@@ -561,7 +561,7 @@ class TestZipDir:
 
 class TestMoveFile:
     def test_move_file(self, patch_base_dir):
-        from python.helpers.files import exists, move_file, write_file
+        from helpers.files import exists, move_file, write_file
 
         write_file("work_dir/origin.txt", "data")
         move_file("work_dir/origin.txt", "work_dir/dest.txt")
@@ -574,13 +574,13 @@ class TestMoveFile:
 
 class TestSafeFileName:
     def test_replaces_invalid_chars(self):
-        from python.helpers.files import safe_file_name
+        from helpers.files import safe_file_name
 
         assert safe_file_name("file name.txt") == "file_name.txt"
         assert safe_file_name("a/b\\c") == "a_b_c"
 
     def test_preserves_valid_chars(self):
-        from python.helpers.files import safe_file_name
+        from helpers.files import safe_file_name
 
         assert safe_file_name("valid-name_123.txt") == "valid-name_123.txt"
 
@@ -590,7 +590,7 @@ class TestSafeFileName:
 
 class TestReadTextFilesInDir:
     def test_reads_text_files(self, patch_base_dir):
-        from python.helpers.files import read_text_files_in_dir, write_file
+        from helpers.files import read_text_files_in_dir, write_file
 
         write_file("work_dir/a.txt", "content a")
         write_file("work_dir/b.txt", "content b")
@@ -599,7 +599,7 @@ class TestReadTextFilesInDir:
         assert result["b.txt"] == "content b"
 
     def test_respects_pattern(self, patch_base_dir):
-        from python.helpers.files import read_text_files_in_dir, write_file
+        from helpers.files import read_text_files_in_dir, write_file
 
         write_file("work_dir/a.txt", "x")
         write_file("work_dir/b.log", "y")
@@ -608,7 +608,7 @@ class TestReadTextFilesInDir:
         assert "b.log" not in result
 
     def test_returns_empty_for_nonexistent_dir(self):
-        from python.helpers.files import read_text_files_in_dir
+        from helpers.files import read_text_files_in_dir
 
         with patch.object(_files_mod, "get_abs_path", return_value="/nonexistent"):
             assert read_text_files_in_dir("nonexistent") == {}
@@ -619,7 +619,7 @@ class TestReadTextFilesInDir:
 
 class TestProcessIncludes:
     def test_replaces_include_with_file_content(self, patch_base_dir):
-        from python.helpers.files import process_includes
+        from helpers.files import process_includes
 
         content = "Before {{ include 'work_dir/included.txt' }} After"
         with patch.object(_files_mod, "read_prompt_file", return_value="included content"):
@@ -627,7 +627,7 @@ class TestProcessIncludes:
         assert result == "Before included content After"
 
     def test_leaves_absolute_path_unchanged(self):
-        from python.helpers.files import process_includes
+        from helpers.files import process_includes
 
         content = "{{ include '/abs/path/file.txt' }}"
         result = process_includes(content, [])
@@ -640,7 +640,7 @@ class TestProcessIncludes:
 
 class TestParseFile:
     def test_parse_json_template_file(self, patch_base_dir):
-        from python.helpers.files import parse_file, write_file
+        from helpers.files import parse_file, write_file
 
         content = '```json\n{"key": "value"}\n```'
         write_file("work_dir/data.json", content)
@@ -648,7 +648,7 @@ class TestParseFile:
         assert result == {"key": "value"}
 
     def test_parse_text_file_returns_string(self, patch_base_dir):
-        from python.helpers.files import parse_file, write_file
+        from helpers.files import parse_file, write_file
 
         write_file("work_dir/plain.txt", "Hello {{name}}")
         with patch.object(_files_mod, "load_plugin_variables", return_value={}):

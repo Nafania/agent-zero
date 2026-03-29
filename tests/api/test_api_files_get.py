@@ -1,4 +1,4 @@
-"""Tests for python/api/api_files_get.py — ApiFilesGet API handler."""
+"""Tests for api/api_files_get.py — ApiFilesGet API handler."""
 
 import sys
 import threading
@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.api_files_get import ApiFilesGet
+from api.api_files_get import ApiFilesGet
 
 
 def _make_handler(app=None, lock=None):
@@ -74,8 +74,8 @@ class TestApiFilesGet:
         uploads_dir.mkdir(parents=True)
         (uploads_dir / "uploaded.pdf").write_bytes(b"pdf content")
 
-        with patch("python.api.api_files_get.os.path.exists", return_value=True), \
-             patch("python.api.api_files_get.files.get_abs_path", return_value=str(uploads_dir / "uploaded.pdf")):
+        with patch("api.api_files_get.os.path.exists", return_value=True), \
+             patch("api.api_files_get.files.get_abs_path", return_value=str(uploads_dir / "uploaded.pdf")):
             result = await handler.process(
                 {"paths": ["/a0/tmp/uploads/uploaded.pdf"]}, MagicMock()
             )

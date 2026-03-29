@@ -1,4 +1,4 @@
-"""Tests for python/api/backup_preview_grouped.py — BackupPreviewGrouped API handler."""
+"""Tests for api/backup_preview_grouped.py — BackupPreviewGrouped API handler."""
 
 import sys
 import threading
@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.backup_preview_grouped import BackupPreviewGrouped
+from api.backup_preview_grouped import BackupPreviewGrouped
 
 
 def _make_handler():
@@ -42,7 +42,7 @@ class TestBackupPreviewGrouped:
             {"path": "/usr/data.json", "size": 100},
         ]
 
-        with patch("python.api.backup_preview_grouped.BackupService") as MockBackup:
+        with patch("api.backup_preview_grouped.BackupService") as MockBackup:
             mock_svc = MagicMock()
             mock_svc.test_patterns = AsyncMock(return_value=all_files)
             MockBackup.return_value = mock_svc
@@ -65,7 +65,7 @@ class TestBackupPreviewGrouped:
             {"path": "usr/settings.json", "size": 200},
         ]
 
-        with patch("python.api.backup_preview_grouped.BackupService") as MockBackup:
+        with patch("api.backup_preview_grouped.BackupService") as MockBackup:
             mock_svc = MagicMock()
             mock_svc.test_patterns = AsyncMock(return_value=all_files)
             MockBackup.return_value = mock_svc
@@ -87,7 +87,7 @@ class TestBackupPreviewGrouped:
             {"path": "/usr/other.txt", "size": 50},
         ]
 
-        with patch("python.api.backup_preview_grouped.BackupService") as MockBackup:
+        with patch("api.backup_preview_grouped.BackupService") as MockBackup:
             mock_svc = MagicMock()
             mock_svc.test_patterns = AsyncMock(return_value=all_files)
             MockBackup.return_value = mock_svc

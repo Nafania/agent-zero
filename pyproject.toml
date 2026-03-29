@@ -1,6 +1,8 @@
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+pythonpath = ["."]
 testpaths = ["tests"]
+addopts = "--import-mode=importlib"
 markers = [
     "integration: requires real external services (skipped in CI by default)",
     "slow: tests that take >5s",

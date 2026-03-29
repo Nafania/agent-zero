@@ -21,7 +21,7 @@ class TestLogFromStream:
         mock_log_item.kvps = {}
         mock_agent.context.log.log.return_value = mock_log_item
 
-        from python.extensions.response_stream._10_log_from_stream import LogFromStream
+        from extensions.python.response_stream._10_log_from_stream import LogFromStream
 
         ext = LogFromStream(agent=mock_agent)
         await ext.execute(loop_data=mock_loop_data, text="hello", parsed={})
@@ -35,7 +35,7 @@ class TestReplaceIncludeAlias:
 
     @pytest.mark.asyncio
     async def test_returns_early_without_parsed(self):
-        from python.extensions.response_stream._15_replace_include_alias import (
+        from extensions.python.response_stream._15_replace_include_alias import (
             ReplaceIncludeAlias,
         )
 
@@ -51,10 +51,10 @@ class TestReplaceIncludeAlias:
             return "file content" if "§§include" in text else text
 
         with patch(
-            "python.extensions.response_stream._15_replace_include_alias.replace_file_includes",
+            "extensions.python.response_stream._15_replace_include_alias.replace_file_includes",
             side_effect=mock_replace,
         ):
-            from python.extensions.response_stream._15_replace_include_alias import (
+            from extensions.python.response_stream._15_replace_include_alias import (
                 ReplaceIncludeAlias,
             )
 
@@ -72,7 +72,7 @@ class TestLiveResponse:
         mock_loop_data.params_temporary = {}
         parsed = {"tool_name": "other_tool"}
 
-        from python.extensions.response_stream._20_live_response import LiveResponse
+        from extensions.python.response_stream._20_live_response import LiveResponse
 
         ext = LiveResponse(agent=mock_agent)
         await ext.execute(loop_data=mock_loop_data, parsed=parsed)
@@ -89,7 +89,7 @@ class TestLiveResponse:
             "tool_args": {"text": "Hello user"},
         }
 
-        from python.extensions.response_stream._20_live_response import LiveResponse
+        from extensions.python.response_stream._20_live_response import LiveResponse
 
         ext = LiveResponse(agent=mock_agent)
         await ext.execute(loop_data=mock_loop_data, parsed=parsed)
@@ -102,7 +102,7 @@ class TestMaskResponseStreamChunk:
 
     @pytest.mark.asyncio
     async def test_returns_early_without_agent(self, mock_agent):
-        from python.extensions.response_stream_chunk._10_mask_stream import (
+        from extensions.python.response_stream_chunk._10_mask_stream import (
             MaskResponseStreamChunk,
         )
 
@@ -116,12 +116,12 @@ class TestMaskResponseStreamChunk:
         filter_mock.process_chunk.return_value = "***"
 
         with patch(
-            "python.extensions.response_stream_chunk._10_mask_stream.get_secrets_manager"
+            "extensions.python.response_stream_chunk._10_mask_stream.get_secrets_manager"
         ) as mock_mgr:
             mock_mgr.return_value.create_streaming_filter.return_value = filter_mock
             mock_mgr.return_value.mask_values.return_value = "***"
 
-            from python.extensions.response_stream_chunk._10_mask_stream import (
+            from extensions.python.response_stream_chunk._10_mask_stream import (
                 MaskResponseStreamChunk,
             )
 
@@ -136,7 +136,7 @@ class TestMaskResponseStreamEnd:
 
     @pytest.mark.asyncio
     async def test_returns_early_without_agent(self, mock_agent):
-        from python.extensions.response_stream_end._10_mask_end import (
+        from extensions.python.response_stream_end._10_mask_end import (
             MaskResponseStreamEnd,
         )
 
@@ -149,7 +149,7 @@ class TestMaskResponseStreamEnd:
         filter_mock.finalize.return_value = ""
         mock_agent.get_data.return_value = filter_mock
 
-        from python.extensions.response_stream_end._10_mask_end import (
+        from extensions.python.response_stream_end._10_mask_end import (
             MaskResponseStreamEnd,
         )
 
@@ -166,7 +166,7 @@ class TestLogFromStreamEnd:
     async def test_returns_early_without_log_item(self, mock_agent, mock_loop_data):
         mock_loop_data.params_temporary = {"log_item_generating": None}
 
-        from python.extensions.response_stream_end._15_log_from_stream_end import (
+        from extensions.python.response_stream_end._15_log_from_stream_end import (
             LogFromStream,
         )
 
@@ -179,7 +179,7 @@ class TestLogFromStreamEnd:
         mock_log_item.kvps = {"step": "Using tool...", "other": "val"}
         mock_loop_data.params_temporary = {"log_item_generating": mock_log_item}
 
-        from python.extensions.response_stream_end._15_log_from_stream_end import (
+        from extensions.python.response_stream_end._15_log_from_stream_end import (
             LogFromStream,
         )
 

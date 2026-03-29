@@ -10,8 +10,8 @@ if str(PROJECT_ROOT) not in sys.path:
 
 @pytest.mark.asyncio
 async def test_state_monitor_debounce_coalesces_without_postponing_and_cleanup_cancels_pending():
-    from python.helpers.state_monitor import StateMonitor
-    from python.helpers.state_snapshot import StateRequestV1
+    from helpers.state_monitor import StateMonitor
+    from helpers.state_snapshot import StateRequestV1
 
     namespace = "/state_sync"
     monitor = StateMonitor(debounce_seconds=10.0)
@@ -44,8 +44,8 @@ async def test_state_monitor_namespace_identity_prevents_cross_namespace_state_p
     import asyncio
     from unittest.mock import AsyncMock
 
-    from python.helpers.state_monitor import StateMonitor
-    from python.helpers.state_snapshot import StateRequestV1
+    from helpers.state_monitor import StateMonitor
+    from helpers.state_snapshot import StateRequestV1
 
     loop = asyncio.get_running_loop()
     push_ready = asyncio.Event()
@@ -94,7 +94,7 @@ async def test_state_monitor_namespace_identity_prevents_cross_namespace_state_p
         }
 
     # Patch build_snapshot used by StateMonitor so this test stays lightweight.
-    monkeypatch.setattr("python.helpers.state_monitor.build_snapshot_from_request", _fake_snapshot)
+    monkeypatch.setattr("helpers.state_monitor.build_snapshot_from_request", _fake_snapshot)
 
     monitor.mark_dirty(ns_a, sid, reason="test")
     await asyncio.wait_for(push_ready.wait(), timeout=1.0)
@@ -107,7 +107,7 @@ async def test_state_monitor_namespace_identity_prevents_cross_namespace_state_p
 
 
 def test_get_state_monitor_returns_singleton():
-    from python.helpers.state_monitor import get_state_monitor, _reset_state_monitor_for_testing
+    from helpers.state_monitor import get_state_monitor, _reset_state_monitor_for_testing
 
     _reset_state_monitor_for_testing()
     m1 = get_state_monitor()
@@ -119,7 +119,7 @@ def test_get_state_monitor_returns_singleton():
 
 
 def test_register_sid_creates_projection():
-    from python.helpers.state_monitor import StateMonitor
+    from helpers.state_monitor import StateMonitor
 
     monitor = StateMonitor()
     monitor.register_sid("/ns", "sid-1")
@@ -129,8 +129,8 @@ def test_register_sid_creates_projection():
 
 
 def test_unregister_sid_cancels_pending_handles():
-    from python.helpers.state_monitor import StateMonitor
-    from python.helpers.state_snapshot import StateRequestV1
+    from helpers.state_monitor import StateMonitor
+    from helpers.state_snapshot import StateRequestV1
 
     monitor = StateMonitor(debounce_seconds=10.0)
     monitor.register_sid("/ns", "sid-1")
@@ -152,8 +152,8 @@ def test_unregister_sid_cancels_pending_handles():
 @pytest.mark.asyncio
 async def test_mark_dirty_all_marks_all_registered_sids():
     import asyncio
-    from python.helpers.state_monitor import StateMonitor
-    from python.helpers.state_snapshot import StateRequestV1
+    from helpers.state_monitor import StateMonitor
+    from helpers.state_snapshot import StateRequestV1
 
     loop = asyncio.get_running_loop()
     monitor = StateMonitor()
@@ -179,7 +179,7 @@ async def test_mark_dirty_all_marks_all_registered_sids():
 
 
 def test_mark_dirty_for_context_skips_empty_context_id():
-    from python.helpers.state_monitor import StateMonitor
+    from helpers.state_monitor import StateMonitor
 
     monitor = StateMonitor()
     monitor.register_sid("/ns", "sid-1")
@@ -192,8 +192,8 @@ def test_mark_dirty_for_context_skips_empty_context_id():
 @pytest.mark.asyncio
 async def test_mark_dirty_for_context_marks_only_matching_context():
     import asyncio
-    from python.helpers.state_monitor import StateMonitor
-    from python.helpers.state_snapshot import StateRequestV1
+    from helpers.state_monitor import StateMonitor
+    from helpers.state_snapshot import StateRequestV1
 
     loop = asyncio.get_running_loop()
     monitor = StateMonitor()
@@ -219,8 +219,8 @@ async def test_mark_dirty_for_context_marks_only_matching_context():
 
 
 def test_update_projection_sets_request_and_seq_base():
-    from python.helpers.state_monitor import StateMonitor
-    from python.helpers.state_snapshot import StateRequestV1
+    from helpers.state_monitor import StateMonitor
+    from helpers.state_snapshot import StateRequestV1
 
     monitor = StateMonitor()
     monitor.register_sid("/ns", "sid-1")
@@ -241,7 +241,7 @@ def test_update_projection_sets_request_and_seq_base():
 
 
 def test_debug_state_returns_identities_and_handles():
-    from python.helpers.state_monitor import StateMonitor
+    from helpers.state_monitor import StateMonitor
 
     monitor = StateMonitor()
     monitor.register_sid("/ns", "sid-1")
@@ -255,7 +255,7 @@ def test_debug_state_returns_identities_and_handles():
 
 
 def test_mark_dirty_does_not_schedule_before_seq_base_set():
-    from python.helpers.state_monitor import StateMonitor
+    from helpers.state_monitor import StateMonitor
 
     monitor = StateMonitor()
     monitor.register_sid("/ns", "sid-1")

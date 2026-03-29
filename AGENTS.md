@@ -37,7 +37,7 @@ Skills are portable, structured agent capabilities using the open **SKILL.md** s
 
 ### Extension Hooks
 
-The behavior is fully extensible via `python/extensions/`. Available hook points:
+The behavior is fully extensible via `extensions/python/`. Available hook points:
 
 - Agent lifecycle: `agent_init`, `banners`, `user_message_ui`
 - Message loop: `message_loop_start`, `message_loop_end`, `message_loop_prompts_before`, `message_loop_prompts_after`
@@ -66,12 +66,12 @@ agent-zero/
 ├── run_ui.py             ← Flask + uvicorn server, WebSocket, API routes
 ├── prepare.py            ← One-time setup: runtime init, env prep
 ├── prompts/              ← All agent prompts and message templates (fully customizable)
-├── python/
-│   ├── api/              ← 75+ REST API endpoints (chat, backup, memory, MCP, scheduler, files, settings)
-│   ├── extensions/       ← Hook points: message loop, prompts, streaming, tools, monologue, errors
-│   ├── helpers/          ← Core utilities (memory, cognee, MCP, LLM calls, browser, tasks, websocket)
-│   ├── tools/            ← Agent tools (code exec, browser, memory, search, scheduler, skills)
-│   └── websocket_handlers/ ← WebSocket namespace handlers (state sync, hello)
+├── helpers/              ← Core utilities (was python/helpers/)
+├── tools/                ← Agent tools (was python/tools/)
+├── api/                  ← REST API endpoints (was python/api/)
+├── extensions/
+│   └── python/           ← Hook points (was python/extensions/)
+├── websocket_handlers/   ← WebSocket handlers (was python/websocket_handlers/)
 ├── tests/                ← Unit + integration tests (pytest, ~2400 tests, 76% coverage)
 ├── requirements.txt      ← Main dependencies
 ├── requirements2.txt     ← Override deps (litellm, openai, cognee) — installed after requirements.txt
@@ -111,10 +111,10 @@ Cognee provides vector search, knowledge graphs, and document storage. Persisten
 
 | Component | Path | Purpose |
 |-----------|------|---------|
-| `cognee_init.py` | `python/helpers/` | Config: env vars (BEFORE `import cognee`), LLM/embedding, storage dirs |
-| `memory.py` | `python/helpers/` | Memory class: search, insert, delete, knowledge preload, auto re-import |
-| `cognee_background.py` | `python/helpers/` | Background cognify/memify pipeline on dirty datasets |
-| `memory_dashboard.py` | `python/api/` | Dashboard API for browsing/editing memories |
+| `cognee_init.py` | `helpers/` | Config: env vars (BEFORE `import cognee`), LLM/embedding, storage dirs |
+| `memory.py` | `helpers/` | Memory class: search, insert, delete, knowledge preload, auto re-import |
+| `cognee_background.py` | `helpers/` | Background cognify/memify pipeline on dirty datasets |
+| `memory_dashboard.py` | `api/` | Dashboard API for browsing/editing memories |
 
 Memory areas: `MAIN`, `FRAGMENTS`, `SOLUTIONS`. Per-agent subdirs (`default`, `projects/<name>`).
 
@@ -162,7 +162,7 @@ Key additions over [agent0ai/agent-zero](https://github.com/agent0ai/agent-zero)
 - **CI:** GitHub Actions (`ci.yml`) on push to `main`/`develop`, runs `pytest tests/ -m "not integration"`. On merge to `main`: integration tests → Docker build → auto-tag → notify hassio.
 - **Dependencies in CI:** `requirements.txt` + `requirements2.txt` + `requirements.dev.txt`
 - **Coverage:** ~76% line coverage, ~2400 tests
-- **Structure:** mirrors `python/` — `tests/helpers/`, `tests/api/`, `tests/extensions/`, `tests/tools/`, `tests/integration/`
+- **Structure:** mirrors top-level packages — `tests/helpers/`, `tests/api/`, `tests/extensions/`, `tests/tools/`, `tests/integration/`
 
 ## Origin
 

@@ -108,7 +108,7 @@ git commit -m "chore: bump Group 2 infrastructure (flask, uvicorn, pydantic, par
 
 **Files:**
 - Modify: `requirements.txt`
-- Modify: `python/helpers/duckduckgo_search.py`
+- Modify: `helpers/duckduckgo_search.py`
 - Verify: `tests/helpers/test_duckduckgo_search.py`
 
 - [ ] **Step 1: Check if `duckduckgo-search` 8.x still uses `from duckduckgo_search import DDGS`**
@@ -123,7 +123,7 @@ Decision: Switch to `ddgs` package to avoid deprecation warnings.
 duckduckgo-search==6.1.12  →  ddgs==8.1.1
 ```
 
-- [ ] **Step 3: Update import in python/helpers/duckduckgo_search.py**
+- [ ] **Step 3: Update import in helpers/duckduckgo_search.py**
 
 Change:
 ```python
@@ -136,7 +136,7 @@ from ddgs import DDGS
 
 - [ ] **Step 4: Update mock path in tests/helpers/test_duckduckgo_search.py**
 
-Find all `patch("python.helpers.duckduckgo_search.DDGS")` calls — these should still work because the mock target is the name as imported in the helper module, not the source package. Verify this.
+Find all `patch("helpers.duckduckgo_search.DDGS")` calls — these should still work because the mock target is the name as imported in the helper module, not the source package. Verify this.
 
 - [ ] **Step 5: Update conftest.py optional module stub**
 
@@ -153,7 +153,7 @@ Expected: All pass
 - [ ] **Step 7: Commit**
 
 ```bash
-git add requirements.txt python/helpers/duckduckgo_search.py tests/helpers/test_duckduckgo_search.py conftest.py
+git add requirements.txt helpers/duckduckgo_search.py tests/helpers/test_duckduckgo_search.py conftest.py
 git commit -m "chore: migrate duckduckgo-search to ddgs 8.1.1"
 ```
 
@@ -163,7 +163,7 @@ git commit -m "chore: migrate duckduckgo-search to ddgs 8.1.1"
 
 **Files:**
 - Modify: `requirements.txt`
-- Possibly modify: `python/helpers/mcp_server.py` (tracked in git, not in workspace — use `git show HEAD:python/helpers/mcp_server.py` to read). Key class to watch: `DynamicMcpProxy` which uses fastmcp internal APIs.
+- Possibly modify: `helpers/mcp_server.py` (tracked in git, not in workspace — use `git show HEAD:helpers/mcp_server.py` to read). Key class to watch: `DynamicMcpProxy` which uses fastmcp internal APIs.
 - Verify: `tests/helpers/test_mcp_server.py`, `tests/helpers/test_mcp_handler.py`, `tests/api/test_mcp_server_get_detail.py`, `tests/api/test_mcp_server_get_log.py`, `tests/api/test_mcp_servers_apply.py`, `tests/api/test_mcp_servers_status.py`
 
 - [ ] **Step 1: Read fastmcp 3.x source to verify internal APIs**
@@ -184,7 +184,7 @@ If any of these have moved or been removed, document the exact replacement befor
 fastmcp==2.13.1  →  fastmcp==3.1.1
 ```
 
-- [ ] **Step 3: Fix code in python/helpers/mcp_server.py (if needed)**
+- [ ] **Step 3: Fix code in helpers/mcp_server.py (if needed)**
 
 Based on fastmcp 3.0 breaking changes that affect this file:
 
@@ -214,7 +214,7 @@ Expected: All pass
 - [ ] **Step 6: Commit**
 
 ```bash
-git add requirements.txt python/helpers/mcp_server.py
+git add requirements.txt helpers/mcp_server.py
 git commit -m "chore: bump fastmcp 2.13.1 → 3.1.1"
 ```
 
@@ -291,7 +291,7 @@ git commit -m "chore: bump Group 4 LLM core (litellm 1.82.6, openai 2.29.0)"
 **Files:**
 - Modify: `requirements.txt`
 - Modify: `models.py`
-- Modify: `python/helpers/document_query.py`
+- Modify: `helpers/document_query.py`
 - Verify: `tests/test_models.py`, `tests/helpers/test_document_query.py`
 
 - [ ] **Step 1: Update langchain versions in requirements.txt**
@@ -319,7 +319,7 @@ Replace with:
 from langchain_core.embeddings import Embeddings
 ```
 
-- [ ] **Step 3: Fix legacy imports in python/helpers/document_query.py**
+- [ ] **Step 3: Fix legacy imports in helpers/document_query.py**
 
 Find:
 ```python
@@ -380,7 +380,7 @@ Expected: All pass
 - [ ] **Step 8: Commit**
 
 ```bash
-git add requirements.txt models.py python/helpers/document_query.py
+git add requirements.txt models.py helpers/document_query.py
 git commit -m "chore: bump Group 4 langchain ecosystem (langchain-core 1.2.21, langchain-community 0.4.1, langchain-unstructured 1.0.1)"
 ```
 
@@ -412,7 +412,7 @@ Verify:
 - `requirements.txt` — all version bumps applied, duplicate crontab removed
 - `requirements2.txt` — litellm and openai bumped
 - `models.py` — one import path fixed
-- `python/helpers/document_query.py` — three import paths fixed, one unused import removed
-- `python/helpers/duckduckgo_search.py` — import changed from duckduckgo_search to ddgs
-- `python/helpers/mcp_server.py` — any fastmcp 3.0 adjustments
+- `helpers/document_query.py` — three import paths fixed, one unused import removed
+- `helpers/duckduckgo_search.py` — import changed from duckduckgo_search to ddgs
+- `helpers/mcp_server.py` — any fastmcp 3.0 adjustments
 - `conftest.py` — optional module name updated

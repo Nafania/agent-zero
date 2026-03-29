@@ -1,4 +1,4 @@
-"""Tests for python/api/backup_restore_preview.py — BackupRestorePreview API handler."""
+"""Tests for api/backup_restore_preview.py — BackupRestorePreview API handler."""
 
 import sys
 import threading
@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.backup_restore_preview import BackupRestorePreview
+from api.backup_restore_preview import BackupRestorePreview
 
 
 def _make_handler():
@@ -76,7 +76,7 @@ class TestBackupRestorePreview:
             "clean_before_restore": False,
         }
 
-        with patch("python.api.backup_restore_preview.BackupService") as MockBackup:
+        with patch("api.backup_restore_preview.BackupService") as MockBackup:
             mock_svc = MagicMock()
             mock_svc.preview_restore = AsyncMock(return_value=preview_result)
             MockBackup.return_value = mock_svc

@@ -1,4 +1,4 @@
-"""Tests for python/api/scheduler_task_create.py — SchedulerTaskCreate API handler."""
+"""Tests for api/scheduler_task_create.py — SchedulerTaskCreate API handler."""
 
 import sys
 import threading
@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.scheduler_task_create import SchedulerTaskCreate
+from api.scheduler_task_create import SchedulerTaskCreate
 
 
 def _make_handler():
@@ -33,10 +33,10 @@ class TestSchedulerTaskCreate:
         mock_scheduler.add_task = AsyncMock()
         mock_scheduler.get_task_by_uuid = MagicMock(return_value=mock_task)
 
-        with patch("python.api.scheduler_task_create.TaskScheduler.get", return_value=mock_scheduler), \
-             patch("python.api.scheduler_task_create.AdHocTask.create", return_value=mock_task), \
-             patch("python.api.scheduler_task_create.serialize_task", return_value=task_dict), \
-             patch("python.api.scheduler_task_create.Localization"):
+        with patch("api.scheduler_task_create.TaskScheduler.get", return_value=mock_scheduler), \
+             patch("api.scheduler_task_create.AdHocTask.create", return_value=mock_task), \
+             patch("api.scheduler_task_create.serialize_task", return_value=task_dict), \
+             patch("api.scheduler_task_create.Localization"):
             result = await handler.process({
                 "name": "Test task",
                 "prompt": "Do something",
@@ -53,8 +53,8 @@ class TestSchedulerTaskCreate:
         mock_scheduler = MagicMock()
         mock_scheduler.reload = AsyncMock()
 
-        with patch("python.api.scheduler_task_create.TaskScheduler.get", return_value=mock_scheduler), \
-             patch("python.api.scheduler_task_create.Localization"):
+        with patch("api.scheduler_task_create.TaskScheduler.get", return_value=mock_scheduler), \
+             patch("api.scheduler_task_create.Localization"):
             with pytest.raises(ValueError, match="Missing required fields"):
                 await handler.process({"prompt": "Do something"}, MagicMock())
 
@@ -64,8 +64,8 @@ class TestSchedulerTaskCreate:
         mock_scheduler = MagicMock()
         mock_scheduler.reload = AsyncMock()
 
-        with patch("python.api.scheduler_task_create.TaskScheduler.get", return_value=mock_scheduler), \
-             patch("python.api.scheduler_task_create.Localization"):
+        with patch("api.scheduler_task_create.TaskScheduler.get", return_value=mock_scheduler), \
+             patch("api.scheduler_task_create.Localization"):
             with pytest.raises(ValueError, match="Missing required fields"):
                 await handler.process({"name": "Test"}, MagicMock())
 
@@ -82,11 +82,11 @@ class TestSchedulerTaskCreate:
         mock_scheduler.add_task = AsyncMock()
         mock_scheduler.get_task_by_uuid = MagicMock(return_value=mock_task)
 
-        with patch("python.api.scheduler_task_create.TaskScheduler.get", return_value=mock_scheduler), \
-             patch("python.api.scheduler_task_create.parse_task_schedule", return_value=mock_schedule), \
-             patch("python.api.scheduler_task_create.ScheduledTask.create", return_value=mock_task), \
-             patch("python.api.scheduler_task_create.serialize_task", return_value=task_dict), \
-             patch("python.api.scheduler_task_create.Localization"):
+        with patch("api.scheduler_task_create.TaskScheduler.get", return_value=mock_scheduler), \
+             patch("api.scheduler_task_create.parse_task_schedule", return_value=mock_schedule), \
+             patch("api.scheduler_task_create.ScheduledTask.create", return_value=mock_task), \
+             patch("api.scheduler_task_create.serialize_task", return_value=task_dict), \
+             patch("api.scheduler_task_create.Localization"):
             result = await handler.process({
                 "name": "Scheduled",
                 "prompt": "Run daily",
@@ -108,10 +108,10 @@ class TestSchedulerTaskCreate:
         mock_scheduler.add_task = AsyncMock()
         mock_scheduler.get_task_by_uuid = MagicMock(return_value=mock_task)
 
-        with patch("python.api.scheduler_task_create.TaskScheduler.get", return_value=mock_scheduler), \
-             patch("python.api.scheduler_task_create.ScheduledTask.create", return_value=mock_task), \
-             patch("python.api.scheduler_task_create.serialize_task", return_value=task_dict), \
-             patch("python.api.scheduler_task_create.Localization"):
+        with patch("api.scheduler_task_create.TaskScheduler.get", return_value=mock_scheduler), \
+             patch("api.scheduler_task_create.ScheduledTask.create", return_value=mock_task), \
+             patch("api.scheduler_task_create.serialize_task", return_value=task_dict), \
+             patch("api.scheduler_task_create.Localization"):
             result = await handler.process({
                 "name": "Cron task",
                 "prompt": "Run",
@@ -126,9 +126,9 @@ class TestSchedulerTaskCreate:
         mock_scheduler = MagicMock()
         mock_scheduler.reload = AsyncMock()
 
-        with patch("python.api.scheduler_task_create.TaskScheduler.get", return_value=mock_scheduler), \
-             patch("python.api.scheduler_task_create.load_basic_project_data", side_effect=Exception("Project not found")), \
-             patch("python.api.scheduler_task_create.Localization"):
+        with patch("api.scheduler_task_create.TaskScheduler.get", return_value=mock_scheduler), \
+             patch("api.scheduler_task_create.load_basic_project_data", side_effect=Exception("Project not found")), \
+             patch("api.scheduler_task_create.Localization"):
             result = await handler.process({
                 "name": "Task",
                 "prompt": "Do it",
@@ -152,10 +152,10 @@ class TestSchedulerTaskCreate:
         mock_scheduler.add_task = AsyncMock()
         mock_scheduler.get_task_by_uuid = MagicMock(return_value=mock_task)
 
-        with patch("python.api.scheduler_task_create.TaskScheduler.get", return_value=mock_scheduler), \
-             patch("python.api.scheduler_task_create.AdHocTask.create", return_value=mock_task), \
-             patch("python.api.scheduler_task_create.serialize_task", return_value=task_dict), \
-             patch("python.api.scheduler_task_create.Localization"):
+        with patch("api.scheduler_task_create.TaskScheduler.get", return_value=mock_scheduler), \
+             patch("api.scheduler_task_create.AdHocTask.create", return_value=mock_task), \
+             patch("api.scheduler_task_create.serialize_task", return_value=task_dict), \
+             patch("api.scheduler_task_create.Localization"):
             result = await handler.process({
                 "name": "Task",
                 "prompt": "Do it",

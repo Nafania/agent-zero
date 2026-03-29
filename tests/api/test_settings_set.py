@@ -1,4 +1,4 @@
-"""Tests for python/api/settings_set.py — SetSettings API handler."""
+"""Tests for api/settings_set.py — SetSettings API handler."""
 
 import sys
 import threading
@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.settings_set import SetSettings
+from api.settings_set import SetSettings
 
 
 def _make_handler():
@@ -25,9 +25,9 @@ class TestSetSettings:
         input_data = {"chat_model": "new-model", "workdir_path": "/a0"}
         mock_backend = {"chat_model": "new-model", "workdir_path": "/a0"}
 
-        with patch("python.api.settings_set.settings.convert_in", return_value=mock_backend), \
-             patch("python.api.settings_set.settings.set_settings", return_value=mock_backend), \
-             patch("python.api.settings_set.settings.convert_out", return_value=mock_backend):
+        with patch("api.settings_set.settings.convert_in", return_value=mock_backend), \
+             patch("api.settings_set.settings.set_settings", return_value=mock_backend), \
+             patch("api.settings_set.settings.convert_out", return_value=mock_backend):
             result = await handler.process(input_data, MagicMock())
 
         assert result == mock_backend
@@ -38,10 +38,10 @@ class TestSetSettings:
         input_data = {"settings": {"chat_model": "from-settings-key"}}
         mock_backend = {"chat_model": "from-settings-key"}
 
-        with patch("python.api.settings_set.settings.Settings") as MockSettings, \
-             patch("python.api.settings_set.settings.convert_in", return_value=mock_backend), \
-             patch("python.api.settings_set.settings.set_settings", return_value=mock_backend), \
-             patch("python.api.settings_set.settings.convert_out", return_value=mock_backend):
+        with patch("api.settings_set.settings.Settings") as MockSettings, \
+             patch("api.settings_set.settings.convert_in", return_value=mock_backend), \
+             patch("api.settings_set.settings.set_settings", return_value=mock_backend), \
+             patch("api.settings_set.settings.convert_out", return_value=mock_backend):
             await handler.process(input_data, MagicMock())
         MockSettings.assert_called_once_with(**{"chat_model": "from-settings-key"})
 
@@ -51,9 +51,9 @@ class TestSetSettings:
         input_data = {"chat_model": "direct-input"}
         mock_backend = {"chat_model": "direct-input"}
 
-        with patch("python.api.settings_set.settings.Settings") as MockSettings, \
-             patch("python.api.settings_set.settings.convert_in", return_value=mock_backend), \
-             patch("python.api.settings_set.settings.set_settings", return_value=mock_backend), \
-             patch("python.api.settings_set.settings.convert_out", return_value=mock_backend):
+        with patch("api.settings_set.settings.Settings") as MockSettings, \
+             patch("api.settings_set.settings.convert_in", return_value=mock_backend), \
+             patch("api.settings_set.settings.set_settings", return_value=mock_backend), \
+             patch("api.settings_set.settings.convert_out", return_value=mock_backend):
             await handler.process(input_data, MagicMock())
         MockSettings.assert_called_once_with(**input_data)

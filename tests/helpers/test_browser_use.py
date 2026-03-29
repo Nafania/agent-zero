@@ -1,4 +1,4 @@
-"""Tests for python/helpers/browser_use.py."""
+"""Tests for helpers/browser_use.py."""
 
 import sys
 from pathlib import Path
@@ -16,20 +16,20 @@ class TestBrowserUseModule:
 
     def test_dotenv_save_called_on_import(self):
         """Importing browser_use calls dotenv.save_dotenv_value for telemetry."""
-        if "python.helpers.browser_use" in sys.modules:
-            del sys.modules["python.helpers.browser_use"]
+        if "helpers.browser_use" in sys.modules:
+            del sys.modules["helpers.browser_use"]
         with patch.dict("sys.modules", {"browser_use": MagicMock(), "browser_use.utils": MagicMock()}):
-            with patch("python.helpers.dotenv.save_dotenv_value") as mock_save:
-                import python.helpers.browser_use  # noqa: F401
+            with patch("helpers.dotenv.save_dotenv_value") as mock_save:
+                import helpers.browser_use  # noqa: F401
 
         mock_save.assert_called_with("ANONYMIZED_TELEMETRY", "false")
 
     def test_import_succeeds_with_mocked_browser_use(self):
         """Module imports without error when browser_use is mocked."""
-        if "python.helpers.browser_use" in sys.modules:
-            del sys.modules["python.helpers.browser_use"]
+        if "helpers.browser_use" in sys.modules:
+            del sys.modules["helpers.browser_use"]
         with patch.dict("sys.modules", {"browser_use": MagicMock(), "browser_use.utils": MagicMock()}):
-            with patch("python.helpers.dotenv.save_dotenv_value"):
-                import python.helpers.browser_use as mod  # noqa: F401
+            with patch("helpers.dotenv.save_dotenv_value"):
+                import helpers.browser_use as mod  # noqa: F401
 
         assert mod is not None

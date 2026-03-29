@@ -1,4 +1,4 @@
-"""Tests for python/helpers/tool.py — Tool base class, Response, set_progress, nice_key."""
+"""Tests for helpers/tool.py — Tool base class, Response, set_progress, nice_key."""
 
 import sys
 from pathlib import Path
@@ -11,7 +11,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 try:
-    from python.helpers.tool import Tool, Response
+    from helpers.tool import Tool, Response
 except ImportError:
     pytest.skip("Cannot import tool module (heavy deps)", allow_module_level=True)
 

@@ -1,4 +1,4 @@
-"""Tests for python/api/file_info.py — FileInfoApi handler."""
+"""Tests for api/file_info.py — FileInfoApi handler."""
 
 import sys
 import threading
@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.file_info import FileInfoApi
+from api.file_info import FileInfoApi
 
 
 def _make_handler(app=None, lock=None):
@@ -41,7 +41,7 @@ class TestFileInfoApi:
         }
 
         with patch(
-            "python.api.file_info.runtime.call_development_function",
+            "api.file_info.runtime.call_development_function",
             new_callable=AsyncMock,
             return_value=info_result,
         ):
@@ -58,7 +58,7 @@ class TestFileInfoApi:
         info_result = {"exists": False, "message": "File  not found."}
 
         with patch(
-            "python.api.file_info.runtime.call_development_function",
+            "api.file_info.runtime.call_development_function",
             new_callable=AsyncMock,
             return_value=info_result,
         ) as mock_call:
@@ -73,7 +73,7 @@ class TestFileInfoApi:
         handler = _make_handler(app, lock)
 
         with patch(
-            "python.api.file_info.runtime.call_development_function",
+            "api.file_info.runtime.call_development_function",
             new_callable=AsyncMock,
             return_value={"exists": False},
         ) as mock_call:

@@ -1,4 +1,4 @@
-"""Tests for python/helpers/process.py."""
+"""Tests for helpers/process.py."""
 
 import sys
 from pathlib import Path
@@ -16,7 +16,7 @@ class TestProcessServer:
 
     def test_set_server_stores_server(self):
         """set_server stores the server globally."""
-        from python.helpers import process
+        from helpers import process
 
         process._server = None
         mock_server = MagicMock()
@@ -26,7 +26,7 @@ class TestProcessServer:
 
     def test_get_server_returns_stored_server(self):
         """get_server returns the stored server."""
-        from python.helpers import process
+        from helpers import process
 
         mock_server = MagicMock()
         process.set_server(mock_server)
@@ -36,7 +36,7 @@ class TestProcessServer:
 
     def test_stop_server_shuts_down_and_clears(self):
         """stop_server shuts down server and clears reference."""
-        from python.helpers import process
+        from helpers import process
 
         mock_server = MagicMock()
         process.set_server(mock_server)
@@ -46,7 +46,7 @@ class TestProcessServer:
 
     def test_stop_server_noop_when_none(self):
         """stop_server does nothing when server is None."""
-        from python.helpers import process
+        from helpers import process
 
         process._server = None
         process.stop_server()
@@ -58,11 +58,11 @@ class TestReload:
 
     def test_reload_calls_stop_server(self):
         """reload calls stop_server."""
-        with patch("python.helpers.process.stop_server") as mock_stop:
-            with patch("python.helpers.process.runtime") as mock_runtime:
+        with patch("helpers.process.stop_server") as mock_stop:
+            with patch("helpers.process.runtime") as mock_runtime:
                 mock_runtime.is_dockerized.return_value = False
-                with patch("python.helpers.process.restart_process") as mock_restart:
-                    from python.helpers.process import reload
+                with patch("helpers.process.restart_process") as mock_restart:
+                    from helpers.process import reload
 
                     mock_restart.side_effect = SystemExit
                     with pytest.raises(SystemExit):
@@ -71,11 +71,11 @@ class TestReload:
 
     def test_reload_exits_when_dockerized(self):
         """reload calls exit_process when dockerized."""
-        with patch("python.helpers.process.stop_server"):
-            with patch("python.helpers.process.runtime") as mock_runtime:
+        with patch("helpers.process.stop_server"):
+            with patch("helpers.process.runtime") as mock_runtime:
                 mock_runtime.is_dockerized.return_value = True
-                with patch("python.helpers.process.exit_process") as mock_exit:
-                    from python.helpers.process import reload
+                with patch("helpers.process.exit_process") as mock_exit:
+                    from helpers.process import reload
 
                     mock_exit.side_effect = SystemExit
                     with pytest.raises(SystemExit):
@@ -84,11 +84,11 @@ class TestReload:
 
     def test_reload_restarts_when_not_dockerized(self):
         """reload calls restart_process when not dockerized."""
-        with patch("python.helpers.process.stop_server"):
-            with patch("python.helpers.process.runtime") as mock_runtime:
+        with patch("helpers.process.stop_server"):
+            with patch("helpers.process.runtime") as mock_runtime:
                 mock_runtime.is_dockerized.return_value = False
-                with patch("python.helpers.process.restart_process") as mock_restart:
-                    from python.helpers.process import reload
+                with patch("helpers.process.restart_process") as mock_restart:
+                    from helpers.process import reload
 
                     mock_restart.side_effect = SystemExit
                     with pytest.raises(SystemExit):
@@ -101,11 +101,11 @@ class TestRestartProcess:
 
     def test_restart_process_calls_execv(self):
         """restart_process uses os.execv with python and argv."""
-        with patch("python.helpers.process.os.execv") as mock_execv:
-            with patch("python.helpers.process.sys") as mock_sys:
+        with patch("helpers.process.os.execv") as mock_execv:
+            with patch("helpers.process.sys") as mock_sys:
                 mock_sys.executable = "/usr/bin/python3"
                 mock_sys.argv = ["python", "-m", "app"]
-                from python.helpers.process import restart_process
+                from helpers.process import restart_process
 
                 mock_execv.side_effect = RuntimeError("execv called")
                 with pytest.raises(RuntimeError):
@@ -121,8 +121,8 @@ class TestExitProcess:
 
     def test_exit_process_calls_sys_exit(self):
         """exit_process calls sys.exit(0)."""
-        with patch("python.helpers.process.sys.exit") as mock_exit:
-            from python.helpers.process import exit_process
+        with patch("helpers.process.sys.exit") as mock_exit:
+            from helpers.process import exit_process
 
             mock_exit.side_effect = SystemExit(0)
             with pytest.raises(SystemExit):

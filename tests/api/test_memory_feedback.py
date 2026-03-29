@@ -1,4 +1,4 @@
-"""Tests for python/api/memory_feedback.py — Memory feedback API handler."""
+"""Tests for api/memory_feedback.py — Memory feedback API handler."""
 
 import json
 import sys
@@ -28,14 +28,14 @@ class _TestJsonResponse:
 
 
 def _patch_memory_feedback_response():
-    import python.api.memory_feedback as mf
+    import api.memory_feedback as mf
 
     mf.Response = _TestJsonResponse
 
 
 def _memory_feedback_class():
     _patch_memory_feedback_response()
-    from python.api.memory_feedback import MemoryFeedback
+    from api.memory_feedback import MemoryFeedback
 
     return MemoryFeedback
 
@@ -88,7 +88,7 @@ class TestMemoryFeedbackHandler:
             "reason": "ok",
         }
         with patch(
-            "python.api.memory_feedback.cf.submit_memory_feedback",
+            "api.memory_feedback.cf.submit_memory_feedback",
             new=AsyncMock(return_value={"status": "forwarded"}),
         ):
             out = await handler.process(inp, MagicMock())
@@ -106,7 +106,7 @@ class TestMemoryFeedbackHandler:
             "feedback": "negative",
         }
         with patch(
-            "python.api.memory_feedback.cf.submit_memory_feedback",
+            "api.memory_feedback.cf.submit_memory_feedback",
             new=AsyncMock(return_value={"status": "queued"}),
         ):
             out = await handler.process(inp, MagicMock())
@@ -122,7 +122,7 @@ class TestMemoryFeedbackHandler:
             "feedback": "positive",
         }
         with patch(
-            "python.api.memory_feedback.cf.submit_memory_feedback",
+            "api.memory_feedback.cf.submit_memory_feedback",
             new=AsyncMock(return_value={"status": "failed", "error": "enqueue failed"}),
         ):
             out = await handler.process(inp, MagicMock())
@@ -132,12 +132,12 @@ class TestMemoryFeedbackHandler:
 
 
 def test_memory_feedback_discovered_like_run_ui():
-    """Same discovery mechanism as run_ui (load_classes_from_folder on python/api)."""
-    from python.helpers.api import ApiHandler
-    from python.helpers.extract_tools import load_classes_from_file
-    from python.helpers.files import get_abs_path
+    """Same discovery mechanism as run_ui (load_classes_from_folder on api)."""
+    from helpers.api import ApiHandler
+    from helpers.extract_tools import load_classes_from_file
+    from helpers.files import get_abs_path
 
-    path = get_abs_path("python", "api", "memory_feedback.py")
+    path = get_abs_path("api", "memory_feedback.py")
     classes = load_classes_from_file(path, ApiHandler)
     names = {c.__name__ for c in classes}
     assert "MemoryFeedback" in names

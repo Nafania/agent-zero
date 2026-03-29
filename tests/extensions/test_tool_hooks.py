@@ -16,23 +16,23 @@ class TestMaskToolSecretsAfter:
 
     @pytest.mark.asyncio
     async def test_returns_early_without_response(self, mock_agent):
-        from python.extensions.tool_execute_after._10_mask_secrets import MaskToolSecrets
+        from extensions.python.tool_execute_after._10_mask_secrets import MaskToolSecrets
 
         ext = MaskToolSecrets(agent=mock_agent)
         await ext.execute(response=None)
 
     @pytest.mark.asyncio
     async def test_masks_response_message(self, mock_agent):
-        from python.helpers.tool import Response
+        from helpers.tool import Response
 
         response = Response(message="secret_key_123", break_loop=False)
 
         with patch(
-            "python.extensions.tool_execute_after._10_mask_secrets.get_secrets_manager"
+            "extensions.python.tool_execute_after._10_mask_secrets.get_secrets_manager"
         ) as mock_mgr:
             mock_mgr.return_value.mask_values.return_value = "***"
 
-            from python.extensions.tool_execute_after._10_mask_secrets import (
+            from extensions.python.tool_execute_after._10_mask_secrets import (
                 MaskToolSecrets,
             )
 
@@ -47,7 +47,7 @@ class TestReplaceLastToolOutput:
 
     @pytest.mark.asyncio
     async def test_returns_early_without_tool_args(self, mock_agent):
-        from python.extensions.tool_execute_before._10_replace_last_tool_output import (
+        from extensions.python.tool_execute_before._10_replace_last_tool_output import (
             ReplaceLastToolOutput,
         )
 
@@ -61,7 +61,7 @@ class TestReplaceLastToolOutput:
             "last_tool_output": "actual output",
         }
 
-        from python.extensions.tool_execute_before._10_replace_last_tool_output import (
+        from extensions.python.tool_execute_before._10_replace_last_tool_output import (
             ReplaceLastToolOutput,
         )
 
@@ -76,7 +76,7 @@ class TestUnmaskToolSecrets:
 
     @pytest.mark.asyncio
     async def test_returns_early_without_tool_args(self, mock_agent):
-        from python.extensions.tool_execute_before._10_unmask_secrets import (
+        from extensions.python.tool_execute_before._10_unmask_secrets import (
             UnmaskToolSecrets,
         )
 
@@ -88,11 +88,11 @@ class TestUnmaskToolSecrets:
         tool_args = {"api_key": "SECRET_PLACEHOLDER_1"}
 
         with patch(
-            "python.extensions.tool_execute_before._10_unmask_secrets.get_secrets_manager"
+            "extensions.python.tool_execute_before._10_unmask_secrets.get_secrets_manager"
         ) as mock_mgr:
             mock_mgr.return_value.replace_placeholders.return_value = "real_key"
 
-            from python.extensions.tool_execute_before._10_unmask_secrets import (
+            from extensions.python.tool_execute_before._10_unmask_secrets import (
                 UnmaskToolSecrets,
             )
 

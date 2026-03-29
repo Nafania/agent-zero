@@ -27,7 +27,7 @@ def _get_cap_fn():
     tree = ast.parse(source)
     ns = {"__builtins__": __builtins__}
     exec("import litellm", ns)
-    exec("from python.helpers.tokens import approximate_tokens", ns)
+    exec("from helpers.tokens import approximate_tokens", ns)
     for node in ast.iter_child_nodes(tree):
         if isinstance(node, ast.FunctionDef) and node.name == "_cap_max_tokens_for_context":
             code = ast.get_source_segment(source, node)

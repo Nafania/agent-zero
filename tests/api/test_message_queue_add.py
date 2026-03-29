@@ -1,4 +1,4 @@
-"""Tests for python/api/message_queue_add.py — MessageQueueAdd API handler."""
+"""Tests for api/message_queue_add.py — MessageQueueAdd API handler."""
 
 import sys
 import threading
@@ -13,7 +13,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from flask import Response
 
-from python.api.message_queue_add import MessageQueueAdd
+from api.message_queue_add import MessageQueueAdd
 
 
 def _make_handler(app=None, lock=None):
@@ -28,9 +28,9 @@ class TestMessageQueueAdd:
         mock_ctx = MagicMock()
         mock_ctx.id = "ctx-123"
 
-        with patch("python.api.message_queue_add.AgentContext") as MockCtx, \
-             patch("python.api.message_queue_add.mq") as mock_mq, \
-             patch("python.api.message_queue_add.mark_dirty_for_context"):
+        with patch("api.message_queue_add.AgentContext") as MockCtx, \
+             patch("api.message_queue_add.mq") as mock_mq, \
+             patch("api.message_queue_add.mark_dirty_for_context"):
             MockCtx.get.return_value = mock_ctx
             mock_mq.add.return_value = {"id": "item-1"}
             mock_mq.get_queue.return_value = [{"id": "item-1"}]
@@ -50,7 +50,7 @@ class TestMessageQueueAdd:
         app, lock = mock_app
         handler = _make_handler(app, lock)
 
-        with patch("python.api.message_queue_add.AgentContext") as MockCtx:
+        with patch("api.message_queue_add.AgentContext") as MockCtx:
             MockCtx.get.return_value = None
             result = await handler.process({"context": "nonexistent", "text": "Hi"}, MagicMock())
 
@@ -64,7 +64,7 @@ class TestMessageQueueAdd:
         handler = _make_handler(app, lock)
         mock_ctx = MagicMock()
 
-        with patch("python.api.message_queue_add.AgentContext") as MockCtx:
+        with patch("api.message_queue_add.AgentContext") as MockCtx:
             MockCtx.get.return_value = mock_ctx
             result = await handler.process({
                 "context": "ctx-1",
@@ -82,9 +82,9 @@ class TestMessageQueueAdd:
         handler = _make_handler(app, lock)
         mock_ctx = MagicMock()
 
-        with patch("python.api.message_queue_add.AgentContext") as MockCtx, \
-             patch("python.api.message_queue_add.mq") as mock_mq, \
-             patch("python.api.message_queue_add.mark_dirty_for_context"):
+        with patch("api.message_queue_add.AgentContext") as MockCtx, \
+             patch("api.message_queue_add.mq") as mock_mq, \
+             patch("api.message_queue_add.mark_dirty_for_context"):
             MockCtx.get.return_value = mock_ctx
             mock_mq.add.return_value = {"id": "item-2"}
             mock_mq.get_queue.return_value = [{"id": "item-2"}]

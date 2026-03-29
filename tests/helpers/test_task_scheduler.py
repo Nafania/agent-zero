@@ -1,5 +1,5 @@
 """
-Comprehensive unit tests for python/helpers/task_scheduler.py.
+Comprehensive unit tests for helpers/task_scheduler.py.
 
 Covers: TaskState, TaskType, TaskSchedule, TaskPlan, BaseTask, AdHocTask,
 ScheduledTask, PlannedTask, SchedulerTaskList, TaskScheduler, serialization
@@ -27,23 +27,23 @@ if str(PROJECT_ROOT) not in sys.path:
 # ---------------------------------------------------------------------------
 _STUB_MODULES = [
     "agent", "initialize",
-    "python.helpers.persist_chat",
-    "python.helpers.print_style",
-    "python.helpers.defer",
-    "python.helpers.state_monitor_integration",
-    "python.helpers.localization",
-    "python.helpers.projects",
-    "python.helpers.guids",
-    "python.helpers.settings",
-    "python.helpers.dotenv",
-    "python.helpers.runtime",
-    "python.helpers.secrets",
-    "python.helpers.notification",
-    "python.helpers.providers",
-    "python.helpers.dirty_json",
-    "python.helpers.whisper",
-    "python.helpers.git",
-    "python.helpers.files",
+    "helpers.persist_chat",
+    "helpers.print_style",
+    "helpers.defer",
+    "helpers.state_monitor_integration",
+    "helpers.localization",
+    "helpers.projects",
+    "helpers.guids",
+    "helpers.settings",
+    "helpers.dotenv",
+    "helpers.runtime",
+    "helpers.secrets",
+    "helpers.notification",
+    "helpers.providers",
+    "helpers.dirty_json",
+    "helpers.whisper",
+    "helpers.git",
+    "helpers.files",
 ]
 
 _saved_modules = {name: sys.modules[name] for name in _STUB_MODULES if name in sys.modules}
@@ -59,8 +59,8 @@ sys.modules["agent"].AgentContext = type("AgentContext", (), {
 })
 sys.modules["agent"].UserMessage = MagicMock
 sys.modules["initialize"].initialize_agent = MagicMock(return_value=MagicMock())
-sys.modules["python.helpers.persist_chat"].save_tmp_chat = MagicMock()
-sys.modules["python.helpers.print_style"].PrintStyle = type("PrintStyle", (), {
+sys.modules["helpers.persist_chat"].save_tmp_chat = MagicMock()
+sys.modules["helpers.print_style"].PrintStyle = type("PrintStyle", (), {
     "info": staticmethod(lambda *a, **kw: None),
     "warning": staticmethod(lambda *a, **kw: None),
     "error": staticmethod(lambda *a, **kw: None),
@@ -68,23 +68,23 @@ sys.modules["python.helpers.print_style"].PrintStyle = type("PrintStyle", (), {
     "__init__": lambda self, **kw: None,
     "print": lambda self, *a, **kw: None,
 })
-sys.modules["python.helpers.defer"].DeferredTask = MagicMock
-sys.modules["python.helpers.state_monitor_integration"].mark_dirty_all = MagicMock()
-sys.modules["python.helpers.localization"].Localization = type("Localization", (), {
+sys.modules["helpers.defer"].DeferredTask = MagicMock
+sys.modules["helpers.state_monitor_integration"].mark_dirty_all = MagicMock()
+sys.modules["helpers.localization"].Localization = type("Localization", (), {
     "get": classmethod(lambda cls: type("L", (), {
         "get_timezone": lambda self: "UTC",
         "serialize_datetime": lambda self, dt: dt.isoformat() if dt else None,
         "localtime_str_to_utc_dt": lambda self, s: datetime.fromisoformat(s.replace("Z", "+00:00")) if s else None,
     })()),
 })
-sys.modules["python.helpers.guids"].generate_id = lambda: "test-" + str(id(object()))
-sys.modules["python.helpers.settings"].get_default_value = lambda name, default: default
-sys.modules["python.helpers.files"].get_abs_path = lambda *a: "/tmp/test"
-sys.modules["python.helpers.files"].make_dirs = lambda *a: None
-sys.modules["python.helpers.files"].read_file = lambda *a: "{}"
-sys.modules["python.helpers.files"].write_file = lambda *a: None
+sys.modules["helpers.guids"].generate_id = lambda: "test-" + str(id(object()))
+sys.modules["helpers.settings"].get_default_value = lambda name, default: default
+sys.modules["helpers.files"].get_abs_path = lambda *a: "/tmp/test"
+sys.modules["helpers.files"].make_dirs = lambda *a: None
+sys.modules["helpers.files"].read_file = lambda *a: "{}"
+sys.modules["helpers.files"].write_file = lambda *a: None
 
-from python.helpers.task_scheduler import (
+from helpers.task_scheduler import (
     TaskState,
     TaskType,
     TaskSchedule,
@@ -507,7 +507,7 @@ class TestRecoverStuckTasks:
         mock_deferred = MagicMock()
         mock_deferred.is_alive.return_value = True
         sched._running_deferred_tasks[task.uuid] = mock_deferred
-        with patch("python.helpers.task_scheduler._stuck_timeout", return_value=1800):
+        with patch("helpers.task_scheduler._stuck_timeout", return_value=1800):
             await sched._recover_stuck_tasks()
         mock_deferred.kill.assert_called_once_with(terminate_thread=True)
         sched.update_task.assert_called_once_with(task.uuid, state=TaskState.IDLE)

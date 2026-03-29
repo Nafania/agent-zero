@@ -1,4 +1,4 @@
-"""Tests for python/tools/vision_load.py — VisionLoad tool."""
+"""Tests for tools/vision_load.py — VisionLoad tool."""
 
 import sys
 from pathlib import Path
@@ -24,7 +24,7 @@ def mock_agent():
 
 @pytest.fixture
 def tool(mock_agent):
-    from python.tools.vision_load import VisionLoad
+    from tools.vision_load import VisionLoad
     t = VisionLoad(
         agent=mock_agent,
         name="vision_load",
@@ -46,7 +46,7 @@ class TestVisionLoadExecute:
 
     @pytest.mark.asyncio
     async def test_skips_nonexistent_paths(self, tool):
-        with patch("python.tools.vision_load.runtime.call_development_function", new_callable=AsyncMock) as mock_exists:
+        with patch("tools.vision_load.runtime.call_development_function", new_callable=AsyncMock) as mock_exists:
             mock_exists.return_value = False
             resp = await tool.execute(paths=["/nonexistent/image.png"])
         assert tool.images_dict == {}
@@ -62,8 +62,8 @@ class TestVisionLoadExecute:
                 return True
             return fake_b64
 
-        with patch("python.tools.vision_load.runtime.call_development_function", new_callable=AsyncMock, side_effect=mock_dev):
-            with patch("python.tools.vision_load.images.compress_image", return_value=b"\xff\xd8\xff"):
+        with patch("tools.vision_load.runtime.call_development_function", new_callable=AsyncMock, side_effect=mock_dev):
+            with patch("tools.vision_load.images.compress_image", return_value=b"\xff\xd8\xff"):
                 resp = await tool.execute(paths=["/tmp/real.png"])
         assert resp.message == "dummy"
         assert "/tmp/real.png" in tool.images_dict
@@ -71,13 +71,13 @@ class TestVisionLoadExecute:
 
     @pytest.mark.asyncio
     async def test_handles_image_processing_error(self, tool):
-        with patch("python.tools.vision_load.runtime.call_development_function", new_callable=AsyncMock) as mock_dev:
+        with patch("tools.vision_load.runtime.call_development_function", new_callable=AsyncMock) as mock_dev:
             async def mock_dev_impl(fn, *args):
                 if fn.__name__ == "exists":
                     return True
                 raise ValueError("Invalid image")
             mock_dev.side_effect = mock_dev_impl
-            with patch("python.tools.vision_load.PrintStyle") as mock_ps:
+            with patch("tools.vision_load.PrintStyle") as mock_ps:
                 mock_ps.return_value.error = MagicMock()
                 resp = await tool.execute(paths=["/tmp/bad.png"])
         assert "/tmp/bad.png" in tool.images_dict
@@ -87,7 +87,7 @@ class TestVisionLoadExecute:
 class TestVisionLoadAfterExecution:
     @pytest.mark.asyncio
     async def test_after_execution_adds_images_to_history(self, tool):
-        from python.helpers.tool import Response
+        from helpers.tool import Response
         tool.images_dict = {"/img.png": "base64data"}
         resp = Response(message="dummy", break_loop=False)
         await tool.after_execution(resp)
@@ -98,7 +98,7 @@ class TestVisionLoadAfterExecution:
 
     @pytest.mark.asyncio
     async def test_after_execution_adds_error_for_failed_image(self, tool):
-        from python.helpers.tool import Response
+        from helpers.tool import Response
         tool.images_dict = {"/bad.png": None}
         resp = Response(message="dummy", break_loop=False)
         await tool.after_execution(resp)
@@ -109,7 +109,7 @@ class TestVisionLoadAfterExecution:
 
     @pytest.mark.asyncio
     async def test_after_execution_adds_tool_result_when_no_images(self, tool):
-        from python.helpers.tool import Response
+        from helpers.tool import Response
         tool.images_dict = {}
         resp = Response(message="dummy", break_loop=False)
         await tool.after_execution(resp)

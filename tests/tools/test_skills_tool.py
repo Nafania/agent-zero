@@ -1,4 +1,4 @@
-"""Tests for python/tools/skills_tool.py — SkillsTool."""
+"""Tests for tools/skills_tool.py — SkillsTool."""
 
 import sys
 from pathlib import Path
@@ -20,7 +20,7 @@ def mock_agent():
 
 @pytest.fixture
 def tool(mock_agent):
-    from python.tools.skills_tool import SkillsTool
+    from tools.skills_tool import SkillsTool
     return SkillsTool(
         agent=mock_agent,
         name="skills",
@@ -34,7 +34,7 @@ def tool(mock_agent):
 class TestSkillsToolList:
     @pytest.mark.asyncio
     async def test_list_returns_no_skills_when_empty(self, tool):
-        with patch("python.tools.skills_tool.skills_helper.list_skills", return_value=[]):
+        with patch("tools.skills_tool.skills_helper.list_skills", return_value=[]):
             resp = await tool.execute(method="list")
         assert "No skills found" in resp.message
         assert resp.break_loop is False
@@ -46,7 +46,7 @@ class TestSkillsToolList:
         mock_skill.tags = ["tag1"]
         mock_skill.version = "1.0"
         mock_skill.description = "A test skill"
-        with patch("python.tools.skills_tool.skills_helper.list_skills", return_value=[mock_skill]):
+        with patch("tools.skills_tool.skills_helper.list_skills", return_value=[mock_skill]):
             resp = await tool.execute(method="list")
         assert "test-skill" in resp.message
         assert "Available skills" in resp.message
@@ -60,7 +60,7 @@ class TestSkillsToolLoad:
 
     @pytest.mark.asyncio
     async def test_load_skill_not_found(self, tool):
-        with patch("python.tools.skills_tool.skills_helper.find_skill", return_value=None):
+        with patch("tools.skills_tool.skills_helper.find_skill", return_value=None):
             resp = await tool.execute(method="load", skill_name="nonexistent")
         assert "not found" in resp.message or "Error" in resp.message
 
@@ -68,7 +68,7 @@ class TestSkillsToolLoad:
     async def test_load_success(self, tool):
         mock_skill = MagicMock()
         mock_skill.name = "my-skill"
-        with patch("python.tools.skills_tool.skills_helper.find_skill", return_value=mock_skill):
+        with patch("tools.skills_tool.skills_helper.find_skill", return_value=mock_skill):
             resp = await tool.execute(method="load", skill_name="my-skill")
         assert "Loaded" in resp.message
         assert "my-skill" in resp.message

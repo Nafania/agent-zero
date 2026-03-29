@@ -1,4 +1,4 @@
-"""Tests for python/helpers/history.py — History, Message, Topic, Bulk, and helpers."""
+"""Tests for helpers/history.py — History, Message, Topic, Bulk, and helpers."""
 
 import sys
 import json
@@ -29,7 +29,7 @@ def mock_settings_for_history():
 @pytest.fixture
 def patch_settings_history(mock_settings_for_history):
     """Patch get_settings to return dict usable by history helpers."""
-    with patch("python.helpers.history.settings.get_settings") as m:
+    with patch("helpers.history.settings.get_settings") as m:
         m.return_value = mock_settings_for_history
         yield m
 
@@ -37,7 +37,7 @@ def patch_settings_history(mock_settings_for_history):
 @pytest.fixture
 def patch_tokens():
     """Patch tokens.approximate_tokens for predictable counts."""
-    with patch("python.helpers.history.tokens.approximate_tokens") as m:
+    with patch("helpers.history.tokens.approximate_tokens") as m:
         m.side_effect = lambda t: max(1, len(str(t)) // 4)  # simple approx
         yield m
 
@@ -47,7 +47,7 @@ def patch_tokens():
 
 class TestMessage:
     def test_message_init_with_content(self, patch_tokens):
-        from python.helpers.history import Message
+        from helpers.history import Message
 
         msg = Message(ai=False, content="Hello world")
         assert msg.ai is False
@@ -56,38 +56,38 @@ class TestMessage:
         assert msg.tokens >= 0
 
     def test_message_init_with_tokens_provided(self):
-        from python.helpers.history import Message
+        from helpers.history import Message
 
-        with patch("python.helpers.history.tokens.approximate_tokens", return_value=42):
+        with patch("helpers.history.tokens.approximate_tokens", return_value=42):
             msg = Message(ai=True, content="Hi", tokens=42)
         assert msg.tokens == 42
 
     def test_message_get_tokens_recalculates_when_zero(self):
-        from python.helpers.history import Message
+        from helpers.history import Message
 
-        with patch("python.helpers.history.tokens.approximate_tokens", return_value=10):
+        with patch("helpers.history.tokens.approximate_tokens", return_value=10):
             msg = Message(ai=False, content="x")
             msg.tokens = 0
             assert msg.get_tokens() == 10
 
     def test_message_set_summary(self):
-        from python.helpers.history import Message
+        from helpers.history import Message
 
-        with patch("python.helpers.history.tokens.approximate_tokens", return_value=5):
+        with patch("helpers.history.tokens.approximate_tokens", return_value=5):
             msg = Message(ai=False, content="long content")
             msg.set_summary("short summary")
             assert msg.summary == "short summary"
             assert msg.output()[0]["content"] == "short summary"
 
     def test_message_compress_returns_false(self):
-        from python.helpers.history import Message
+        from helpers.history import Message
 
         msg = Message(ai=False, content="x")
         result = asyncio.run(msg.compress())
         assert result is False
 
     def test_message_output_uses_summary_when_set(self):
-        from python.helpers.history import Message
+        from helpers.history import Message
 
         msg = Message(ai=True, content="original")
         msg.summary = "summarized"
@@ -97,14 +97,14 @@ class TestMessage:
         assert out[0]["content"] == "summarized"
 
     def test_message_output_uses_content_when_no_summary(self):
-        from python.helpers.history import Message
+        from helpers.history import Message
 
         msg = Message(ai=False, content="raw content")
         out = msg.output()
         assert out[0]["content"] == "raw content"
 
     def test_message_to_dict_from_dict_roundtrip(self, mock_agent):
-        from python.helpers.history import Message, History
+        from helpers.history import Message, History
 
         msg = Message(ai=True, content="test", tokens=7)
         msg.summary = "s"
@@ -123,7 +123,7 @@ class TestMessage:
         assert restored.tokens == msg.tokens
 
     def test_message_from_dict_missing_content_uses_default(self, mock_agent):
-        from python.helpers.history import Message, History
+        from helpers.history import Message, History
 
         history = History(agent=mock_agent)
         data = {"_cls": "Message", "ai": False, "summary": "", "tokens": 0}
@@ -131,7 +131,7 @@ class TestMessage:
         assert restored.content == "Content lost"
 
     def test_message_output_text_custom_labels(self):
-        from python.helpers.history import Message
+        from helpers.history import Message
 
         msg = Message(ai=True, content="hi")
         text = msg.output_text(human_label="human", ai_label="assistant")
@@ -144,7 +144,7 @@ class TestMessage:
 
 class TestTopic:
     def test_topic_init(self, mock_agent):
-        from python.helpers.history import Topic, History
+        from helpers.history import Topic, History
 
         history = History(agent=mock_agent)
         topic = Topic(history=history)
@@ -152,7 +152,7 @@ class TestTopic:
         assert topic.messages == []
 
     def test_topic_add_message(self, mock_agent):
-        from python.helpers.history import Topic, History
+        from helpers.history import Topic, History
 
         history = History(agent=mock_agent)
         topic = Topic(history=history)
@@ -162,7 +162,7 @@ class TestTopic:
         assert msg.content == "user msg"
 
     def test_topic_get_tokens_from_messages_when_no_summary(self, patch_tokens):
-        from python.helpers.history import Topic, History
+        from helpers.history import Topic, History
 
         agent = MagicMock()
         history = History(agent=agent)
@@ -172,17 +172,17 @@ class TestTopic:
         assert topic.get_tokens() > 0
 
     def test_topic_get_tokens_from_summary_when_set(self, patch_tokens):
-        from python.helpers.history import Topic, History
+        from helpers.history import Topic, History
 
         agent = MagicMock()
         history = History(agent=agent)
         topic = Topic(history=history)
         topic.summary = "Summary of conversation"
-        with patch("python.helpers.history.tokens.approximate_tokens", return_value=6):
+        with patch("helpers.history.tokens.approximate_tokens", return_value=6):
             assert topic.get_tokens() == 6
 
     def test_topic_output_with_summary(self, mock_agent):
-        from python.helpers.history import Topic, History
+        from helpers.history import Topic, History
 
         history = History(agent=mock_agent)
         topic = Topic(history=history)
@@ -193,7 +193,7 @@ class TestTopic:
         assert out[0]["content"] == "Topic summary"
 
     def test_topic_output_without_summary(self, mock_agent):
-        from python.helpers.history import Topic, History
+        from helpers.history import Topic, History
 
         history = History(agent=mock_agent)
         topic = Topic(history=history)
@@ -203,7 +203,7 @@ class TestTopic:
         assert len(out) == 2
 
     def test_topic_compress_attention_too_few_messages(self, mock_agent):
-        from python.helpers.history import Topic, History
+        from helpers.history import Topic, History
 
         history = History(agent=mock_agent)
         topic = Topic(history=history)
@@ -213,7 +213,7 @@ class TestTopic:
         assert result is False
 
     def test_topic_compress_attention_with_enough_messages(self, mock_agent):
-        from python.helpers.history import Topic, History
+        from helpers.history import Topic, History
 
         history = History(agent=mock_agent)
         topic = Topic(history=history)
@@ -229,7 +229,7 @@ class TestTopic:
         assert len(topic.messages) < 5
 
     def test_topic_to_dict_from_dict_roundtrip(self, mock_agent):
-        from python.helpers.history import Topic, History, Message
+        from helpers.history import Topic, History, Message
 
         history = History(agent=mock_agent)
         topic = Topic(history=history)
@@ -249,7 +249,7 @@ class TestTopic:
 
 class TestBulk:
     def test_bulk_init(self, mock_agent):
-        from python.helpers.history import Bulk, History
+        from helpers.history import Bulk, History
 
         history = History(agent=mock_agent)
         bulk = Bulk(history=history)
@@ -257,7 +257,7 @@ class TestBulk:
         assert bulk.records == []
 
     def test_bulk_get_tokens_from_records(self, patch_tokens, mock_agent):
-        from python.helpers.history import Bulk, History, Message
+        from helpers.history import Bulk, History, Message
 
         history = History(agent=mock_agent)
         bulk = Bulk(history=history)
@@ -266,7 +266,7 @@ class TestBulk:
         assert bulk.get_tokens() > 0
 
     def test_bulk_output_with_summary(self, mock_agent):
-        from python.helpers.history import Bulk, History
+        from helpers.history import Bulk, History
 
         history = History(agent=mock_agent)
         bulk = Bulk(history=history)
@@ -276,7 +276,7 @@ class TestBulk:
         assert out[0]["content"] == "Bulk summary"
 
     def test_bulk_compress_returns_false(self, mock_agent):
-        from python.helpers.history import Bulk, History
+        from helpers.history import Bulk, History
 
         history = History(agent=mock_agent)
         bulk = Bulk(history=history)
@@ -284,7 +284,7 @@ class TestBulk:
         assert result is False
 
     def test_bulk_summarize(self, mock_agent):
-        from python.helpers.history import Bulk, History, Message
+        from helpers.history import Bulk, History, Message
 
         history = History(agent=mock_agent)
         bulk = Bulk(history=history)
@@ -298,7 +298,7 @@ class TestBulk:
         assert bulk.summary == "Bulk summary"
 
     def test_bulk_to_dict_from_dict_roundtrip(self, mock_agent):
-        from python.helpers.history import Bulk, History, Message
+        from helpers.history import Bulk, History, Message
 
         history = History(agent=mock_agent)
         bulk = Bulk(history=history)
@@ -318,7 +318,7 @@ class TestBulk:
 
 class TestHistory:
     def test_history_init(self, mock_agent):
-        from python.helpers.history import History
+        from helpers.history import History
 
         with patch("agent.Agent", MagicMock):
             history = History(agent=mock_agent)
@@ -328,7 +328,7 @@ class TestHistory:
         assert history.current is not None
 
     def test_history_add_message(self, mock_agent):
-        from python.helpers.history import History
+        from helpers.history import History
 
         history = History(agent=mock_agent)
         msg = history.add_message(ai=False, content="hello")
@@ -337,7 +337,7 @@ class TestHistory:
         assert len(history.current.messages) == 1
 
     def test_history_new_topic_moves_current_to_topics(self, mock_agent):
-        from python.helpers.history import History
+        from helpers.history import History
 
         history = History(agent=mock_agent)
         history.add_message(ai=False, content="first")
@@ -346,14 +346,14 @@ class TestHistory:
         assert len(history.current.messages) == 0
 
     def test_history_new_topic_empty_current_does_nothing(self, mock_agent):
-        from python.helpers.history import History
+        from helpers.history import History
 
         history = History(agent=mock_agent)
         history.new_topic()
         assert len(history.topics) == 0
 
     def test_history_get_tokens(self, patch_tokens, mock_agent):
-        from python.helpers.history import History
+        from helpers.history import History
 
         history = History(agent=mock_agent)
         history.add_message(ai=False, content="a")
@@ -362,17 +362,17 @@ class TestHistory:
         assert total > 0
 
     def test_history_is_over_limit(self, patch_settings_history, mock_agent):
-        from python.helpers.history import History
+        from helpers.history import History
 
         history = History(agent=mock_agent)
         # ctx_size = 4096 * 0.5 = 2048
         # With small history, should be under
         history.add_message(ai=False, content="short")
-        with patch("python.helpers.history.tokens.approximate_tokens", return_value=10):
+        with patch("helpers.history.tokens.approximate_tokens", return_value=10):
             assert history.is_over_limit() is False
 
     def test_history_output_combines_bulks_topics_current(self, mock_agent):
-        from python.helpers.history import History
+        from helpers.history import History
 
         history = History(agent=mock_agent)
         history.add_message(ai=False, content="msg")
@@ -380,7 +380,7 @@ class TestHistory:
         assert len(out) >= 1
 
     def test_history_serialize_deserialize_roundtrip(self, mock_agent):
-        from python.helpers.history import History, deserialize_history
+        from helpers.history import History, deserialize_history
 
         history = History(agent=mock_agent)
         history.add_message(ai=False, content="hello")
@@ -396,7 +396,7 @@ class TestHistory:
         assert len(restored.current.messages) == 2
 
     def test_deserialize_history_empty_string_returns_fresh_history(self, mock_agent):
-        from python.helpers.history import deserialize_history
+        from helpers.history import deserialize_history
 
         history = deserialize_history("", mock_agent)
         assert history.counter == 0
@@ -404,7 +404,7 @@ class TestHistory:
         assert history.topics == []
 
     def test_history_from_dict_restores_state(self, mock_agent):
-        from python.helpers.history import History
+        from helpers.history import History
 
         history = History(agent=mock_agent)
         data = {
@@ -431,7 +431,7 @@ class TestHistory:
 
 class TestRecordFromDict:
     def test_record_from_dict_message(self, mock_agent):
-        from python.helpers.history import Record, History
+        from helpers.history import Record, History
 
         history = History(agent=mock_agent)
         data = {"_cls": "Message", "ai": True, "content": "x", "summary": "", "tokens": 0}
@@ -440,7 +440,7 @@ class TestRecordFromDict:
         assert restored.content == "x"
 
     def test_record_from_dict_topic(self, mock_agent):
-        from python.helpers.history import Record, History
+        from helpers.history import Record, History
 
         history = History(agent=mock_agent)
         data = {"_cls": "Topic", "summary": "", "messages": []}
@@ -449,7 +449,7 @@ class TestRecordFromDict:
         assert restored.messages == []
 
     def test_record_from_dict_bulk(self, mock_agent):
-        from python.helpers.history import Record, History
+        from helpers.history import Record, History
 
         history = History(agent=mock_agent)
         data = {"_cls": "Bulk", "summary": "s", "records": []}
@@ -463,7 +463,7 @@ class TestRecordFromDict:
 
 class TestOutputHelpers:
     def test_output_text_single_message(self):
-        from python.helpers.history import output_text, OutputMessage
+        from helpers.history import output_text, OutputMessage
 
         msgs = [OutputMessage(ai=False, content="hello")]
         text = output_text(msgs, human_label="user", ai_label="ai")
@@ -471,7 +471,7 @@ class TestOutputHelpers:
         assert "hello" in text
 
     def test_output_text_custom_labels(self):
-        from python.helpers.history import output_text, OutputMessage
+        from helpers.history import output_text, OutputMessage
 
         msgs = [OutputMessage(ai=True, content="reply")]
         text = output_text(msgs, human_label="human", ai_label="assistant")
@@ -479,7 +479,7 @@ class TestOutputHelpers:
         assert "reply" in text
 
     def test_output_text_multiple_messages(self):
-        from python.helpers.history import output_text, OutputMessage
+        from helpers.history import output_text, OutputMessage
 
         msgs = [
             OutputMessage(ai=False, content="q"),
@@ -492,7 +492,7 @@ class TestOutputHelpers:
         assert "a" in text
 
     def test_output_langchain_produces_alternating_types(self):
-        from python.helpers.history import output_langchain, OutputMessage
+        from helpers.history import output_langchain, OutputMessage
 
         msgs = [
             OutputMessage(ai=False, content="hi"),
@@ -503,7 +503,7 @@ class TestOutputHelpers:
         assert isinstance(result[0], (HumanMessage, AIMessage))
 
     def test_output_langchain_skips_empty_messages(self):
-        from python.helpers.history import output_langchain, OutputMessage
+        from helpers.history import output_langchain, OutputMessage
 
         msgs = [
             OutputMessage(ai=False, content=""),
@@ -513,7 +513,7 @@ class TestOutputHelpers:
         assert len(result) == 0
 
     def test_output_text_with_raw_message_uses_preview(self):
-        from python.helpers.history import output_text, OutputMessage
+        from helpers.history import output_text, OutputMessage
 
         raw_content = {"raw_content": {"type": "text", "text": "long content"}, "preview": "short"}
         msgs = [OutputMessage(ai=False, content=raw_content)]
@@ -526,7 +526,7 @@ class TestOutputHelpers:
 
 class TestGroupOutputsAbab:
     def test_group_outputs_abab_merges_consecutive_same(self):
-        from python.helpers.history import group_outputs_abab, OutputMessage
+        from helpers.history import group_outputs_abab, OutputMessage
 
         outputs = [
             OutputMessage(ai=False, content="a"),
@@ -539,7 +539,7 @@ class TestGroupOutputsAbab:
         assert result[1]["ai"] is True
 
     def test_group_outputs_abab_alternating_unchanged(self):
-        from python.helpers.history import group_outputs_abab, OutputMessage
+        from helpers.history import group_outputs_abab, OutputMessage
 
         outputs = [
             OutputMessage(ai=False, content="a"),
@@ -552,7 +552,7 @@ class TestGroupOutputsAbab:
 
 class TestGroupMessagesAbab:
     def test_group_messages_abab_merges_consecutive_same_type(self):
-        from python.helpers.history import group_messages_abab
+        from helpers.history import group_messages_abab
 
         msgs = [
             HumanMessage(content="a"),
@@ -570,14 +570,14 @@ class TestGroupMessagesAbab:
 
 class TestHistoryCompression:
     def test_compress_topics_empty(self, mock_agent):
-        from python.helpers.history import History
+        from helpers.history import History
 
         history = History(agent=mock_agent)
         result = asyncio.run(history.compress_topics())
         assert result is False
 
     def test_compress_bulks_empty_raises_index_error(self, mock_agent):
-        from python.helpers.history import History
+        from helpers.history import History
 
         history = History(agent=mock_agent)
         # merge_bulks_by returns False when bulks empty, then pop(0) raises
@@ -585,7 +585,7 @@ class TestHistoryCompression:
             asyncio.run(history.compress_bulks())
 
     def test_merge_bulks_by_empty_returns_false(self, mock_agent):
-        from python.helpers.history import History
+        from helpers.history import History
 
         history = History(agent=mock_agent)
         result = asyncio.run(history.merge_bulks_by(3))
@@ -594,11 +594,11 @@ class TestHistoryCompression:
     def test_topic_compress_large_messages_no_large_returns_false(
         self, patch_settings_history, mock_agent
     ):
-        from python.helpers.history import Topic, History
+        from helpers.history import Topic, History
 
         history = History(agent=mock_agent)
         topic = Topic(history=history)
         topic.add_message(ai=False, content="short")
-        with patch("python.helpers.history.tokens.approximate_tokens", return_value=10):
+        with patch("helpers.history.tokens.approximate_tokens", return_value=10):
             result = topic.compress_large_messages()
         assert result is False

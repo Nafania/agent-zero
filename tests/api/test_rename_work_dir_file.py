@@ -1,4 +1,4 @@
-"""Tests for python/api/rename_work_dir_file.py — RenameWorkDirFile API handler."""
+"""Tests for api/rename_work_dir_file.py — RenameWorkDirFile API handler."""
 
 import sys
 import threading
@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.rename_work_dir_file import RenameWorkDirFile
+from api.rename_work_dir_file import RenameWorkDirFile
 
 
 def _make_handler(app=None, lock=None):
@@ -76,7 +76,7 @@ class TestRenameWorkDirFile:
         mock_files = [{"name": "renamed.txt"}]
 
         with patch(
-            "python.api.rename_work_dir_file.runtime.call_development_function",
+            "api.rename_work_dir_file.runtime.call_development_function",
             new_callable=AsyncMock,
             side_effect=[True, mock_files],
         ):
@@ -98,7 +98,7 @@ class TestRenameWorkDirFile:
         mock_files = [{"name": "newdir"}]
 
         with patch(
-            "python.api.rename_work_dir_file.runtime.call_development_function",
+            "api.rename_work_dir_file.runtime.call_development_function",
             new_callable=AsyncMock,
             side_effect=[True, mock_files],
         ):
@@ -120,7 +120,7 @@ class TestRenameWorkDirFile:
         handler = _make_handler(app, lock)
 
         with patch(
-            "python.api.rename_work_dir_file.runtime.call_development_function",
+            "api.rename_work_dir_file.runtime.call_development_function",
             new_callable=AsyncMock,
             return_value=False,
         ):

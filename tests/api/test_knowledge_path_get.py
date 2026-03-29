@@ -1,4 +1,4 @@
-"""Tests for python/api/knowledge_path_get.py — GetKnowledgePath API handler."""
+"""Tests for api/knowledge_path_get.py — GetKnowledgePath API handler."""
 
 import sys
 import threading
@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.knowledge_path_get import GetKnowledgePath
+from api.knowledge_path_get import GetKnowledgePath
 
 
 def _make_handler(app=None, lock=None):
@@ -36,15 +36,15 @@ class TestGetKnowledgePath:
 
         with patch.object(handler, "use_context", return_value=mock_ctx), \
              patch(
-                 "python.api.knowledge_path_get.projects.get_context_project_name",
+                 "api.knowledge_path_get.projects.get_context_project_name",
                  return_value=None,
              ), \
              patch(
-                 "python.api.knowledge_path_get.memory.get_custom_knowledge_subdir_abs",
+                 "api.knowledge_path_get.memory.get_custom_knowledge_subdir_abs",
                  return_value="/tmp/knowledge",
              ), \
              patch(
-                 "python.api.knowledge_path_get.files.normalize_a0_path",
+                 "api.knowledge_path_get.files.normalize_a0_path",
                  return_value="/a0/knowledge",
              ):
             result = await handler.process({"ctxid": "ctx-1"}, MagicMock())
@@ -60,15 +60,15 @@ class TestGetKnowledgePath:
 
         with patch.object(handler, "use_context", return_value=mock_ctx), \
              patch(
-                 "python.api.knowledge_path_get.projects.get_context_project_name",
+                 "api.knowledge_path_get.projects.get_context_project_name",
                  return_value="my-project",
              ), \
              patch(
-                 "python.api.knowledge_path_get.projects.get_project_meta_folder",
+                 "api.knowledge_path_get.projects.get_project_meta_folder",
                  return_value="/projects/my-project/knowledge",
              ), \
              patch(
-                 "python.api.knowledge_path_get.files.normalize_a0_path",
+                 "api.knowledge_path_get.files.normalize_a0_path",
                  return_value="/a0/projects/my-project/knowledge",
              ):
             result = await handler.process({"ctxid": "ctx-1"}, MagicMock())

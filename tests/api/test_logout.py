@@ -1,4 +1,4 @@
-"""Tests for python/api/logout.py — ApiLogout API handler."""
+"""Tests for api/logout.py — ApiLogout API handler."""
 
 import sys
 import threading
@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.api.logout import ApiLogout
+from api.logout import ApiLogout
 
 
 def _make_handler(app=None, lock=None):
@@ -26,7 +26,7 @@ class TestApiLogout:
     async def test_process_clears_session_and_returns_ok(self):
         handler = _make_handler()
         mock_session = MagicMock()
-        import python.api.logout as _mod
+        import api.logout as _mod
         _orig = _mod.session
         _mod.session = mock_session
         try:
@@ -41,7 +41,7 @@ class TestApiLogout:
         handler = _make_handler()
         mock_session = MagicMock()
         mock_session.clear.side_effect = Exception("clear failed")
-        import python.api.logout as _mod
+        import api.logout as _mod
         _orig = _mod.session
         _mod.session = mock_session
         try:
