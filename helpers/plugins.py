@@ -259,6 +259,11 @@ def get_enabled_plugins(agent: Agent | None) -> list[str]:
     active: list[str] = []
 
     for plugin in plugins:
+        meta = get_plugin_meta(plugin)
+        if meta and meta.always_enabled:
+            active.append(plugin)
+            continue
+
         enabled = True
         plugin_paths = get_plugin_roots(plugin)
 

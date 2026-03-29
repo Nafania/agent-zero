@@ -175,10 +175,14 @@ def delete_agent_data(name: str) -> None:
 
 def _load_agent_data_from_dir(dir: str, name: str, origin: Origin) -> SubAgent | None:
     try:
-        subagent_json = files.read_file(files.get_abs_path(dir, name, "agent.json"))
-        subagent = SubAgent.model_validate_json(subagent_json)
+        agent_yaml_path = files.get_abs_path(dir, name, "agent.yaml")
+        if files.exists(agent_yaml_path):
+            agent_yaml = files.read_file(agent_yaml_path)
+            subagent = SubAgent.model_validate(yaml_helper.loads(agent_yaml) or {})
+        else:
+            subagent_json = files.read_file(files.get_abs_path(dir, name, "agent.json"))
+            subagent = SubAgent.model_validate_json(subagent_json)
     except Exception:
-        # backward compatibility (before agent.json existed)
         try:
             context_file = files.read_file(files.get_abs_path(dir, name, "_context.md"))
         except Exception:
@@ -290,7 +294,7 @@ def _merge_origins(base: list[Origin], override: list[Origin]) -> list[Origin]:
     return base + override
 
 
-def get_default_promp_file_names() -> list[str]:
+def get_default_prompt_file_names() -> list[str]:
     return files.list_files("prompts", filter="*.md")
 
 

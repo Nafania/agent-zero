@@ -4,7 +4,7 @@ from helpers import dotenv, memory, perplexity_search, duckduckgo_search
 from helpers.tool import Tool, Response
 from helpers.print_style import PrintStyle
 from helpers.errors import handle_error
-from helpers.searxng import search as searxng
+from plugins.search.helpers.searxng import search as searxng
 
 SEARCH_ENGINE_RESULTS = 10
 

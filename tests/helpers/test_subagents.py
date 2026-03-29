@@ -179,16 +179,16 @@ class TestGetAgentsRoots:
                 assert isinstance(result, list)
 
 
-# --- get_default_promp_file_names ---
+# --- get_default_prompt_file_names ---
 
 
 class TestGetDefaultPromptFileNames:
-    def test_get_default_promp_file_names_calls_files_list(self):
-        from helpers.subagents import get_default_promp_file_names
+    def test_get_default_prompt_file_names_calls_files_list(self):
+        from helpers.subagents import get_default_prompt_file_names
 
         with patch("helpers.subagents.files") as mock_files:
             mock_files.list_files = MagicMock(return_value=["a.md", "b.md"])
-            result = get_default_promp_file_names()
+            result = get_default_prompt_file_names()
             assert result == ["a.md", "b.md"]
             mock_files.list_files.assert_called_once_with("prompts", filter="*.md")
 

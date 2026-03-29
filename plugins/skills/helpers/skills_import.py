@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Iterable, List, Literal, Optional, Tuple
 
 from helpers import files
-from helpers.skills import discover_skill_md_files
+from plugins.skills.helpers.skills import discover_skill_md_files
 
 
 ConflictPolicy = Literal["skip", "overwrite", "rename"]

@@ -7,7 +7,7 @@ from pathlib import Path
 
 from helpers.tool import Tool, Response
 from helpers import files, defer, persist_chat, strings
-from helpers.browser_use import browser_use  # type: ignore[attr-defined]
+from plugins.browser.helpers.browser_use import browser_use  # type: ignore[attr-defined]
 from helpers.print_style import PrintStyle
 from helpers.secrets import get_secrets_manager
 from extensions.python.message_loop_start._10_iteration_no import get_iter_no
