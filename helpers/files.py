@@ -552,9 +552,8 @@ def exists(*relative_paths):
 
 
 def get_base_dir():
-    # Get the base directory from the current file path
-    base_dir = os.path.dirname(os.path.abspath(os.path.join(__file__, "../../")))
-    return base_dir
+    # Project root: helpers/ is one level below base (do not dirname() again after abspath — that would step above the project).
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 
 def basename(path: str, suffix: str | None = None):
