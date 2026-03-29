@@ -20,7 +20,7 @@ class MemoryDashboard(ApiHandler):
 
     async def process(self, input: dict, request: Request) -> dict | Response:
         try:
-            from helpers.memory import _get_cognee
+            from plugins.memory.helpers.memory import _get_cognee
             _get_cognee()
             action = input.get("action", "search")
             if action == "get_memory_subdirs":
