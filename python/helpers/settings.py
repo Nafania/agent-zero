@@ -159,8 +159,6 @@ class Settings(TypedDict):
     # LiteLLM global kwargs applied to all model calls
     litellm_global_kwargs: dict[str, Any]
 
-    update_check_enabled: bool
-
 
 class PartialSettings(Settings, total=False):
     pass
@@ -633,7 +631,6 @@ def get_default_settings() -> Settings:
         variables="",
         secrets="",
         litellm_global_kwargs=get_default_value("litellm_global_kwargs", {}),
-        update_check_enabled=get_default_value("update_check_enabled", True),
     )
 
 
