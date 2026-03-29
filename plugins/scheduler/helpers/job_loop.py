@@ -1,7 +1,7 @@
 import asyncio
 from datetime import datetime
 import time
-from helpers.task_scheduler import TaskScheduler
+from plugins.scheduler.helpers.task_scheduler import TaskScheduler
 from helpers.print_style import PrintStyle
 from helpers import errors
 from helpers import runtime

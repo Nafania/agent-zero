@@ -1,5 +1,5 @@
 from helpers.api import ApiHandler, Input, Output, Request
-from helpers.task_scheduler import TaskScheduler, TaskState
+from plugins.scheduler.helpers.task_scheduler import TaskScheduler, TaskState
 from helpers.print_style import PrintStyle
 from helpers.localization import Localization
 

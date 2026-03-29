@@ -107,10 +107,11 @@ def extensible(func):
 
         if (result := _process_result(data)) is _UNSET:
             _call_original(data)
-            try:
-                data["result"] = await data["result"]
-            except Exception as e:
-                data["exception"] = e
+            if data.get("exception") is None:
+                try:
+                    data["result"] = await data["result"]
+                except Exception as e:
+                    data["exception"] = e
 
         await call_extensions_async(end_point, agent=agent, data=data)
 

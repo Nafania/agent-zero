@@ -1,6 +1,6 @@
 from helpers.tool import Tool, Response
 from helpers.print_style import PrintStyle
-from helpers.fasta2a_client import connect_to_agent, is_client_available
+from plugins.a2a.helpers.fasta2a_client import connect_to_agent, is_client_available
 
 
 class A2AChatTool(Tool):

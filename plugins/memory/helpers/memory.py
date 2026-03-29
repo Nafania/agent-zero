@@ -17,11 +17,11 @@ from enum import Enum
 from agent import Agent, AgentContext
 import models
 import logging
-from helpers.cognee_init import get_cognee_setting
+from plugins.memory.helpers.cognee_init import get_cognee_setting
 
 
 def _get_cognee():
-    from helpers.cognee_init import get_cognee
+    from plugins.memory.helpers.cognee_init import get_cognee
     return get_cognee()
 
 
@@ -303,7 +303,7 @@ class Memory:
         cognee, _ = _get_cognee()
         ids = []
         timestamp = self.get_timestamp()
-        from helpers.cognee_background import CogneeBackgroundWorker
+        from plugins.memory.helpers.cognee_background import CogneeBackgroundWorker
 
         for doc in docs:
             doc_id = guids.generate_id(10)

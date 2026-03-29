@@ -5,7 +5,7 @@ from simpleeval import simple_eval
 
 from agent import Agent
 from helpers import guids
-from helpers.cognee_init import configure_cognee
+from plugins.memory.helpers.cognee_init import configure_cognee
 
 
 class VectorDB:

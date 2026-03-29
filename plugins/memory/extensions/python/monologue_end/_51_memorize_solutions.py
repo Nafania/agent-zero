@@ -1,6 +1,6 @@
 from helpers import settings, errors
 from helpers.extension import Extension
-from helpers.memory import Memory
+from plugins.memory.helpers.memory import Memory
 from helpers.dirty_json import DirtyJson
 from agent import LoopData
 from helpers.log import LogItem

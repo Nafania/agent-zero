@@ -221,7 +221,7 @@ async def drain_feedback_queue(
     """
     if cognee_module is _UNSET:
         try:
-            from helpers.cognee_init import get_cognee
+            from plugins.memory.helpers.cognee_init import get_cognee
 
             cognee_module, _ = get_cognee()
         except Exception:
@@ -294,7 +294,7 @@ async def submit_memory_feedback(
 
     if cognee_module is _UNSET:
         try:
-            from helpers.cognee_init import get_cognee
+            from plugins.memory.helpers.cognee_init import get_cognee
 
             cognee_module, _ = get_cognee()
         except Exception:

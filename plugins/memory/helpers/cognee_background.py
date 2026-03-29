@@ -9,7 +9,7 @@ from typing import Set
 
 from helpers.defer import DeferredTask, THREAD_BACKGROUND
 from helpers.print_style import PrintStyle
-from helpers.cognee_init import get_cognee_setting
+from plugins.memory.helpers.cognee_init import get_cognee_setting
 
 
 class CogneeBackgroundWorker:

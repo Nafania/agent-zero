@@ -1,4 +1,4 @@
-from helpers.memory import Memory
+from plugins.memory.helpers.memory import Memory
 from helpers.tool import Tool, Response
 
 DEFAULT_THRESHOLD = 0.7

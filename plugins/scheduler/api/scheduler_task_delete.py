@@ -1,5 +1,5 @@
 from helpers.api import ApiHandler, Input, Output, Request
-from helpers.task_scheduler import TaskScheduler, TaskState
+from plugins.scheduler.helpers.task_scheduler import TaskScheduler, TaskState
 from helpers.localization import Localization
 from agent import AgentContext
 from helpers import persist_chat

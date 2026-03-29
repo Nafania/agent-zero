@@ -1,7 +1,7 @@
 import time as _time
 
 from helpers.api import ApiHandler, Request, Response
-from helpers.memory import Memory, get_existing_memory_subdirs, get_context_memory_subdir, read_data_item_content
+from plugins.memory.helpers.memory import Memory, get_existing_memory_subdirs, get_context_memory_subdir, read_data_item_content
 from helpers import files
 from helpers.print_style import PrintStyle
 from langchain_core.documents import Document
@@ -296,7 +296,7 @@ class MemoryDashboard(ApiHandler):
 
     async def _get_cognify_status(self) -> dict:
         try:
-            from helpers.cognee_background import CogneeBackgroundWorker
+            from plugins.memory.helpers.cognee_background import CogneeBackgroundWorker
             status = CogneeBackgroundWorker.get_instance().get_status()
             return {"success": True, **status}
         except Exception as e:

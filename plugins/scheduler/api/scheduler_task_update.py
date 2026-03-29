@@ -1,5 +1,5 @@
 from helpers.api import ApiHandler, Input, Output, Request
-from helpers.task_scheduler import (
+from plugins.scheduler.helpers.task_scheduler import (
     TaskScheduler, ScheduledTask, AdHocTask, PlannedTask, TaskState,
     serialize_task, parse_task_schedule, parse_task_plan
 )

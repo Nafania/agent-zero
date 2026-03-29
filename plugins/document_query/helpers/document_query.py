@@ -4,7 +4,7 @@ import asyncio
 import aiohttp
 import json
 
-from helpers.vector_db import VectorDB
+from plugins.memory.helpers.vector_db import VectorDB
 
 os.environ["USER_AGENT"] = "@mixedbread-ai/unstructured"  # noqa E402
 from langchain_unstructured import UnstructuredLoader  # noqa E402

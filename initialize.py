@@ -169,6 +169,7 @@ def initialize_preload():
     import preload
     return defer.DeferredTask().start_task(preload.preload)
 
+@extension.extensible
 def initialize_cognee():
     from helpers.cognee_init import configure_cognee
     configure_cognee()
