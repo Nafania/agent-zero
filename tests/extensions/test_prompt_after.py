@@ -44,7 +44,7 @@ class TestIncludeLoadedSkills:
         mock_agent.data = MagicMock()
         mock_agent.data.get.return_value = None
 
-        from extensions.python.message_loop_prompts_after._65_include_loaded_skills import (
+        from plugins.skills.extensions.python.message_loop_prompts_after._65_include_loaded_skills import (
             IncludeLoadedSkills,
         )
 
@@ -62,10 +62,10 @@ class TestIncludeLoadedSkills:
         )
 
         with patch(
-            "extensions.python.message_loop_prompts_after._65_include_loaded_skills.skills.load_skill_for_agent",
+            "plugins.skills.extensions.python.message_loop_prompts_after._65_include_loaded_skills.skills.load_skill_for_agent",
             side_effect=lambda **kw: "skill content",
         ):
-            from extensions.python.message_loop_prompts_after._65_include_loaded_skills import (
+            from plugins.skills.extensions.python.message_loop_prompts_after._65_include_loaded_skills import (
                 IncludeLoadedSkills,
             )
 
@@ -145,10 +145,10 @@ class TestRecallWait:
         mock_agent.get_data.return_value = None
 
         with patch(
-            "extensions.python.message_loop_prompts_after._91_recall_wait.settings.get_settings",
+            "plugins.memory.extensions.python.message_loop_prompts_after._91_recall_wait.settings.get_settings",
             return_value={"memory_recall_delayed": False},
         ):
-            from extensions.python.message_loop_prompts_after._91_recall_wait import (
+            from plugins.memory.extensions.python.message_loop_prompts_after._91_recall_wait import (
                 RecallWait,
             )
 
@@ -164,10 +164,10 @@ class TestRecallWait:
         )
 
         with patch(
-            "extensions.python.message_loop_prompts_after._91_recall_wait.settings.get_settings",
+            "plugins.memory.extensions.python.message_loop_prompts_after._91_recall_wait.settings.get_settings",
             return_value={"memory_recall_delayed": True},
         ):
-            from extensions.python.message_loop_prompts_after._91_recall_wait import (
+            from plugins.memory.extensions.python.message_loop_prompts_after._91_recall_wait import (
                 RecallWait,
             )
 

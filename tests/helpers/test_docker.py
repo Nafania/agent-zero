@@ -16,11 +16,11 @@ class TestDockerContainerManager:
 
     def test_init_stores_params(self):
         """__init__ stores image, name, ports, volumes, logger."""
-        with patch("helpers.docker.docker") as mock_docker:
+        with patch("plugins.code_execution.helpers.docker.docker") as mock_docker:
             mock_client = MagicMock()
             mock_docker.from_env.return_value = mock_client
 
-            from helpers.docker import DockerContainerManager
+            from plugins.code_execution.helpers.docker import DockerContainerManager
 
             manager = DockerContainerManager(
                 image="myimg",
@@ -37,11 +37,11 @@ class TestDockerContainerManager:
 
     def test_init_docker_connects_on_success(self):
         """init_docker connects to Docker and sets client."""
-        with patch("helpers.docker.docker") as mock_docker:
+        with patch("plugins.code_execution.helpers.docker.docker") as mock_docker:
             mock_client = MagicMock()
             mock_docker.from_env.return_value = mock_client
 
-            from helpers.docker import DockerContainerManager
+            from plugins.code_execution.helpers.docker import DockerContainerManager
 
             manager = DockerContainerManager(image="img", name="n")
             assert manager.client == mock_client
@@ -49,27 +49,27 @@ class TestDockerContainerManager:
 
     def test_init_docker_retries_on_connection_refused(self):
         """init_docker retries when ConnectionRefusedError occurs."""
-        with patch("helpers.docker.docker") as mock_docker:
-            with patch("helpers.docker.format_error") as mock_fmt:
+        with patch("plugins.code_execution.helpers.docker.docker") as mock_docker:
+            with patch("plugins.code_execution.helpers.docker.format_error") as mock_fmt:
                 mock_fmt.return_value = "ConnectionRefusedError(61, ...)"
                 mock_docker.from_env.side_effect = [
                     ConnectionRefusedError(),
                     MagicMock(),
                 ]
-                with patch("helpers.docker.time.sleep"):
-                    from helpers.docker import DockerContainerManager
+                with patch("plugins.code_execution.helpers.docker.time.sleep"):
+                    from plugins.code_execution.helpers.docker import DockerContainerManager
 
                     manager = DockerContainerManager(image="img", name="n")
                     assert manager.client is not None
 
     def test_init_docker_raises_on_other_errors(self):
         """init_docker raises on non-connection errors."""
-        with patch("helpers.docker.docker") as mock_docker:
-            with patch("helpers.docker.format_error") as mock_fmt:
+        with patch("plugins.code_execution.helpers.docker.docker") as mock_docker:
+            with patch("plugins.code_execution.helpers.docker.format_error") as mock_fmt:
                 mock_fmt.return_value = "SomeOtherError"
                 mock_docker.from_env.side_effect = RuntimeError("other")
 
-                from helpers.docker import DockerContainerManager
+                from plugins.code_execution.helpers.docker import DockerContainerManager
 
                 with pytest.raises(RuntimeError):
                     DockerContainerManager(image="img", name="n")
@@ -78,8 +78,8 @@ class TestDockerContainerManager:
         """cleanup_container stops and removes the container."""
         mock_container = MagicMock()
 
-        with patch("helpers.docker.docker"):
-            from helpers.docker import DockerContainerManager
+        with patch("plugins.code_execution.helpers.docker.docker"):
+            from plugins.code_execution.helpers.docker import DockerContainerManager
 
             manager = DockerContainerManager(image="img", name="n")
             manager.container = mock_container
@@ -94,8 +94,8 @@ class TestDockerContainerManager:
         mock_container = MagicMock()
         mock_container.stop.side_effect = RuntimeError("stop failed")
 
-        with patch("helpers.docker.docker"):
-            from helpers.docker import DockerContainerManager
+        with patch("plugins.code_execution.helpers.docker.docker"):
+            from plugins.code_execution.helpers.docker import DockerContainerManager
 
             manager = DockerContainerManager(image="img", name="n", logger=MagicMock())
             manager.container = mock_container
@@ -112,12 +112,12 @@ class TestDockerContainerManager:
         mock_container.image = "img:tag"
         mock_container.ports = {"80/tcp": [{"HostPort": "8080"}], "22/tcp": [{"HostPort": "2222"}]}
 
-        with patch("helpers.docker.docker") as mock_docker:
+        with patch("plugins.code_execution.helpers.docker.docker") as mock_docker:
             mock_client = MagicMock()
             mock_client.containers.list.return_value = [mock_container]
             mock_docker.from_env.return_value = mock_client
 
-            from helpers.docker import DockerContainerManager
+            from plugins.code_execution.helpers.docker import DockerContainerManager
 
             manager = DockerContainerManager(image="img", name="n")
             manager.client = mock_client
@@ -135,13 +135,13 @@ class TestDockerContainerManager:
         mock_container.name = "myname"
         mock_container.status = "exited"
 
-        with patch("helpers.docker.docker") as mock_docker:
+        with patch("plugins.code_execution.helpers.docker.docker") as mock_docker:
             mock_client = MagicMock()
             mock_client.containers.list.return_value = [mock_container]
             mock_docker.from_env.return_value = mock_client
 
-            with patch("helpers.docker.time.sleep"):
-                from helpers.docker import DockerContainerManager
+            with patch("plugins.code_execution.helpers.docker.time.sleep"):
+                from plugins.code_execution.helpers.docker import DockerContainerManager
 
                 manager = DockerContainerManager(image="img", name="myname")
                 manager.client = mock_client
@@ -157,12 +157,12 @@ class TestDockerContainerManager:
         mock_container.name = "myname"
         mock_container.status = "running"
 
-        with patch("helpers.docker.docker") as mock_docker:
+        with patch("plugins.code_execution.helpers.docker.docker") as mock_docker:
             mock_client = MagicMock()
             mock_client.containers.list.return_value = [mock_container]
             mock_docker.from_env.return_value = mock_client
 
-            from helpers.docker import DockerContainerManager
+            from plugins.code_execution.helpers.docker import DockerContainerManager
 
             manager = DockerContainerManager(image="img", name="myname")
             manager.client = mock_client
@@ -174,14 +174,14 @@ class TestDockerContainerManager:
 
     def test_start_container_runs_new_container_when_none_exists(self):
         """start_container runs new container when none exists."""
-        with patch("helpers.docker.docker") as mock_docker:
+        with patch("plugins.code_execution.helpers.docker.docker") as mock_docker:
             mock_client = MagicMock()
             mock_client.containers.list.return_value = []
             mock_client.containers.run.return_value = MagicMock()
             mock_docker.from_env.return_value = mock_client
 
-            with patch("helpers.docker.time.sleep"):
-                from helpers.docker import DockerContainerManager
+            with patch("plugins.code_execution.helpers.docker.time.sleep"):
+                from plugins.code_execution.helpers.docker import DockerContainerManager
 
                 manager = DockerContainerManager(
                     image="img",

@@ -12,7 +12,14 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from langchain_core.documents import Document
 
-from helpers.vector_db import (
+# Ensure _get_cognee is available through the helpers.memory shim
+# (underscore-prefixed names are skipped by `from ... import *`)
+import helpers.memory as _mem_shim
+import plugins.memory.helpers.memory as _mem_real
+if not hasattr(_mem_shim, '_get_cognee'):
+    _mem_shim._get_cognee = _mem_real._get_cognee
+
+from plugins.memory.helpers.vector_db import (
     VectorDB,
     format_docs_plain,
     get_comparator,
@@ -55,8 +62,8 @@ class TestVectorDB:
     async def test_insert_documents_adds_to_docs(self, mock_agent):
         db = VectorDB(mock_agent)
         docs = [Document(page_content="hello", metadata={})]
-        with patch("helpers.vector_db.configure_cognee"):
-            with patch("helpers.memory._get_cognee") as m:
+        with patch("plugins.memory.helpers.vector_db.configure_cognee"):
+            with patch("plugins.memory.helpers.memory._get_cognee") as m:
                 cognee = MagicMock()
                 cognee.add = AsyncMock()
                 m.return_value = (cognee, MagicMock())

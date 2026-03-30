@@ -1,0 +1,5 @@
+title: Notifications
+description: User notification system with desktop and in-app alerts.
+version: 1.0.0
+settings_sections:
+  - agent

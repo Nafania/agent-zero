@@ -390,7 +390,7 @@ class TestCreateProjectMetaFolders:
 
         with patch.object(_projects_mod.files, "get_abs_path", side_effect=path_side):
             with patch.object(_projects_mod.files, "create_dir") as mock_create:
-                with patch("helpers.memory.Memory") as mock_mem:
+                with patch("plugins.memory.helpers.memory.Memory") as mock_mem:
                     mock_mem.Area = fake_areas
                     from helpers.projects import create_project_meta_folders
 

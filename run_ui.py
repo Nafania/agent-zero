@@ -17,14 +17,14 @@ from werkzeug.wrappers.response import Response as BaseResponse
 from werkzeug.wrappers.request import Request as WerkzeugRequest
 
 import initialize
-from helpers import files, git, mcp_server, fasta2a_server, settings as settings_helper
+from helpers import files, git, mcp_server, fasta2a_server, settings as settings_helper, extension
 from helpers.files import get_abs_path
 from helpers import runtime, dotenv, process
 from helpers.websocket import WebSocketHandler, validate_ws_origin
-from helpers.extract_tools import load_classes_from_folder
+from helpers.extract_tools import load_classes_from_folder, load_classes_from_file
 from helpers.api import ApiHandler
 from helpers.print_style import PrintStyle
-from helpers import login
+from helpers import login, plugins
 import socketio  # type: ignore[import-untyped]
 from socketio import ASGIApp, packet
 from starlette.applications import Starlette
@@ -243,6 +243,7 @@ def csrf_protect(f):
 
 
 @webapp.route("/login", methods=["GET", "POST"])
+@extension.extensible
 async def login_handler():
     error = None
     if request.method == 'POST':
@@ -261,6 +262,7 @@ async def login_handler():
 
 
 @webapp.route("/logout")
+@extension.extensible
 async def logout_handler():
     session.pop('authentication', None)
     return redirect(url_for('login_handler'))
@@ -269,6 +271,7 @@ async def logout_handler():
 # handle default address, load index
 @webapp.route("/", methods=["GET"])
 @requires_auth
+@extension.extensible
 async def serve_index():
     gitinfo = None
     try:
@@ -288,6 +291,57 @@ async def serve_index():
         logged_in=("true" if login.get_credentials_hash() else "false"),
     )
     return index
+
+
+from flask import send_file
+
+
+@webapp.route("/plugins/<plugin_name>/<path:asset_path>", methods=["GET"])
+@requires_auth
+async def serve_builtin_plugin_asset(plugin_name, asset_path):
+    return await _serve_plugin_asset(plugin_name, asset_path)
+
+
+@webapp.route("/usr/plugins/<plugin_name>/<path:asset_path>", methods=["GET"])
+@requires_auth
+async def serve_user_plugin_asset(plugin_name, asset_path):
+    return await _serve_plugin_asset(plugin_name, asset_path)
+
+
+@webapp.route("/extensions/webui/<path:asset_path>", methods=["GET"])
+@requires_auth
+async def serve_extension_asset(asset_path):
+    path = files.get_abs_path("extensions/webui", asset_path)
+    if not files.is_in_dir(path, files.get_abs_path("extensions/webui")):
+        return Response("Access denied", 403)
+    if not files.is_file(path):
+        return Response("Not found", 404)
+    return send_file(path)
+
+
+@extension.extensible
+async def _serve_plugin_asset(plugin_name, asset_path):
+    plugin_dir = plugins.find_plugin_dir(plugin_name)
+    if not plugin_dir:
+        return Response("Plugin not found", 404)
+
+    try:
+        asset_file = files.get_abs_path(plugin_dir, asset_path)
+        webui_dir = files.get_abs_path(plugin_dir, "webui")
+        webui_extensions_dir = files.get_abs_path(plugin_dir, "extensions/webui")
+
+        if not files.is_in_dir(str(asset_file), str(webui_dir)) and not files.is_in_dir(
+            str(asset_file), str(webui_extensions_dir)
+        ):
+            return Response("Access denied", 403)
+
+        if not files.is_file(asset_file):
+            return Response("Asset not found", 404)
+
+        return send_file(str(asset_file))
+    except Exception as e:
+        PrintStyle.error(f"Error serving plugin asset: {e}")
+        return Response("Error serving asset", 500)
 
 
 def _build_websocket_handlers_by_namespace(
@@ -486,12 +540,16 @@ def run():
         runtime.get_arg("host") or dotenv.get_dotenv_value("WEB_UI_HOST") or "localhost"
     )
 
-    def register_api_handler(app, handler: type[ApiHandler]):
+    def register_api_handler(app, handler: type[ApiHandler], route_prefix: str = ""):
         name = handler.__module__.split(".")[-1]
         instance = handler(app, lock)
 
-        def handler_wrap() -> BaseResponse:
-            return instance.handle_request_sync(request=request)
+        def make_wrap(inst):
+            def handler_wrap() -> BaseResponse:
+                return inst.handle_request_sync(request=request)
+            return handler_wrap
+
+        handler_wrap = make_wrap(instance)
 
         if handler.requires_loopback():
             handler_wrap = requires_loopback(handler_wrap)
@@ -502,9 +560,10 @@ def run():
         if handler.requires_csrf():
             handler_wrap = csrf_protect(handler_wrap)
 
+        route = f"{route_prefix}/{name}"
         app.add_url_rule(
-            f"/{name}",
-            f"/{name}",
+            route,
+            route,
             handler_wrap,
             methods=handler.get_methods(),
         )
@@ -512,6 +571,17 @@ def run():
     handlers = load_classes_from_folder("api", "*.py", ApiHandler)
     for handler in handlers:
         register_api_handler(webapp, handler)
+
+    for plugin_name in plugins.get_enabled_plugins(None):
+        plugin_dir = plugins.find_plugin_dir(plugin_name)
+        if not plugin_dir:
+            continue
+        api_dir = os.path.join(plugin_dir, "api")
+        if not os.path.isdir(api_dir):
+            continue
+        plugin_handlers = load_classes_from_folder(api_dir, "*.py", ApiHandler)
+        for handler in plugin_handlers:
+            register_api_handler(webapp, handler, route_prefix=f"/plugins/{plugin_name}")
 
     handlers_by_namespace = _build_websocket_handlers_by_namespace(socketio_server, lock)
     configure_websocket_namespaces(
@@ -592,6 +662,7 @@ def wait_for_health(host: str, port: int):
         time.sleep(1)
 
 
+@extension.extensible
 def init_a0():
     # initialize contexts and MCP
     init_chats = initialize.initialize_chats()

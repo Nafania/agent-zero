@@ -15,7 +15,11 @@ if str(PROJECT_ROOT) not in sys.path:
 @pytest.fixture
 def mock_subprocess():
     """Mock asyncio.create_subprocess_exec."""
-    with patch("helpers.skills_cli.asyncio.create_subprocess_exec") as mock_exec:
+    async def _transparent_wait_for(coro, *, timeout=None):
+        return await coro
+
+    with patch("plugins.skills.helpers.skills_cli.asyncio.create_subprocess_exec") as mock_exec, \
+         patch("plugins.skills.helpers.skills_cli.asyncio.wait_for", new=_transparent_wait_for):
         process = AsyncMock()
         process.returncode = 0
         process.communicate = AsyncMock(return_value=(b"", b""))
@@ -28,7 +32,7 @@ def mock_subprocess():
 class TestRunNpx:
     @pytest.mark.asyncio
     async def test_runs_npx_with_args(self, mock_subprocess):
-        from helpers.skills_cli import _run_npx
+        from plugins.skills.helpers.skills_cli import _run_npx
         mock_exec, process = mock_subprocess
         process.communicate.return_value = (b"output text", b"")
 
@@ -43,7 +47,7 @@ class TestRunNpx:
 
     @pytest.mark.asyncio
     async def test_raises_on_nonzero_exit(self, mock_subprocess):
-        from helpers.skills_cli import _run_npx, SkillsCLIError
+        from plugins.skills.helpers.skills_cli import _run_npx, SkillsCLIError
         _, process = mock_subprocess
         process.returncode = 1
         process.communicate.return_value = (b"", b"some error")
@@ -53,7 +57,7 @@ class TestRunNpx:
 
     @pytest.mark.asyncio
     async def test_raises_on_timeout(self, mock_subprocess):
-        from helpers.skills_cli import _run_npx, SkillsCLIError
+        from plugins.skills.helpers.skills_cli import _run_npx, SkillsCLIError
         _, process = mock_subprocess
         process.communicate.side_effect = asyncio.TimeoutError()
         process.wait = AsyncMock()
@@ -65,7 +69,7 @@ class TestRunNpx:
 
     @pytest.mark.asyncio
     async def test_raises_when_npx_not_found(self, mock_subprocess):
-        from helpers.skills_cli import _run_npx, SkillsCLIError
+        from plugins.skills.helpers.skills_cli import _run_npx, SkillsCLIError
         mock_exec, _ = mock_subprocess
         mock_exec.side_effect = FileNotFoundError("npx not found")
 
@@ -77,7 +81,7 @@ class TestRunNpx:
 
 class TestParseFindOutput:
     def test_parses_skill_entries(self):
-        from helpers.skills_cli import parse_find_output
+        from plugins.skills.helpers.skills_cli import parse_find_output
         output = (
             "obra/superpowers@using-superpowers 26.8K installs\n"
             "└ https://skills.sh/obra/superpowers/using-superpowers\n"
@@ -95,7 +99,7 @@ class TestParseFindOutput:
         assert results[1]["source"] == "makfly/superpowers-symfony@symfony:using-symfony-superpowers"
 
     def test_parses_ansi_output(self):
-        from helpers.skills_cli import parse_find_output
+        from plugins.skills.helpers.skills_cli import parse_find_output
         output = (
             "\x1b[38;5;145mobra/superpowers@using-superpowers\x1b[0m \x1b[36m26.8K installs\x1b[0m\n"
             "\x1b[38;5;102m└ https://skills.sh/obra/superpowers/using-superpowers\x1b[0m\n"
@@ -106,12 +110,12 @@ class TestParseFindOutput:
         assert results[0]["source"] == "obra/superpowers@using-superpowers"
 
     def test_returns_empty_for_no_results(self):
-        from helpers.skills_cli import parse_find_output
+        from plugins.skills.helpers.skills_cli import parse_find_output
         results = parse_find_output("No skills found matching 'xyznonexistent'")
         assert results == []
 
     def test_handles_empty_output(self):
-        from helpers.skills_cli import parse_find_output
+        from plugins.skills.helpers.skills_cli import parse_find_output
         assert parse_find_output("") == []
 
 
@@ -119,7 +123,7 @@ class TestParseFindOutput:
 
 class TestParseListOutput:
     def test_parses_skill_names_and_descriptions(self):
-        from helpers.skills_cli import parse_list_output
+        from plugins.skills.helpers.skills_cli import parse_list_output
         output = (
             "│  Available Skills\n"
             "│\n"
@@ -138,11 +142,11 @@ class TestParseListOutput:
         assert result["writing-plans"] == "Use when you have a spec or requirements."
 
     def test_handles_empty_output(self):
-        from helpers.skills_cli import parse_list_output
+        from plugins.skills.helpers.skills_cli import parse_list_output
         assert parse_list_output("") == {}
 
     def test_skips_noise_lines(self):
-        from helpers.skills_cli import parse_list_output
+        from plugins.skills.helpers.skills_cli import parse_list_output
         output = (
             "│  Tip: use the --yes flag\n"
             "│  Source: https://github.com/obra/superpowers.git\n"
@@ -162,7 +166,7 @@ class TestParseListOutput:
 class TestFind:
     @pytest.mark.asyncio
     async def test_find_returns_parsed_results(self, mock_subprocess):
-        from helpers.skills_cli import find
+        from plugins.skills.helpers.skills_cli import find
         _, process = mock_subprocess
         process.communicate.return_value = (
             b"obra/superpowers@brainstorming 500 installs\n"
@@ -177,7 +181,7 @@ class TestFind:
 
     @pytest.mark.asyncio
     async def test_find_uses_cache(self, mock_subprocess):
-        from helpers.skills_cli import find, _cache
+        from plugins.skills.helpers.skills_cli import find, _cache
         _cache.clear()
         _, process = mock_subprocess
         process.communicate.return_value = (
@@ -194,7 +198,7 @@ class TestFind:
 
     @pytest.mark.asyncio
     async def test_find_empty_query_returns_empty(self, mock_subprocess):
-        from helpers.skills_cli import find
+        from plugins.skills.helpers.skills_cli import find
         results = await find("")
         assert results == []
 
@@ -204,7 +208,7 @@ class TestFind:
 class TestAdd:
     @pytest.mark.asyncio
     async def test_add_single_skill(self, mock_subprocess):
-        from helpers.skills_cli import add, _cache
+        from plugins.skills.helpers.skills_cli import add, _cache
         _cache.clear()
         _, process = mock_subprocess
         process.communicate.return_value = (b"Installed brainstorming", b"")
@@ -217,12 +221,12 @@ class TestAdd:
 
     @pytest.mark.asyncio
     async def test_add_multi_skill_repo(self, mock_subprocess):
-        from helpers.skills_cli import add, _cache
+        from plugins.skills.helpers.skills_cli import add, _cache
         _cache.clear()
         _, process = mock_subprocess
         process.communicate.return_value = (b"ok", b"")
 
-        with patch("helpers.skills_cli.list_repo_skills",
+        with patch("plugins.skills.helpers.skills_cli.list_repo_skills",
                     return_value={"brainstorming": "desc1", "writing-plans": "desc2"}):
             result = await add("obra/superpowers")
         assert "2 skills" in result
@@ -230,7 +234,7 @@ class TestAdd:
 
     @pytest.mark.asyncio
     async def test_add_clears_cache(self, mock_subprocess):
-        from helpers.skills_cli import add, _cache
+        from plugins.skills.helpers.skills_cli import add, _cache
         _cache["old-query"] = ([], 0)
         _, process = mock_subprocess
         process.communicate.return_value = (b"ok", b"")
@@ -244,7 +248,7 @@ class TestAdd:
 class TestRemove:
     @pytest.mark.asyncio
     async def test_remove_calls_npx_skills_remove(self, mock_subprocess):
-        from helpers.skills_cli import remove, _cache
+        from plugins.skills.helpers.skills_cli import remove, _cache
         _cache.clear()
         _, process = mock_subprocess
         process.communicate.return_value = (b"Removed skill", b"")
@@ -259,7 +263,7 @@ class TestRemove:
 class TestCheckUpdates:
     @pytest.mark.asyncio
     async def test_check_calls_npx_skills_check(self, mock_subprocess):
-        from helpers.skills_cli import check_updates
+        from plugins.skills.helpers.skills_cli import check_updates
         _, process = mock_subprocess
         process.communicate.return_value = (b"All skills up to date", b"")
 
@@ -272,7 +276,7 @@ class TestCheckUpdates:
 class TestUpdate:
     @pytest.mark.asyncio
     async def test_update_calls_npx_skills_update(self, mock_subprocess):
-        from helpers.skills_cli import update
+        from plugins.skills.helpers.skills_cli import update
         _, process = mock_subprocess
         process.communicate.return_value = (b"Updated 2 skills", b"")
 

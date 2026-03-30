@@ -1,0 +1,683 @@
+from __future__ import annotations
+
+import asyncio
+import re
+import json
+import glob
+import time
+from pathlib import Path
+from typing import (
+    Any,
+    Dict,
+    Iterator,
+    List,
+    Literal,
+    Optional,
+    TYPE_CHECKING,
+    TypedDict,
+)
+
+from helpers import files, notification, print_style, yaml as yaml_helper, cache
+from helpers import extract_tools
+from pydantic import BaseModel, Field
+
+from helpers.defer import DeferredTask
+
+if TYPE_CHECKING:
+    from agent import Agent
+
+_META_TARGET_RE = re.compile(
+    r'<meta\s+name=["\']plugin-target["\']\s+content=["\']([^"\']+)["\']',
+    re.IGNORECASE,
+)
+
+
+type ToggleState = Literal["enabled", "disabled", "advanced"]
+
+
+class PluginAssetFile(TypedDict):
+    path: str
+    project_name: str
+    agent_profile: str
+
+
+META_FILE_NAME = "plugin.yaml"
+CONFIG_FILE_NAME = "config.json"
+CONFIG_DEFAULT_FILE_NAME = "default_config.yaml"
+DISABLED_FILE_NAME = ".toggle-0"
+ENABLED_FILE_NAME = ".toggle-1"
+TOGGLE_FILE_PATTERN = ".toggle-[01]"
+
+HOOKS_SCRIPT = "hooks.py"
+HOOKS_CACHE_AREA = "plugin_hooks(plugins)"
+
+_last_frontend_reload_notification_at = 0.0
+
+
+class PluginMetadata(BaseModel):
+    name: str = ""
+    title: str = ""
+    description: str = ""
+    version: str = ""
+    settings_sections: List[str] = Field(default_factory=list)
+    per_project_config: bool = False
+    per_agent_config: bool = False
+    always_enabled: bool = False
+
+
+class PluginListItem(BaseModel):
+    name: str
+    path: str
+    display_name: str = ""
+    description: str = ""
+    version: str = ""
+    settings_sections: List[str] = Field(default_factory=list)
+    per_project_config: bool = False
+    per_agent_config: bool = False
+    always_enabled: bool = False
+    is_custom: bool = False
+    has_main_screen: bool = False
+    has_config_screen: bool = False
+    has_readme: bool = False
+    has_license: bool = False
+    has_init_script: bool = False
+    toggle_state: ToggleState = "disabled"
+
+
+def after_plugin_change(plugin_names: list[str] | None = None, python_change: bool = False):
+    clear_plugin_cache(plugin_names)
+    # TODO(a3): if python_change: refresh_plugin_modules(plugin_names)
+    send_frontend_reload_notification(plugin_names)
+
+
+def clear_plugin_cache(plugin_names: list[str] | None = None):
+    areas = ["*(plugins)*", "*(extensions)*", "*(api)*"]
+    for area in areas:
+        cache.clear(area)
+
+
+def get_plugin_roots(plugin_name: str = "") -> List[str]:
+    """Plugin root directories, ordered by priority (user first)."""
+    return [
+        files.get_abs_path(files.USER_DIR, files.PLUGINS_DIR, plugin_name),
+        files.get_abs_path(files.PLUGINS_DIR, plugin_name),
+    ]
+
+
+def get_plugins_list() -> list[str]:
+    result: list[str] = []
+    seen_names: set[str] = set()
+    for root in get_plugin_roots():
+        root_path = Path(root)
+        if not root_path.exists():
+            continue
+        for d in root_path.iterdir():
+            if not d.is_dir() or d.name.startswith("."):
+                continue
+            if d.name in seen_names:
+                continue
+            if files.exists(str(d), META_FILE_NAME):
+                seen_names.add(d.name)
+                result.append(d.name)
+    result.sort(key=lambda p: Path(p).name)
+    return result
+
+
+def get_enhanced_plugins_list(
+    custom: bool = True, builtin: bool = True
+) -> List[PluginListItem]:
+    """Discover plugins by directory convention. First root wins on ID conflict."""
+    results: list[PluginListItem] = []
+    seen_names: set[str] = set()
+
+    def load_plugins(root_path: str, is_custom: bool):
+        rp = Path(root_path)
+        if not rp.exists():
+            return
+        for d in sorted(rp.iterdir(), key=lambda p: p.name):
+            try:
+                if not d.is_dir() or d.name.startswith("."):
+                    continue
+                if d.name in seen_names:
+                    continue
+                meta_file = str(d / META_FILE_NAME)
+                if not files.exists(meta_file):
+                    continue
+                meta = PluginMetadata.model_validate(files.read_file_yaml(meta_file))
+                has_main_screen = files.exists(str(d / "webui" / "main.html"))
+                has_config_screen = files.exists(str(d / "webui" / "config.html"))
+                has_readme = files.exists(str(d / "README.md"))
+                has_license = files.exists(str(d / "LICENSE"))
+                has_init_script = files.exists(str(d / "initialize.py"))
+                toggle_state = get_toggle_state(d.name)
+                seen_names.add(d.name)
+                results.append(
+                    PluginListItem(
+                        name=d.name,
+                        path=str(d),
+                        display_name=meta.title or d.name,
+                        description=meta.description,
+                        version=meta.version,
+                        settings_sections=meta.settings_sections,
+                        per_project_config=meta.per_project_config,
+                        per_agent_config=meta.per_agent_config,
+                        always_enabled=meta.always_enabled,
+                        is_custom=is_custom,
+                        has_main_screen=has_main_screen,
+                        has_config_screen=has_config_screen,
+                        has_readme=has_readme,
+                        has_license=has_license,
+                        has_init_script=has_init_script,
+                        toggle_state=toggle_state,
+                    )
+                )
+            except Exception as e:
+                print_style.PrintStyle.error(f"Failed to load plugin {d.name}: {e}")
+                continue
+
+    if custom:
+        load_plugins(files.get_abs_path(files.USER_DIR, files.PLUGINS_DIR), True)
+    if builtin:
+        load_plugins(files.get_abs_path(files.PLUGINS_DIR), False)
+    return results
+
+
+def get_plugin_meta(plugin_name: str) -> PluginMetadata | None:
+    plugin_dir = find_plugin_dir(plugin_name)
+    if not plugin_dir:
+        return None
+    return PluginMetadata.model_validate(
+        files.read_file_yaml(files.get_abs_path(plugin_dir, META_FILE_NAME))
+    )
+
+
+def find_plugin_dir(plugin_name: str) -> str | None:
+    if not plugin_name or "/" in plugin_name or "\\" in plugin_name or plugin_name in (".", ".."):
+        return None
+
+    user_plugin_path = files.get_abs_path(
+        files.USER_DIR, files.PLUGINS_DIR, plugin_name, META_FILE_NAME
+    )
+    if files.exists(user_plugin_path):
+        return files.get_abs_path(files.USER_DIR, files.PLUGINS_DIR, plugin_name)
+
+    default_plugin_path = files.get_abs_path(
+        files.PLUGINS_DIR, plugin_name, META_FILE_NAME
+    )
+    if files.exists(default_plugin_path):
+        return files.get_abs_path(files.PLUGINS_DIR, plugin_name)
+
+    return None
+
+
+def uninstall_plugin(plugin_name: str):
+    call_plugin_hook(plugin_name, "uninstall")
+    delete_plugin(plugin_name)
+
+
+def delete_plugin(plugin_name: str):
+    plugin_dir = find_plugin_dir(plugin_name)
+    if not plugin_dir:
+        raise FileNotFoundError(f"Plugin '{plugin_name}' not found")
+    custom_plugins_dir = files.get_abs_path(files.USER_DIR, files.PLUGINS_DIR)
+    if not files.is_in_dir(plugin_dir, custom_plugins_dir):
+        raise ValueError("Only custom plugins can be deleted")
+    send_frontend_reload_notification([plugin_name])
+    files.delete_dir(plugin_dir)
+    after_plugin_change([plugin_name])
+
+
+def get_plugin_paths(*subpaths: str) -> List[str]:
+    sub = "*/" + "/".join(subpaths) if subpaths else "*"
+    paths: List[str] = []
+    for root in get_plugin_roots():
+        paths.extend(
+            files.find_existing_paths_by_pattern(files.get_abs_path(root, sub))
+        )
+    return paths
+
+
+def get_enabled_plugin_paths(agent: Agent | None, *subpaths: str) -> List[str]:
+    enabled = get_enabled_plugins(agent)
+    paths: list[str] = []
+
+    for plugin in enabled:
+        base_dir = find_plugin_dir(plugin)
+        if not base_dir:
+            continue
+
+        if not subpaths:
+            if files.exists(base_dir):
+                paths.append(base_dir)
+            continue
+
+        path_pattern = files.get_abs_path(base_dir, *subpaths)
+        paths.extend(files.find_existing_paths_by_pattern(path_pattern))
+
+    return paths
+
+
+def get_enabled_plugins(agent: Agent | None) -> list[str]:
+    plugins = get_plugins_list()
+    active: list[str] = []
+
+    for plugin in plugins:
+        meta = get_plugin_meta(plugin)
+        if meta and meta.always_enabled:
+            active.append(plugin)
+            continue
+
+        enabled = True
+        plugin_paths = get_plugin_roots(plugin)
+
+        if agent:
+            from helpers import subagents
+
+            agent_paths = subagents.get_paths(
+                agent,
+                files.PLUGINS_DIR,
+                plugin,
+                must_exist_completely=True,
+                include_default=False,
+                include_user=False,
+                include_plugins=False,
+                include_project=True,
+            )
+            plugin_paths = agent_paths + plugin_paths
+
+        enabled = determined_toggle_from_paths(enabled, reversed(plugin_paths))
+
+        if enabled:
+            active.append(plugin)
+
+    return active
+
+
+def determined_toggle_from_paths(default: bool, paths: Iterator[str]) -> bool:
+    enabled = default
+    for plugin_path in paths:
+        if enabled:
+            enabled = not files.exists(
+                files.get_abs_path(plugin_path, DISABLED_FILE_NAME)
+            )
+        else:
+            enabled = files.exists(files.get_abs_path(plugin_path, ENABLED_FILE_NAME))
+    return enabled
+
+
+def get_toggle_state(plugin_name: str) -> ToggleState:
+    meta = get_plugin_meta(plugin_name)
+    if not meta:
+        return "disabled"
+    if meta.always_enabled:
+        return "enabled"
+
+    plugin_paths = get_plugin_roots(plugin_name)
+    state: ToggleState = (
+        "enabled"
+        if determined_toggle_from_paths(True, reversed(plugin_paths))
+        else "disabled"
+    )
+
+    if meta.per_agent_config or meta.per_project_config:
+        configs = find_plugin_assets(
+            TOGGLE_FILE_PATTERN,
+            plugin_name=plugin_name,
+            project_name="*" if meta.per_project_config else "",
+            agent_profile="*" if meta.per_agent_config else "",
+            only_first=False,
+        )
+        if any(c.get("project_name") or c.get("agent_profile") for c in configs):
+            state = "advanced"
+
+    return state
+
+
+def toggle_plugin(
+    plugin_name: str,
+    enabled: bool,
+    project_name: str = "",
+    agent_profile: str = "",
+    clear_overrides: bool = False,
+):
+    if clear_overrides:
+        all_toggles = find_plugin_assets(
+            TOGGLE_FILE_PATTERN,
+            plugin_name=plugin_name,
+            project_name="*",
+            agent_profile="*",
+            only_first=False,
+        )
+        for toggle in all_toggles:
+            files.delete_file(toggle["path"])
+
+    enabled_file = determine_plugin_asset_path(
+        plugin_name, project_name, agent_profile, ENABLED_FILE_NAME
+    )
+    disabled_file = determine_plugin_asset_path(
+        plugin_name, project_name, agent_profile, DISABLED_FILE_NAME
+    )
+
+    files.delete_file(enabled_file)
+    files.delete_file(disabled_file)
+
+    if enabled:
+        files.write_file(enabled_file, "")
+    else:
+        files.write_file(disabled_file, "")
+    after_plugin_change([plugin_name])
+
+
+def get_plugin_config(
+    plugin_name: str,
+    agent: Agent | None = None,
+    project_name: str | None = None,
+    agent_profile: str | None = None,
+) -> dict | None:
+    if project_name is None and agent is not None:
+        from helpers import projects
+
+        project_name = projects.get_context_project_name(agent.context)
+    if agent_profile is None and agent is not None:
+        agent_profile = agent.config.profile
+
+    file = find_plugin_asset(
+        plugin_name,
+        CONFIG_FILE_NAME,
+        project_name=project_name or "",
+        agent_profile=agent_profile or "",
+    )
+    file_path = file.get("path", "") if file else ""
+
+    if not file_path:
+        plugin_dir = find_plugin_dir(plugin_name)
+        if plugin_dir:
+            file_path = files.get_abs_path(plugin_dir, CONFIG_DEFAULT_FILE_NAME)
+
+    result = None
+    if file_path and files.exists(file_path):
+        result = (
+            json.loads if file_path.lower().endswith(".json") else yaml_helper.loads
+        )(files.read_file(file_path))
+
+    new_result = call_plugin_hook(
+        plugin_name,
+        "get_plugin_config",
+        result=result,
+        agent=agent,
+        project_name=project_name,
+        agent_profile=agent_profile,
+    )
+
+    if new_result is not None:
+        return new_result
+    return result
+
+
+def get_default_plugin_config(plugin_name: str) -> dict | None:
+    plugin_dir = find_plugin_dir(plugin_name)
+    if not plugin_dir:
+        return None
+    file_path = files.get_abs_path(plugin_dir, CONFIG_DEFAULT_FILE_NAME)
+
+    result = call_plugin_hook(
+        plugin_name,
+        "get_default_config",
+        file_path=file_path,
+    )
+
+    if result is None and file_path and files.exists(file_path):
+        result = (
+            json.loads if file_path.lower().endswith(".json") else yaml_helper.loads
+        )(files.read_file(file_path))
+
+    return result
+
+
+def save_plugin_config(
+    plugin_name: str, project_name: str, agent_profile: str, settings: dict
+):
+    file_path = determine_plugin_asset_path(
+        plugin_name, project_name, agent_profile, CONFIG_FILE_NAME
+    )
+
+    new_settings = call_plugin_hook(
+        plugin_name,
+        "save_plugin_config",
+        result=None,
+        project_name=project_name,
+        agent_profile=agent_profile,
+        settings=settings,
+    )
+
+    final = new_settings if new_settings is not None else settings
+    if file_path:
+        files.write_file(file_path, json.dumps(final))
+        after_plugin_change([plugin_name])
+
+
+def find_plugin_asset(
+    plugin_name: str, *subpaths: str, project_name: str = "", agent_profile: str = ""
+) -> PluginAssetFile | None:
+    result = find_plugin_assets(
+        *subpaths,
+        plugin_name=plugin_name,
+        project_name=project_name,
+        agent_profile=agent_profile,
+        only_first=True,
+    )
+    return result[0] if result else None
+
+
+def find_plugin_assets(
+    *subpaths: str,
+    plugin_name: str = "*",
+    project_name: str = "*",
+    agent_profile: str = "*",
+    only_first: bool = False,
+) -> list[PluginAssetFile]:
+    from helpers import projects, subagents
+
+    results: list[PluginAssetFile] = []
+
+    def _collect(path: str, proj: str, profile: str) -> bool:
+        is_glob = glob.has_magic(path)
+        matched_paths = (
+            files.find_existing_paths_by_pattern(path)
+            if is_glob
+            else ([path] if files.exists(path) else [])
+        )
+
+        need_proj = proj == "*"
+        need_prof = profile == "*"
+
+        def _after(s: str, marker: str, last: bool = False) -> str:
+            i = s.rfind(marker) if last else s.find(marker)
+            if i == -1:
+                return ""
+            start = i + len(marker)
+            end = s.find("/", start)
+            return s[start:] if end == -1 else s[start:end]
+
+        for matched in matched_paths:
+            inferred_proj = _after(matched, "/projects/") if need_proj else proj
+            inferred_prof = (
+                _after(matched, "/agents/", last=True) if need_prof else profile
+            )
+            results.append(
+                {
+                    "project_name": inferred_proj,
+                    "agent_profile": inferred_prof,
+                    "path": matched,
+                }
+            )
+            if only_first:
+                return True
+        return False
+
+    if project_name:
+        if agent_profile:
+            path = projects.get_project_meta_folder(
+                project_name,
+                files.AGENTS_DIR,
+                agent_profile,
+                files.PLUGINS_DIR,
+                plugin_name,
+                *subpaths,
+            )
+            if _collect(path, project_name, agent_profile):
+                return results
+        if not agent_profile or agent_profile == "*":
+            path = projects.get_project_meta_folder(
+                project_name, files.PLUGINS_DIR, plugin_name, *subpaths
+            )
+            if _collect(path, project_name, ""):
+                return results
+
+    if agent_profile:
+        path = files.get_abs_path(
+            subagents.USER_AGENTS_DIR,
+            agent_profile,
+            files.PLUGINS_DIR,
+            plugin_name,
+            *subpaths,
+        )
+        if _collect(path, "", agent_profile):
+            return results
+
+        for plugin_base in get_enabled_plugin_paths(None):
+            path = files.get_abs_path(
+                plugin_base,
+                files.AGENTS_DIR,
+                agent_profile,
+                files.PLUGINS_DIR,
+                plugin_name,
+                *subpaths,
+            )
+            if _collect(path, "", agent_profile):
+                return results
+
+        path = files.get_abs_path(
+            subagents.DEFAULT_AGENTS_DIR,
+            agent_profile,
+            files.PLUGINS_DIR,
+            plugin_name,
+            *subpaths,
+        )
+        if _collect(path, "", agent_profile):
+            return results
+
+    path = files.get_abs_path(files.USER_DIR, files.PLUGINS_DIR, plugin_name, *subpaths)
+    if _collect(path, "", ""):
+        return results
+
+    path = files.get_abs_path(files.PLUGINS_DIR, plugin_name, *subpaths)
+    _collect(path, "", "")
+
+    return results
+
+
+def determine_plugin_asset_path(
+    plugin_name: str, project_name: str, agent_profile: str, *subpaths: str
+) -> str:
+    base_path = files.get_abs_path(files.USER_DIR)
+
+    if project_name:
+        from helpers import projects
+
+        base_path = projects.get_project_meta_folder(project_name)
+
+    if agent_profile:
+        base_path = files.get_abs_path(base_path, files.AGENTS_DIR, agent_profile)
+
+    return files.get_abs_path(base_path, files.PLUGINS_DIR, plugin_name, *subpaths)
+
+
+def send_frontend_reload_notification(plugin_names: list[str] | None = None):
+    global _last_frontend_reload_notification_at
+
+    display_time = 5
+    now = time.monotonic()
+    if now - _last_frontend_reload_notification_at < display_time:
+        return
+
+    if plugin_names:
+        has_webui_extension = False
+        for plugin_name in plugin_names:
+            plugin_dir = find_plugin_dir(plugin_name)
+            if plugin_dir and files.exists(
+                files.get_abs_path(plugin_dir, "extensions", "webui")
+            ):
+                has_webui_extension = True
+                break
+        if not has_webui_extension:
+            return
+
+    async def _send_later():
+        global _last_frontend_reload_notification_at
+
+        await asyncio.sleep(1)
+
+        _last_frontend_reload_notification_at = time.monotonic()
+
+        notification.NotificationManager.send_notification(
+            type=notification.NotificationType.INFO,
+            priority=notification.NotificationPriority.NORMAL,
+            title="Plugins with frontend extensions updated, page reload recommended",
+            message=(
+                '<button type="button" class="button confirm" '
+                'onclick="window.location.reload()">'
+                '<span class="icon material-symbols-outlined">refresh</span>'
+                "Reload page</button>"
+            ),
+            detail="",
+            display_time=display_time,
+            group="plugins_changed",
+        )
+
+    DeferredTask().start_task(_send_later)
+
+
+def call_plugin_hook(
+    plugin_name: str, hook_name: str, default: Any = None, *args, **kwargs
+):
+    hooks = None
+
+    if not cache.has(HOOKS_CACHE_AREA, plugin_name):
+        plugin_dir = find_plugin_dir(plugin_name)
+        if not plugin_dir:
+            return default
+        hooks_script = files.get_abs_path(plugin_dir, HOOKS_SCRIPT)
+        hooks = (
+            extract_tools.import_module(hooks_script)
+            if files.exists(hooks_script)
+            else None
+        )
+        cache.add(HOOKS_CACHE_AREA, plugin_name, hooks)
+    else:
+        hooks = cache.get(HOOKS_CACHE_AREA, plugin_name)
+
+    if not hooks:
+        return default
+
+    hook = getattr(hooks, hook_name, None)
+    if not hook:
+        return default
+
+    try:
+        if asyncio.iscoroutinefunction(hook):
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+
+            if loop and loop.is_running():
+                import nest_asyncio
+                nest_asyncio.apply(loop)
+                return loop.run_until_complete(hook(*args, **kwargs))
+            else:
+                return asyncio.run(hook(*args, **kwargs))
+
+        return hook(*args, **kwargs)
+    except Exception:
+        return default

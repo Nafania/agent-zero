@@ -55,19 +55,19 @@ class TestBehaviourPrompt:
         mock_agent.read_prompt.return_value = "behaviour rules"
 
         with patch(
-            "extensions.python.system_prompt._20_behaviour_prompt.memory.get_memory_subdir_abs",
+            "plugins.memory.extensions.python.system_prompt._20_behaviour_prompt.memory.get_memory_subdir_abs",
             return_value="/mem",
         ), patch(
-            "extensions.python.system_prompt._20_behaviour_prompt.files.get_abs_path",
+            "plugins.memory.extensions.python.system_prompt._20_behaviour_prompt.files.get_abs_path",
             return_value="/mem/behaviour.md",
         ), patch(
-            "extensions.python.system_prompt._20_behaviour_prompt.files.exists",
+            "plugins.memory.extensions.python.system_prompt._20_behaviour_prompt.files.exists",
             return_value=True,
         ), patch(
-            "extensions.python.system_prompt._20_behaviour_prompt.files.read_file",
+            "plugins.memory.extensions.python.system_prompt._20_behaviour_prompt.files.read_file",
             return_value="custom rules",
         ):
-            from extensions.python.system_prompt._20_behaviour_prompt import (
+            from plugins.memory.extensions.python.system_prompt._20_behaviour_prompt import (
                 BehaviourPrompt,
             )
 
