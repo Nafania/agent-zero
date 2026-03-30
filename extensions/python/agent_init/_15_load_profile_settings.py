@@ -36,9 +36,8 @@ class LoadProfileSettings(Extension):
             current_config = self.agent.config
             new_config = initialize_agent(override_settings=settings_override)
 
-            for config_attr in ("profile", "mcp_servers"):
-                if config_attr not in settings_override and config_attr != "profile":
-                    setattr(new_config, config_attr, getattr(current_config, config_attr))
+            if "mcp_servers" not in settings_override:
+                new_config.mcp_servers = current_config.mcp_servers
             if "agent_profile" not in settings_override:
                 new_config.profile = current_config.profile
             self.agent.config = new_config

@@ -10,6 +10,9 @@ class MigrateModelConfig(Extension):
     One-time migration: copy legacy model settings into model_config plugin config.
     Runs during initialize_migration. Only migrates if no global plugin config exists yet
     and the settings file contains legacy model fields.
+
+    Scope: global settings only. Per-project or per-agent model overrides are
+    not migrated and should be re-configured via the plugin settings UI.
     """
 
     LEGACY_FIELDS = [

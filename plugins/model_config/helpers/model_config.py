@@ -69,7 +69,7 @@ def build_model_config(cfg: dict, model_type: models.ModelType) -> models.ModelC
         limit_requests=int(cfg.get("rl_requests", 0)),
         limit_input=int(cfg.get("rl_input", 0)),
         limit_output=int(cfg.get("rl_output", 0)),
-        kwargs=_normalize_kwargs(cfg.get("kwargs", {})),
+        kwargs=_normalize_kwargs(cfg.get("kwargs", {}) if isinstance(cfg.get("kwargs"), dict) else {}),
     )
 
 

@@ -51,6 +51,7 @@ class State:
     def _get_browser_vision(self) -> bool:
         from plugins.model_config.helpers.model_config import get_browser_model_config
         cfg = get_browser_model_config(self.agent)
+        # Default True for browser (visual tasks) vs False for chat model (text-first)
         return bool(cfg.get("vision", True))
 
     async def _initialize(self):
