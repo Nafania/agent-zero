@@ -1,17 +1,20 @@
+import os
+import inspect
 from abc import abstractmethod
 from typing import Any, Awaitable, Type, cast
-from helpers import extract_tools, files
-from helpers import cache, subagents
-from typing import TYPE_CHECKING
 from functools import wraps
-import inspect
+from typing import TYPE_CHECKING
+
+from helpers import modules, files
+from helpers import cache
+from helpers.print_style import PrintStyle
 
 if TYPE_CHECKING:
     from agent import Agent
 
 
-_CACHE_AREA = "extension_folder_classes(extensions)(plugins)"
-cache.toggle_area(_CACHE_AREA, False)
+_EXTENSIONS_CACHE_AREA = "extension_folder_classes(extensions)"
+_CLASSES_CACHE_AREA = "extension_classes(extensions)"
 
 
 class _Unset:
@@ -21,48 +24,54 @@ class _Unset:
 _UNSET = _Unset()
 
 
+_EXTENSIONS_LOG_COUNTS: dict[str, int] = {}
+
+def _log_extension_call(name: str):
+    try:
+        every = int(os.getenv("EXTENSIONS_LOG", "0"))
+    except ValueError:
+        return
+    if every <= 0:
+        return
+    _EXTENSIONS_LOG_COUNTS[name] = _EXTENSIONS_LOG_COUNTS.get(name, 0) + 1
+    _EXTENSIONS_LOG_COUNTS["_total"] = _EXTENSIONS_LOG_COUNTS.get("_total", 0) + 1
+    if _EXTENSIONS_LOG_COUNTS["_total"] % every == 0:
+        for key, count in _EXTENSIONS_LOG_COUNTS.items():
+            print(f"{str(count):<6} {key}")
+
+
 def extensible(func):
     """Make a function emit two implicit extension points around its execution.
 
-    Derives ``{module}_{qualname}_start`` and ``{module}_{qualname}_end``
+    Derives path-based ``_functions/{module}/{qualname}/start`` and ``end``
     extension points. Extensions may mutate ``data["args"]``,
     ``data["kwargs"]``, ``data["result"]``, or ``data["exception"]``.
     """
 
     def _get_agent(args, kwargs):
-        try:
-            from agent import Agent
-        except (ImportError, TypeError):
-            return None
-
-        def _check(obj):
-            try:
-                return (
-                    isinstance(obj, Agent)
-                    and bool(getattr(obj, "__dict__", None))
-                    and hasattr(obj, "config")
-                )
-            except TypeError:
-                return False
-
+        from agent import Agent
         candidate = kwargs.get("agent")
-        if _check(candidate):
+        if isinstance(candidate, Agent) and bool(getattr(candidate, "__dict__", None)):
             return candidate
-
         for a in args:
-            if _check(a):
+            if isinstance(a, Agent) and bool(getattr(a, "__dict__", None)):
                 return a
-
         return None
 
     def _prepare_inputs(args, kwargs):
-        module_name = getattr(func, "__module__", "").replace(".", "_")
-        qual_name = getattr(func, "__qualname__", "").replace(".", "_")
+        module_name = getattr(func, "__module__", "")
+        qual_name = getattr(func, "__qualname__", "")
         if not module_name or not qual_name:
             return None
 
-        start_point = f"{module_name}_{qual_name}_start"
-        end_point = f"{module_name}_{qual_name}_end"
+        module_parts = [part for part in module_name.split(".") if part]
+        qual_parts = [part for part in qual_name.split(".") if part and part != "<locals>"]
+        if not module_parts or not qual_parts:
+            return None
+
+        base_path = os.path.join("_functions", *module_parts, *qual_parts)
+        start_point = os.path.join(base_path, "start")
+        end_point = os.path.join(base_path, "end")
         agent = _get_agent(args, kwargs)
 
         data = {
@@ -107,11 +116,10 @@ def extensible(func):
 
         if (result := _process_result(data)) is _UNSET:
             _call_original(data)
-            if data.get("exception") is None:
-                try:
-                    data["result"] = await data["result"]
-                except Exception as e:
-                    data["exception"] = e
+            try:
+                data["result"] = await data["result"]
+            except Exception as e:
+                data["exception"] = e
 
         await call_extensions_async(end_point, agent=agent, data=data)
 
@@ -162,6 +170,7 @@ async def call_extensions(
 async def call_extensions_async(
     extension_point: str, agent: "Agent|None" = None, **kwargs
 ):
+    _log_extension_call(extension_point)
     classes = _get_extension_classes(extension_point, agent=agent, **kwargs)
 
     for cls in classes:
@@ -171,6 +180,7 @@ async def call_extensions_async(
 
 
 def call_extensions_sync(extension_point: str, agent: "Agent|None" = None, **kwargs):
+    _log_extension_call(extension_point)
     classes = _get_extension_classes(extension_point, agent=agent, **kwargs)
 
     for cls in classes:
@@ -184,6 +194,8 @@ def call_extensions_sync(extension_point: str, agent: "Agent|None" = None, **kwa
 def get_webui_extensions(
     agent: "Agent | None", extension_point: str, filters: list[str] | None = None
 ) -> list[str]:
+    from helpers import subagents
+
     entries: list[str] = []
     effective_filters = filters or ["*"]
 
@@ -210,6 +222,13 @@ def get_webui_extensions(
 def _get_extension_classes(
     extension_point: str, agent: "Agent|None" = None, **kwargs
 ) -> list[Type[Extension]]:
+    from helpers import subagents
+
+    cache_key = f"{id(agent)}:{extension_point}"
+    cached = cache.get(_CLASSES_CACHE_AREA, cache_key)
+    if cached is not None:
+        return cached
+
     paths = subagents.get_paths(agent, "extensions/python", extension_point)
 
     all_exts = [cls for path in paths for cls in _get_extensions(path)]
@@ -222,6 +241,7 @@ def _get_extension_classes(
     classes = sorted(
         unique.values(), key=lambda cls: _get_file_from_module(cls.__module__)
     )
+    cache.add(_CLASSES_CACHE_AREA, cache_key, classes)
     return classes
 
 
@@ -231,13 +251,48 @@ def _get_file_from_module(module_name: str) -> str:
 
 def _get_extensions(folder: str) -> list[Type[Extension]]:
     folder = files.get_abs_path(folder)
-    cached = cache.get(_CACHE_AREA, folder)
+    cached = cache.get(_EXTENSIONS_CACHE_AREA, folder)
     if cached is not None:
         return cached
 
     if not files.exists(folder):
         return []
 
-    classes = extract_tools.load_classes_from_folder(folder, "*", Extension)
-    cache.add(_CACHE_AREA, folder, classes)
+    classes = modules.load_classes_from_folder(folder, "*", Extension)
+    cache.add(_EXTENSIONS_CACHE_AREA, folder, classes)
     return classes
+
+
+def register_extensions_watchdogs():
+    from helpers import watchdog, projects
+
+    def extensions_changed(items: list[watchdog.WatchItem]):
+        cache.clear(_EXTENSIONS_CACHE_AREA)
+        cache.clear(_CLASSES_CACHE_AREA)
+        PrintStyle.debug("Extensions watchdog triggered:", items)
+
+    watchdog.add_watchdog(
+        id="extensions_base",
+        roots=[
+            files.get_abs_path(files.EXTENSIONS_DIR),
+            files.get_abs_path(files.USER_DIR, files.EXTENSIONS_DIR),
+        ],
+        handler=extensions_changed,
+    )
+
+    watchdog.add_watchdog(
+        id="extensions_projects",
+        roots=[files.get_abs_path(projects.PROJECTS_PARENT_DIR)],
+        patterns=[f"*/{projects.PROJECT_META_DIR}/**/{files.EXTENSIONS_DIR}/**/*"],
+        handler=extensions_changed,
+    )
+
+    watchdog.add_watchdog(
+        id="extensions_agents",
+        roots=[
+            files.get_abs_path(files.AGENTS_DIR),
+            files.get_abs_path(files.USER_DIR, files.AGENTS_DIR),
+        ],
+        patterns=[f"*/{files.EXTENSIONS_DIR}/**/*"],
+        handler=extensions_changed,
+    )

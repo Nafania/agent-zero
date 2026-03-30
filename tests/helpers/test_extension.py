@@ -51,7 +51,7 @@ class TestGetExtensions:
         with patch("helpers.extension.files") as mf:
             mf.get_abs_path.return_value = "/ext"
             mf.exists.return_value = True
-            with patch("helpers.extension.extract_tools") as me:
+            with patch("helpers.extension.modules") as me:
                 me.load_classes_from_folder.return_value = [ConcreteExtension]
                 result = _get_extensions("/ext")
         assert ConcreteExtension in result
