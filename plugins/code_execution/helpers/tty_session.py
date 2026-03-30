@@ -25,15 +25,15 @@ class TTYSession:
         self._buf = None
 
     def __del__(self):
-        # Simple cleanup on object destruction
+        if not getattr(self, "_proc", None):
+            return
         import nest_asyncio2
 
         nest_asyncio2.apply()
-        if hasattr(self, "close"):
-            try:
-                asyncio.run(self.close())
-            except Exception:
-                pass
+        try:
+            asyncio.run(self.close())
+        except Exception:
+            pass
 
     # ── user-facing coroutines ────────────────────────────────────────
     async def start(self):
