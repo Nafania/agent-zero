@@ -1,7 +1,7 @@
 import asyncio
 
 from helpers.tool import Tool, Response
-from helpers.document_query import DocumentQueryHelper
+from plugins.document_query.helpers.document_query import DocumentQueryHelper
 
 
 class DocumentQueryTool(Tool):

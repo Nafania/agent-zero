@@ -310,6 +310,11 @@ class AgentContext:
         self.task.start_task(func, *args, **kwargs)
         return self.task
 
+    @extensible
+    async def handle_exception(self, location: str, exception: Exception):
+        if exception:
+            raise exception
+
     # this wrapper ensures that superior agents are called back if the chat was loaded from file and original callstack is gone
     @extensible
     async def _process_chain(self, agent: "Agent", msg: "UserMessage|str", user=True):
@@ -331,7 +336,7 @@ class AgentContext:
 
             return response
         except Exception as e:
-            agent.handle_critical_exception(e)
+            await self.handle_exception("process_chain", e)
         finally:
             if user:
                 from helpers.state_snapshot import touch_chat_list
@@ -656,6 +661,11 @@ class Agent:
             agent_facing_error
         )
         return error_retries + 1
+
+    @extensible
+    async def handle_exception(self, location: str, exception: Exception):
+        if exception:
+            raise exception
 
     def handle_critical_exception(self, exception: Exception):
         if isinstance(exception, HandledException):

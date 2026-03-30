@@ -5,8 +5,8 @@ import time
 from helpers.tool import Tool, Response
 from helpers import files, rfc_exchange, projects, runtime, settings
 from helpers.print_style import PrintStyle
-from helpers.shell_local import LocalInteractiveSession
-from helpers.shell_ssh import SSHInteractiveSession
+from plugins.code_execution.helpers.shell_local import LocalInteractiveSession
+from plugins.code_execution.helpers.shell_ssh import SSHInteractiveSession
 from plugins.code_execution.helpers.docker import DockerContainerManager
 from helpers.strings import truncate_text as truncate_text_string
 from helpers.messages import truncate_text as truncate_text_agent

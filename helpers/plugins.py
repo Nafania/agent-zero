@@ -84,13 +84,16 @@ class PluginListItem(BaseModel):
     toggle_state: ToggleState = "disabled"
 
 
-def after_plugin_change(plugin_names: list[str] | None = None):
-    clear_plugin_cache()
+def after_plugin_change(plugin_names: list[str] | None = None, python_change: bool = False):
+    clear_plugin_cache(plugin_names)
+    # TODO(a3): if python_change: refresh_plugin_modules(plugin_names)
     send_frontend_reload_notification(plugin_names)
 
 
-def clear_plugin_cache():
-    cache.clear("*(plugins)*")
+def clear_plugin_cache(plugin_names: list[str] | None = None):
+    areas = ["*(plugins)*", "*(extensions)*", "*(api)*"]
+    for area in areas:
+        cache.clear(area)
 
 
 def get_plugin_roots(plugin_name: str = "") -> List[str]:
@@ -635,40 +638,46 @@ def send_frontend_reload_notification(plugin_names: list[str] | None = None):
     DeferredTask().start_task(_send_later)
 
 
-def call_plugin_hook(plugin_name: str, hook_name: str, *args, **kwargs):
+def call_plugin_hook(
+    plugin_name: str, hook_name: str, default: Any = None, *args, **kwargs
+):
     hooks = None
 
     if not cache.has(HOOKS_CACHE_AREA, plugin_name):
         plugin_dir = find_plugin_dir(plugin_name)
-        if plugin_dir:
-            hooks_script = files.get_abs_path(plugin_dir, HOOKS_SCRIPT)
-            hooks = (
-                extract_tools.import_module(hooks_script)
-                if files.exists(hooks_script)
-                else None
-            )
+        if not plugin_dir:
+            return default
+        hooks_script = files.get_abs_path(plugin_dir, HOOKS_SCRIPT)
+        hooks = (
+            extract_tools.import_module(hooks_script)
+            if files.exists(hooks_script)
+            else None
+        )
         cache.add(HOOKS_CACHE_AREA, plugin_name, hooks)
     else:
         hooks = cache.get(HOOKS_CACHE_AREA, plugin_name)
 
     if not hooks:
-        return None
+        return default
 
     hook = getattr(hooks, hook_name, None)
     if not hook:
-        return None
+        return default
 
-    if asyncio.iscoroutinefunction(hook):
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            loop = None
+    try:
+        if asyncio.iscoroutinefunction(hook):
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
 
-        if loop and loop.is_running():
-            import nest_asyncio
-            nest_asyncio.apply(loop)
-            return loop.run_until_complete(hook(*args, **kwargs))
-        else:
-            return asyncio.run(hook(*args, **kwargs))
+            if loop and loop.is_running():
+                import nest_asyncio
+                nest_asyncio.apply(loop)
+                return loop.run_until_complete(hook(*args, **kwargs))
+            else:
+                return asyncio.run(hook(*args, **kwargs))
 
-    return hook(*args, **kwargs)
+        return hook(*args, **kwargs)
+    except Exception:
+        return default
