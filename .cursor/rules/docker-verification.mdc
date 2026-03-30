@@ -9,51 +9,55 @@ After completing implementation work on any branch, browser-based UI verificatio
 
 ## Docker Build & Run
 
-1. Build from the worktree/branch being tested (not from a pre-built image):
+1. Build from the worktree/branch being tested:
    ```bash
-   cd <worktree-path> && docker build -t agent-zero-test .
+   WORKTREE="<worktree-path>"
+   cd "$WORKTREE" && docker build -t agent-zero-test .
    ```
 
-2. Run with the **same volume mount** as the real deployment (`docker/run/docker-compose.yml`):
+2. Run with the worktree as `/a0` AND the **main repo's `usr/`** mounted on top to preserve all real data (settings, chats, API keys, cognee, etc.). Symlinks do NOT work inside Docker, so use a separate volume mount:
    ```bash
+   MAIN_REPO="/Users/ivan/Documents/work/ai-girlfriend-project/ai-team/agent-zero"
+
    docker run -d --name a0-test \
-     -v <worktree-path>:/a0 \
+     -v "$WORKTREE":/a0 \
+     -v "$MAIN_REPO/usr":/a0/usr \
      -p 50081:80 \
      agent-zero-test
    ```
 
-   The entire project dir is mounted as `/a0`. This preserves:
-   - `usr/.env` — API keys and environment config
-   - `usr/settings.json` — runtime settings
-   - `usr/cognee/` — Cognee knowledge/data storage
-   - All plugins, extensions, prompts
+   This gives the container:
+   - Code from the worktree branch (everything except usr/)
+   - Real runtime data from the main repo's `usr/`:
+     - `usr/.env` — API keys
+     - `usr/settings.json` — runtime settings
+     - `usr/chats/` — existing chat history (verifies nothing broke)
+     - `usr/cognee/` — memory/knowledge data
+     - `usr/projects/`, `usr/skills/`, `usr/secrets.env`, etc.
 
-   For worktree testing, copy `usr/` from the main repo into the worktree before running:
+3. Wait for full startup (ML model preload takes 1-2 minutes):
    ```bash
-   cp -r /path/to/agent-zero/usr <worktree-path>/usr
+   until curl -s -o /dev/null -w "%{http_code}" http://localhost:50081/ | grep -q 200; do sleep 5; done
    ```
-   Or symlink it: `ln -s /path/to/agent-zero/usr <worktree-path>/usr`
-
-3. Wait for full startup (preload of ML models can take 1-2 minutes).
 
 ## Browser Verification Checklist
 
 Open `http://localhost:50081` in the browser and verify:
 
-- [ ] Login page loads (if auth enabled) or main UI loads
-- [ ] Plugin list visible in settings (all 16 plugins discovered)
-- [ ] Settings page opens without errors
+- [ ] Main UI loads (dashboard with New Chat, Settings, Memory, etc.)
+- [ ] **Existing chats** visible in sidebar (proves usr/chats/ is mounted)
+- [ ] Settings page opens — model config shows correct provider/model
 - [ ] Chat input works (type and send a message)
-- [ ] Agent responds (if API keys configured)
-- [ ] Memory save: send a message that triggers memorization (e.g. "remember that X is Y")
-- [ ] Memory recall: in a new chat, ask the agent to recall the saved fact — confirms the full memory pipeline (save + Cognee + recall)
+- [ ] Agent responds correctly (proves API keys from usr/.env work)
+- [ ] **Memory save**: send a message that triggers memorization (e.g. "remember that X is Y")
+- [ ] **Memory recall**: in a new chat, ask the agent to recall the saved fact — confirms the full memory pipeline (save + Cognee + recall)
 - [ ] Any feature-specific UI related to the current branch changes
 
 ## Docker Logs Check
 
 After browser testing, always check logs for errors:
 ```bash
-docker logs a0-test 2>&1 | grep -i "error\|traceback\|exception" | grep -v "INFO\|DEBUG\|deprecation"
+docker logs a0-test 2>&1 | grep -i "error\|traceback\|exception" | grep -v "INFO\|DEBUG\|deprecation\|DeprecationWarning\|PydanticDeprecated\|oauth\|OAuth"
 ```
 
 ## Cleanup
@@ -66,5 +70,5 @@ docker stop a0-test && docker rm a0-test
 
 - Docker compose: `docker/run/docker-compose.yml`
 - Dockerfile: `Dockerfile` (root)
-- Runtime state: `usr/.env`, `usr/settings.json`, `usr/cognee/`
+- Runtime state (main repo): `usr/.env`, `usr/settings.json`, `usr/chats/`, `usr/cognee/`
 - Port: 50080 (production), 50081 (testing)
