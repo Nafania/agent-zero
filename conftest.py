@@ -40,7 +40,7 @@ _OPTIONAL_MODULES = [
     "openai",
     "sentence_transformers",
     "whisper",
-    "nest_asyncio",
+    "nest_asyncio2",
     "tiktoken",
     "docker",
     "aiohttp",

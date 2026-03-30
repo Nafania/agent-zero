@@ -713,8 +713,8 @@ def call_plugin_hook(
                 loop = None
 
             if loop and loop.is_running():
-                import nest_asyncio
-                nest_asyncio.apply(loop)
+                import nest_asyncio2
+                nest_asyncio2.apply(loop)
                 return loop.run_until_complete(safe_call(hook, *args, **kwargs))
             else:
                 return asyncio.run(safe_call(hook, *args, **kwargs))

@@ -9,8 +9,8 @@ from enum import Enum
 from os.path import exists
 from typing import Any, Callable, Dict, Literal, Optional, Type, TypeVar, Union, cast, ClassVar
 
-import nest_asyncio
-nest_asyncio.apply()
+import nest_asyncio2
+nest_asyncio2.apply()
 
 from crontab import CronTab
 from pydantic import BaseModel, Field, PrivateAttr

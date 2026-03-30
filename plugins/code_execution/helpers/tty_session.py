@@ -26,9 +26,9 @@ class TTYSession:
 
     def __del__(self):
         # Simple cleanup on object destruction
-        import nest_asyncio
+        import nest_asyncio2
 
-        nest_asyncio.apply()
+        nest_asyncio2.apply()
         if hasattr(self, "close"):
             try:
                 asyncio.run(self.close())

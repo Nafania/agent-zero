@@ -381,9 +381,9 @@ def apply_rate_limiter_sync(
 ):
     if not model_config:
         return
-    import asyncio, nest_asyncio
+    import asyncio, nest_asyncio2
 
-    nest_asyncio.apply()
+    nest_asyncio2.apply()
     return asyncio.run(
         apply_rate_limiter(model_config, input_text, rate_limiter_callback)
     )
