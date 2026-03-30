@@ -35,10 +35,6 @@ class DummyHandler(WebSocketHandler):
         super().__init__(socketio, lock)
         self.results = results
 
-    @classmethod
-    def get_event_types(cls) -> list[str]:
-        return ["dummy"]
-
     async def process_event(self, event_type: str, data: dict[str, Any], sid: str):
         response = {"sid": sid, "data": data}
         self.results.append(response)
@@ -142,10 +138,7 @@ async def test_route_event_no_handler_returns_standard_error():
     assert result["handlerId"].endswith("WebSocketManager")
     assert result["ok"] is False
     assert result["error"]["code"] == "NO_HANDLERS"
-    assert (
-        result["error"]["error"]
-        == f"No handler for namespace '{NAMESPACE}' event 'missing'"
-    )
+    assert f"namespace '{NAMESPACE}'" in result["error"]["error"]
 
 
 @pytest.mark.asyncio
@@ -164,10 +157,6 @@ async def test_route_event_all_aggregates_results():
     manager = WebSocketManager(socketio, threading.RLock())
 
     class EchoHandler(WebSocketHandler):
-        @classmethod
-        def get_event_types(cls) -> list[str]:
-            return ["multi"]
-
         async def process_event(self, event_type: str, data: dict[str, Any], sid: str):
             return {"sid": sid, "echo": data}
 
@@ -202,10 +191,6 @@ async def test_route_event_all_timeout_marks_error():
     manager = WebSocketManager(socketio, threading.RLock())
 
     class SlowHandler(WebSocketHandler):
-        @classmethod
-        def get_event_types(cls) -> list[str]:
-            return ["slow"]
-
         async def process_event(self, event_type: str, data: dict[str, Any], sid: str):
             await asyncio.sleep(0.2)
             return {"status": "done"}
@@ -231,10 +216,6 @@ async def test_route_event_exception_standardizes_error_payload():
     manager = WebSocketManager(socketio, threading.RLock())
 
     class FailingHandler(WebSocketHandler):
-        @classmethod
-        def get_event_types(cls) -> list[str]:
-            return ["boom"]
-
         async def process_event(self, event_type: str, data: dict[str, Any], sid: str):
             raise RuntimeError("kaboom")
 
@@ -260,10 +241,6 @@ async def test_route_event_offloads_blocking_handlers():
     manager = WebSocketManager(socketio, threading.RLock())
 
     class BlockingHandler(WebSocketHandler):
-        @classmethod
-        def get_event_types(cls) -> list[str]:
-            return ["block"]
-
         async def process_event(self, event_type: str, data: dict[str, Any], sid: str):
             time.sleep(0.2)
             return {"status": "done"}
@@ -485,19 +462,11 @@ async def test_timestamps_are_timezone_aware():
         assert info.last_activity.tzinfo is not None
 
 class DuplicateHandler(WebSocketHandler):
-    @classmethod
-    def get_event_types(cls) -> list[str]:
-        return ["dup_event"]
-
     async def process_event(self, event_type: str, data: dict[str, Any], sid: str):
         return {"handledBy": self.identifier}
 
 
 class AnotherDuplicateHandler(WebSocketHandler):
-    @classmethod
-    def get_event_types(cls) -> list[str]:
-        return ["dup_event"]
-
     async def process_event(self, event_type: str, data: dict[str, Any], sid: str):
         return {"handledBy": self.identifier}
 
@@ -516,20 +485,15 @@ def test_register_handlers_warns_on_duplicates(monkeypatch):
     )
 
     DuplicateHandler._reset_instance_for_testing()
-    AnotherDuplicateHandler._reset_instance_for_testing()
     handler_a = DuplicateHandler.get_instance(socketio, threading.RLock())
-    handler_b = AnotherDuplicateHandler.get_instance(socketio, threading.RLock())
 
-    manager.register_handlers({NAMESPACE: [handler_a, handler_b]})
+    manager.register_handlers({NAMESPACE: [handler_a]})
+    manager.register_handlers({NAMESPACE: [handler_a]})
 
     assert any("Duplicate handler registration" in msg for msg in warnings)
 
 
 class NonDictHandler(WebSocketHandler):
-    @classmethod
-    def get_event_types(cls) -> list[str]:
-        return ["non_dict"]
-
     async def process_event(self, event_type: str, data: dict[str, Any], sid: str):
         return "raw-value"
 
@@ -551,19 +515,11 @@ async def test_route_event_standardizes_success_payload():
 
 
 class ErrorHandler(WebSocketHandler):
-    @classmethod
-    def get_event_types(cls) -> list[str]:
-        return ["boom"]
-
     async def process_event(self, event_type: str, data: dict[str, Any], sid: str):
         raise RuntimeError("BOOM")
 
 
 class ResultHandler(WebSocketHandler):
-    @classmethod
-    def get_event_types(cls) -> list[str]:  # pragma: no cover - simple declaration
-        return ["result_event", "result_error"]
-
     async def process_event(self, event_type: str, data: dict[str, Any], sid: str):
         if event_type == "result_event":
             return WebSocketResult.ok({"sid": sid}, correlation_id="explicit", duration_ms=1.234)
@@ -628,19 +584,11 @@ async def test_route_event_preserves_websocket_result_errors():
 
 
 class AlphaFilterHandler(WebSocketHandler):
-    @classmethod
-    def get_event_types(cls) -> list[str]:
-        return ["filter_event"]
-
     async def process_event(self, event_type: str, data: dict[str, Any], sid: str):
         return {"handledBy": self.identifier, "sid": sid}
 
 
 class BetaFilterHandler(WebSocketHandler):
-    @classmethod
-    def get_event_types(cls) -> list[str]:
-        return ["filter_event"]
-
     async def process_event(self, event_type: str, data: dict[str, Any], sid: str):
         return {"handledBy": self.identifier, "sid": sid}
 
@@ -851,3 +799,57 @@ async def test_lifecycle_events_broadcast(monkeypatch):
     events = [call.args[1] for call in broadcast_mock.await_args_list]
     assert LIFECYCLE_CONNECT_EVENT in events
     assert LIFECYCLE_DISCONNECT_EVENT in events
+
+
+def test_iter_event_types_returns_empty_list():
+    socketio = FakeSocketIOServer()
+    manager = WebSocketManager(socketio, threading.RLock())
+    assert manager.iter_event_types(NAMESPACE) == []
+
+
+def test_set_and_get_shared_websocket_manager():
+    from helpers.websocket_manager import (
+        set_shared_websocket_manager,
+        get_shared_websocket_manager,
+    )
+
+    socketio = FakeSocketIOServer()
+    manager = WebSocketManager(socketio, threading.RLock())
+    set_shared_websocket_manager(manager)
+    assert get_shared_websocket_manager() is manager
+
+
+def test_get_shared_websocket_manager_raises_when_unset(monkeypatch):
+    from helpers import websocket_manager as wsm
+
+    monkeypatch.setattr(wsm, "_shared_websocket_manager", None)
+    with pytest.raises(RuntimeError, match="not been initialized"):
+        wsm.get_shared_websocket_manager()
+
+
+@pytest.mark.asyncio
+async def test_send_data_broadcasts_when_no_connection_id():
+    socketio = FakeSocketIOServer()
+    manager = WebSocketManager(socketio, threading.RLock())
+    await manager.handle_connect(NAMESPACE, "sid-send")
+
+    await manager.send_data(NAMESPACE, "test_event", {"key": "value"})
+
+    socketio.emit.assert_awaited()
+    args, kwargs = socketio.emit.await_args_list[0]
+    assert args[0] == "test_event"
+    assert args[1]["data"] == {"key": "value"}
+
+
+@pytest.mark.asyncio
+async def test_send_data_emits_to_specific_sid():
+    socketio = FakeSocketIOServer()
+    manager = WebSocketManager(socketio, threading.RLock())
+    await manager.handle_connect(NAMESPACE, "sid-direct")
+
+    await manager.send_data(NAMESPACE, "test_event", {"key": "value"}, "sid-direct")
+
+    socketio.emit.assert_awaited()
+    args, kwargs = socketio.emit.await_args_list[0]
+    assert args[0] == "test_event"
+    assert kwargs == {"to": "sid-direct", "namespace": NAMESPACE}

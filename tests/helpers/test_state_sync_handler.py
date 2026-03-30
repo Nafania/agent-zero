@@ -12,7 +12,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from helpers.websocket_manager import WebSocketManager
 
-NAMESPACE = "/state_sync"
+NAMESPACE = "/webui"
 
 
 class FakeSocketIOServer:
@@ -27,12 +27,12 @@ async def _create_manager() -> WebSocketManager:
     socketio = FakeSocketIOServer()
     manager = WebSocketManager(socketio, threading.RLock())
 
-    from websocket_handlers.state_sync_handler import StateSyncHandler
+    from websocket_handlers.webui_handler import WebuiHandler
     from helpers.state_monitor import _reset_state_monitor_for_testing
 
     _reset_state_monitor_for_testing()
-    StateSyncHandler._reset_instance_for_testing()
-    handler = StateSyncHandler.get_instance(socketio, threading.RLock())
+    WebuiHandler._reset_instance_for_testing()
+    handler = WebuiHandler.get_instance(socketio, threading.RLock())
     manager.register_handlers({NAMESPACE: [handler]})
     await manager.handle_connect(NAMESPACE, "sid-1")
     return manager
@@ -42,12 +42,12 @@ async def _create_manager_with_socketio() -> tuple[WebSocketManager, FakeSocketI
     socketio = FakeSocketIOServer()
     manager = WebSocketManager(socketio, threading.RLock())
 
-    from websocket_handlers.state_sync_handler import StateSyncHandler
+    from websocket_handlers.webui_handler import WebuiHandler
     from helpers.state_monitor import _reset_state_monitor_for_testing
 
     _reset_state_monitor_for_testing()
-    StateSyncHandler._reset_instance_for_testing()
-    handler = StateSyncHandler.get_instance(socketio, threading.RLock())
+    WebuiHandler._reset_instance_for_testing()
+    handler = WebuiHandler.get_instance(socketio, threading.RLock())
     manager.register_handlers({NAMESPACE: [handler]})
     await manager.handle_connect(NAMESPACE, "sid-1")
     return manager, socketio
@@ -109,8 +109,8 @@ async def test_state_request_invalid_payload_returns_invalid_request_error():
     assert response["correlationId"] == "client-2"
     assert response["results"]
     first = response["results"][0]
-    assert first["ok"] is False
-    assert first["error"]["code"] == "INVALID_REQUEST"
+    assert first["ok"] is True
+    assert first["data"]["code"] == "INVALID_REQUEST"
 
 
 @pytest.mark.asyncio

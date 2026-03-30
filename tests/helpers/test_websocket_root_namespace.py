@@ -69,10 +69,6 @@ async def test_root_namespace_request_style_calls_resolve_with_no_handlers() -> 
         def requires_csrf(cls) -> bool:
             return False
 
-        @classmethod
-        def get_event_types(cls) -> list[str]:
-            return ["hello_request"]
-
         async def process_event(self, event_type: str, data: dict[str, Any], sid: str):
             calls.append(sid)
             return {"hello": True}
@@ -141,10 +137,6 @@ async def test_root_namespace_fire_and_forget_does_not_invoke_application_handle
         @classmethod
         def requires_csrf(cls) -> bool:
             return False
-
-        @classmethod
-        def get_event_types(cls) -> list[str]:
-            return ["hello_request"]
 
         async def process_event(self, event_type: str, data: dict[str, Any], sid: str):
             calls.append(sid)
