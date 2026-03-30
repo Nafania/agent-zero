@@ -79,9 +79,7 @@ class TestLoadProfileSettings:
     @pytest.mark.asyncio
     async def test_loads_settings_from_profile(self, mock_agent):
         mock_agent.config.profile = "test_profile"
-        mock_agent.config.memory_subdir = "mem"
         mock_agent.config.mcp_servers = []
-        mock_agent.config.browser_http_headers = {}
 
         with patch(
             "extensions.python.agent_init._15_load_profile_settings.subagents.get_paths",

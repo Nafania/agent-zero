@@ -20,23 +20,10 @@ pytestmark = pytest.mark.skipif(_agent_mod is None, reason="Cannot import agent 
 
 
 @pytest.fixture
-def mock_model_config():
-    cfg = MagicMock()
-    cfg.provider = "openai"
-    cfg.name = "gpt-4"
-    cfg.build_kwargs.return_value = {}
-    return cfg
-
-
-@pytest.fixture
-def mock_agent_config(mock_model_config):
+def mock_agent_config():
     from agent import AgentConfig
 
     return AgentConfig(
-        chat_model=mock_model_config,
-        utility_model=mock_model_config,
-        embeddings_model=mock_model_config,
-        browser_model=mock_model_config,
         mcp_servers="",
     )
 
@@ -51,20 +38,13 @@ class TestAgentContextType:
 
 
 class TestAgentConfig:
-    def test_agent_config_stores_model_configs(self, mock_agent_config):
-        assert mock_agent_config.chat_model is not None
-        assert mock_agent_config.utility_model is not None
-        assert mock_agent_config.embeddings_model is not None
-        assert mock_agent_config.browser_model is not None
+    def test_agent_config_fields(self, mock_agent_config):
         assert mock_agent_config.mcp_servers == ""
 
     def test_agent_config_defaults(self, mock_agent_config):
         assert mock_agent_config.profile == ""
-        assert mock_agent_config.memory_subdir == ""
         assert mock_agent_config.knowledge_subdirs == ["default", "custom"]
-        assert mock_agent_config.code_exec_ssh_enabled is True
-        assert mock_agent_config.code_exec_ssh_addr == "localhost"
-        assert mock_agent_config.code_exec_ssh_port == 55022
+        assert mock_agent_config.additional == {}
 
 
 class TestUserMessage:
@@ -405,63 +385,59 @@ class TestAgent:
         agent.set_data("foo", "bar")
         assert agent.get_data("foo") == "bar"
 
-    def test_agent_get_chat_model_calls_models(self, mock_agent_config):
-        from agent import Agent, AgentContext
+    def test_agent_get_chat_model_returns_model_from_plugin(self, mock_agent_config):
+        from agent import Agent
 
         with (
             patch("agent.call_extensions", new_callable=AsyncMock, return_value=None),
             patch("agent.AgentContext") as mock_ctx_cls,
-            patch("models.get_chat_model") as mock_get,
         ):
             mock_ctx = MagicMock()
             mock_ctx.id = "test-ctx"
             mock_ctx.data = {}
             mock_ctx_cls.return_value = mock_ctx
             agent = Agent(0, mock_agent_config, mock_ctx)
-            agent.get_chat_model()
-            mock_get.assert_called_once()
+            result = agent.get_chat_model()
+            assert result is not None
 
-    def test_agent_get_utility_model_calls_models(self, mock_agent_config):
-        from agent import Agent, AgentContext
-
-        with (
-            patch("agent.call_extensions", new_callable=AsyncMock, return_value=None),
-            patch("agent.AgentContext") as mock_ctx_cls,
-            patch("models.get_chat_model") as mock_get,
-        ):
-            mock_ctx = MagicMock()
-            mock_ctx_cls.return_value = mock_ctx
-            agent = Agent(0, mock_agent_config, mock_ctx)
-            agent.get_utility_model()
-            mock_get.assert_called_once()
-
-    def test_agent_get_browser_model_calls_models(self, mock_agent_config):
-        from agent import Agent, AgentContext
+    def test_agent_get_utility_model_returns_model_from_plugin(self, mock_agent_config):
+        from agent import Agent
 
         with (
             patch("agent.call_extensions", new_callable=AsyncMock, return_value=None),
             patch("agent.AgentContext") as mock_ctx_cls,
-            patch("models.get_browser_model") as mock_get,
         ):
             mock_ctx = MagicMock()
             mock_ctx_cls.return_value = mock_ctx
             agent = Agent(0, mock_agent_config, mock_ctx)
-            agent.get_browser_model()
-            mock_get.assert_called_once()
+            result = agent.get_utility_model()
+            assert result is not None
 
-    def test_agent_get_embedding_model_calls_models(self, mock_agent_config):
-        from agent import Agent, AgentContext
+    def test_agent_get_browser_model_returns_model_from_plugin(self, mock_agent_config):
+        from agent import Agent
 
         with (
             patch("agent.call_extensions", new_callable=AsyncMock, return_value=None),
             patch("agent.AgentContext") as mock_ctx_cls,
-            patch("models.get_embedding_model") as mock_get,
         ):
             mock_ctx = MagicMock()
             mock_ctx_cls.return_value = mock_ctx
             agent = Agent(0, mock_agent_config, mock_ctx)
-            agent.get_embedding_model()
-            mock_get.assert_called_once()
+            result = agent.get_browser_model()
+            assert result is not None
+
+    def test_agent_get_embedding_model_returns_model_from_plugin(self, mock_agent_config):
+        from agent import Agent
+
+        with (
+            patch("agent.call_extensions", new_callable=AsyncMock, return_value=None),
+            patch("agent.AgentContext") as mock_ctx_cls,
+        ):
+            mock_ctx = MagicMock()
+            mock_ctx_cls.return_value = mock_ctx
+            agent = Agent(0, mock_agent_config, mock_ctx)
+            result = agent.get_embedding_model()
+            assert result is not None
 
     def test_agent_build_metrics_context(self, agent_with_mocked_extensions):
         agent = agent_with_mocked_extensions

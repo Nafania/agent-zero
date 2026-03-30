@@ -82,17 +82,18 @@ class TestIncludeAgentInfo:
     async def test_adds_agent_info_to_extras(self, mock_agent, mock_loop_data):
         mock_loop_data.extras_temporary = {}
         mock_agent.config.profile = "Default"
-        mock_agent.config.chat_model = MagicMock()
-        mock_agent.config.chat_model.provider = "openai"
-        mock_agent.config.chat_model.name = "gpt-4"
         mock_agent.read_prompt.return_value = "Agent 0 info"
 
-        from extensions.python.message_loop_prompts_after._70_include_agent_info import (
-            IncludeAgentInfo,
-        )
+        with patch(
+            "plugins.model_config.helpers.model_config.get_chat_model_config",
+            return_value={"provider": "openai", "name": "gpt-4"},
+        ):
+            from extensions.python.message_loop_prompts_after._70_include_agent_info import (
+                IncludeAgentInfo,
+            )
 
-        ext = IncludeAgentInfo(agent=mock_agent)
-        await ext.execute(loop_data=mock_loop_data)
+            ext = IncludeAgentInfo(agent=mock_agent)
+            await ext.execute(loop_data=mock_loop_data)
 
         assert "agent_info" in mock_loop_data.extras_temporary
         mock_agent.read_prompt.assert_called_with(

@@ -22,8 +22,6 @@ class TestSystemPrompt:
             return f"prompt:{p}"
 
         mock_agent.read_prompt.side_effect = read_prompt
-        mock_agent.config.chat_model = MagicMock()
-        mock_agent.config.chat_model.vision = False
         mock_agent.context.get_data = MagicMock(return_value=None)
 
         with patch(
@@ -35,6 +33,9 @@ class TestSystemPrompt:
         ), patch(
             "extensions.python.system_prompt._10_system_prompt.get_settings",
             return_value={"variables": {}},
+        ), patch(
+            "plugins.model_config.helpers.model_config.get_chat_model_config",
+            return_value={"vision": False},
         ):
             from extensions.python.system_prompt._10_system_prompt import SystemPrompt
 

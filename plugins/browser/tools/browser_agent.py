@@ -43,6 +43,17 @@ class State:
             / f"agent_{self.agent.context.id}"
         )
 
+    def _get_browser_http_headers(self) -> dict:
+        from helpers import plugins
+        cfg = plugins.get_plugin_config("browser", agent=self.agent) or {}
+        return cfg.get("http_headers", {})
+
+    def _get_browser_vision(self) -> bool:
+        from plugins.model_config.helpers.model_config import get_browser_model_config
+        cfg = get_browser_model_config(self.agent)
+        # Default True for browser (visual tasks) vs False for chat model (text-first)
+        return bool(cfg.get("vision", True))
+
     async def _initialize(self):
         if self.browser_session:
             return
@@ -64,7 +75,7 @@ class State:
                 viewport={"width": 1024, "height": 2048},
                 no_viewport=False,
                 user_data_dir=self.get_user_data_dir(),
-                extra_http_headers=self.agent.config.browser_http_headers or {},
+                extra_http_headers=self._get_browser_http_headers(),
                 )
         )
 
@@ -152,7 +163,7 @@ class State:
                 task=task,
                 browser_session=self.browser_session,
                 llm=model,
-                use_vision=self.agent.config.browser_model.vision,
+                use_vision=self._get_browser_vision(),
                 extend_system_message=self.agent.read_prompt(
                     "prompts/browser_agent.system.md"
                 ),

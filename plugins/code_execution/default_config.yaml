@@ -1,0 +1,5 @@
+ssh_enabled: true
+ssh_addr: "localhost"
+ssh_port: 55022
+ssh_user: "root"
+ssh_pass: ""

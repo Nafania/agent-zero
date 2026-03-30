@@ -21,7 +21,7 @@ except (ImportError, AttributeError) as e:
 def mock_agent():
     agent = MagicMock()
     agent.config = MagicMock()
-    agent.config.code_exec_ssh_enabled = False
+    agent.config.profile = ""
     agent.handle_intervention = AsyncMock()
     agent.read_prompt = MagicMock(side_effect=lambda t, **kw: f"Prompt:{t}")
     agent.get_data = MagicMock(return_value=None)
@@ -217,14 +217,15 @@ class TestCodeExecutionExecuteTerminal:
 
     @pytest.mark.asyncio
     async def test_execute_terminal_ps_prefix_on_windows(self, mock_agent):
-        mock_agent.config.code_exec_ssh_enabled = False
         t = CodeExecution(mock_agent, "ce", None, {"runtime": "terminal", "code": "dir", "session": 0}, "", None)
         mock_terminal = AsyncMock(return_value="ok")
+        ssh_cfg = {"ssh_enabled": False, "ssh_addr": "localhost", "ssh_port": 55022, "ssh_user": "root", "ssh_pass": ""}
         with patch("plugins.code_execution.tools.code_execution_tool.runtime") as mock_runtime:
             mock_runtime.is_windows.return_value = True
             with patch.object(t, "terminal_session", mock_terminal):
                 with patch.object(t, "prepare_state", new_callable=AsyncMock):
-                    result = await t.execute_terminal_command(session=0, command="dir", reset=False)
+                    with patch.object(t, "_get_ssh_config", return_value=ssh_cfg):
+                        result = await t.execute_terminal_command(session=0, command="dir", reset=False)
         call_args = mock_terminal.call_args[0]
         prefix = call_args[3] if len(call_args) > 3 else ""
         assert "PS>" in prefix
@@ -280,10 +281,11 @@ class TestCodeExecutionPrepareStateReset:
         mock_shell.close = AsyncMock()
         existing = State(shells={0: ShellWrap(0, mock_shell, True)}, ssh_enabled=False)
         mock_agent.get_data.return_value = existing
-        mock_agent.config.code_exec_ssh_enabled = False
+        ssh_cfg = {"ssh_enabled": False, "ssh_addr": "localhost", "ssh_port": 55022, "ssh_user": "root", "ssh_pass": ""}
 
         t = CodeExecution(mock_agent, "ce", None, {"runtime": "python", "code": "x", "session": 0}, "", None)
-        with patch("plugins.code_execution.tools.code_execution_tool.projects.get_context_project_name", return_value=None):
+        with patch.object(t, "_get_ssh_config", return_value=ssh_cfg):
+          with patch("plugins.code_execution.tools.code_execution_tool.projects.get_context_project_name", return_value=None):
             with patch("plugins.code_execution.tools.code_execution_tool.settings.get_settings") as mock_settings:
                 mock_settings.return_value.get.return_value = str(tmp_path)
                 with patch("plugins.code_execution.tools.code_execution_tool.files.normalize_a0_path", return_value=str(tmp_path)):
