@@ -197,14 +197,14 @@ class TestImportModule:
         mod_file = tmp_path / "test_mod.py"
         mod_file.write_text("X = 42\n")
 
-        with patch("helpers.extract_tools.get_abs_path", return_value=str(mod_file)):
+        with patch("helpers.modules.get_abs_path", return_value=str(mod_file)):
             mod = import_module("test_mod.py")
             assert mod.X == 42
 
     def test_import_module_missing_file_raises(self):
         from helpers.extract_tools import import_module
 
-        with patch("helpers.extract_tools.get_abs_path", return_value="/nonexistent/mod.py"):
+        with patch("helpers.modules.get_abs_path", return_value="/nonexistent/mod.py"):
             with patch("importlib.util.spec_from_file_location", return_value=None):
                 with pytest.raises(ImportError, match="Could not load"):
                     import_module("mod.py")
@@ -228,7 +228,7 @@ class MyTool(Base):
     pass
 """)
 
-        with patch("helpers.extract_tools.get_abs_path", return_value=str(mod_file)):
+        with patch("helpers.modules.get_abs_path", return_value=str(mod_file)):
             classes = load_classes_from_file("plugin.py", object, one_per_file=False)
             assert len(classes) >= 1
             assert any(c.__name__ == "MyTool" for c in classes)
@@ -248,7 +248,7 @@ class B(Base):
     pass
 """)
 
-        with patch("helpers.extract_tools.get_abs_path", return_value=str(mod_file)):
+        with patch("helpers.modules.get_abs_path", return_value=str(mod_file)):
             classes = load_classes_from_file("multi.py", object, one_per_file=True)
             assert len(classes) == 1
 
@@ -288,7 +288,7 @@ class ToolB(Base):
                 return str(tmp_path / joined)
             return str(tmp_path)
 
-        with patch("helpers.extract_tools.get_abs_path", side_effect=mock_get_abs_path):
+        with patch("helpers.modules.get_abs_path", side_effect=mock_get_abs_path):
             classes = load_classes_from_folder(
                 str(tmp_path), "tool_*.py", object, one_per_file=True
             )

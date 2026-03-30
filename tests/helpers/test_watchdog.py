@@ -218,3 +218,29 @@ class TestAddWatchdog:
             assert len(called) > 0, "handler was not called within 3 seconds"
         finally:
             remove_watchdog("test-handler-trigger")
+
+    def test_debounce_batches_events(self, tmp_path):
+        """Multiple rapid file changes within the debounce window should be
+        batched into a single handler call."""
+        batches: list[list] = []
+        add_watchdog(
+            id="test-debounce-batch",
+            roots=[str(tmp_path)],
+            debounce=0.3,
+            handler=lambda items: batches.append(list(items)),
+        )
+        try:
+            for i in range(5):
+                (tmp_path / f"file_{i}.txt").write_text(f"content {i}")
+                time.sleep(0.02)
+            deadline = time.monotonic() + 3
+            while not batches and time.monotonic() < deadline:
+                time.sleep(0.1)
+            assert len(batches) > 0, "handler was never called"
+            assert len(batches) <= 2, (
+                f"expected batching to collapse events, got {len(batches)} calls"
+            )
+            total_items = sum(len(b) for b in batches)
+            assert total_items >= 2, "expected multiple events in the batch"
+        finally:
+            remove_watchdog("test-debounce-batch")

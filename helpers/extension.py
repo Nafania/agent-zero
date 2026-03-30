@@ -314,3 +314,13 @@ def register_extensions_watchdogs():
         patterns=[f"*/{files.EXTENSIONS_DIR}/**/*"],
         handler=extensions_changed,
     )
+
+    watchdog.add_watchdog(
+        id="extensions_plugins",
+        roots=[
+            files.get_abs_path(files.PLUGINS_DIR),
+            files.get_abs_path(files.USER_DIR, files.PLUGINS_DIR),
+        ],
+        patterns=[f"*/{files.EXTENSIONS_DIR}/**/*"],
+        handler=extensions_changed,
+    )
