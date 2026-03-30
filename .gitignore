@@ -6,7 +6,8 @@
 **/.conda/
 
 #Ignore IDE files
-.cursor/
+.cursor/*
+!.cursor/rules/
 .windsurf/
 
 # ignore test files in root dir
