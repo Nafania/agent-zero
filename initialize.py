@@ -1,120 +1,20 @@
 from agent import AgentConfig
-import models
 from helpers import runtime, settings, defer, extension
-from helpers.print_style import PrintStyle
 
 
 @extension.extensible
-def initialize_agent(override_settings: dict | None = None, chat_id: str | None = None):
+def initialize_agent(override_settings: dict | None = None):
     current_settings = settings.get_settings()
     if override_settings:
         current_settings = settings.merge_settings(current_settings, override_settings)
     current_settings = settings.normalize_settings(current_settings)
 
-    def _normalize_model_kwargs(kwargs: dict) -> dict:
-        # convert string values that represent valid Python numbers to numeric types
-        result = {}
-        for key, value in kwargs.items():
-            if isinstance(value, str):
-                # try to convert string to number if it's a valid Python number
-                try:
-                    # try int first, then float
-                    result[key] = int(value)
-                except ValueError:
-                    try:
-                        result[key] = float(value)
-                    except ValueError:
-                        result[key] = value
-            else:
-                result[key] = value
-        return result
-
-    # chat model from user settings
-    chat_llm = models.ModelConfig(
-        type=models.ModelType.CHAT,
-        provider=current_settings["chat_model_provider"],
-        name=current_settings["chat_model_name"],
-        api_base=current_settings["chat_model_api_base"],
-        ctx_length=current_settings["chat_model_ctx_length"],
-        vision=current_settings["chat_model_vision"],
-        limit_requests=current_settings["chat_model_rl_requests"],
-        limit_input=current_settings["chat_model_rl_input"],
-        limit_output=current_settings["chat_model_rl_output"],
-        kwargs=_normalize_model_kwargs(current_settings["chat_model_kwargs"]),
-    )
-
-    if chat_id:
-        from api.chat_model_override import _load_override
-        chat_override = _load_override(chat_id)
-        if chat_override:
-            from helpers.connected_providers import ProviderPool
-            pool = ProviderPool.get_instance()
-            if pool.is_connected(chat_override["provider"]):
-                from helpers.providers import get_provider_config
-                provider_cfg = get_provider_config("chat", chat_override["provider"]) or {}
-                api_base = (provider_cfg.get("kwargs") or {}).get("api_base", "") or ""
-                chat_llm = models.ModelConfig(
-                    type=models.ModelType.CHAT,
-                    provider=chat_override["provider"],
-                    name=chat_override["model"],
-                    api_base=api_base,
-                    ctx_length=current_settings["chat_model_ctx_length"],
-                    vision=current_settings["chat_model_vision"],
-                    limit_requests=current_settings["chat_model_rl_requests"],
-                    limit_input=current_settings["chat_model_rl_input"],
-                    limit_output=current_settings["chat_model_rl_output"],
-                    kwargs=_normalize_model_kwargs(current_settings["chat_model_kwargs"]),
-                )
-
-    # utility model from user settings
-    utility_llm = models.ModelConfig(
-        type=models.ModelType.CHAT,
-        provider=current_settings["util_model_provider"],
-        name=current_settings["util_model_name"],
-        api_base=current_settings["util_model_api_base"],
-        ctx_length=current_settings["util_model_ctx_length"],
-        limit_requests=current_settings["util_model_rl_requests"],
-        limit_input=current_settings["util_model_rl_input"],
-        limit_output=current_settings["util_model_rl_output"],
-        kwargs=_normalize_model_kwargs(current_settings["util_model_kwargs"]),
-    )
-    # embedding model from user settings
-    embedding_llm = models.ModelConfig(
-        type=models.ModelType.EMBEDDING,
-        provider=current_settings["embed_model_provider"],
-        name=current_settings["embed_model_name"],
-        api_base=current_settings["embed_model_api_base"],
-        limit_requests=current_settings["embed_model_rl_requests"],
-        kwargs=_normalize_model_kwargs(current_settings["embed_model_kwargs"]),
-    )
-    # browser model from user settings
-    browser_llm = models.ModelConfig(
-        type=models.ModelType.CHAT,
-        provider=current_settings["browser_model_provider"],
-        name=current_settings["browser_model_name"],
-        api_base=current_settings["browser_model_api_base"],
-        vision=current_settings["browser_model_vision"],
-        kwargs=_normalize_model_kwargs(current_settings["browser_model_kwargs"]),
-    )
-    # agent configuration
     config = AgentConfig(
-        chat_model=chat_llm,
-        utility_model=utility_llm,
-        embeddings_model=embedding_llm,
-        browser_model=browser_llm,
         profile=current_settings["agent_profile"],
-        memory_subdir="default",
         knowledge_subdirs=["default"],
         mcp_servers=current_settings["mcp_servers"],
-        browser_http_headers=current_settings["browser_http_headers"],
-        # code_exec params get initialized in _set_runtime_config
-        # additional = {},
     )
 
-    # update SSH and docker settings
-    _set_runtime_config(config, current_settings)
-
-    # update config with runtime args
     _args_override(config)
 
     # initialize MCP in deferred task to prevent blocking the main thread
@@ -220,8 +120,3 @@ def _args_override(config):
             setattr(config, key, value)
 
 
-def _set_runtime_config(config: AgentConfig, set: settings.Settings):
-    ssh_conf = settings.get_runtime_config(set)
-    for key, value in ssh_conf.items():
-        if hasattr(config, key):
-            setattr(config, key, value)

@@ -114,39 +114,49 @@ class CodeExecution(Tool):
     async def after_execution(self, response, **kwargs):
         self.agent.hist_add_tool_result(self.name, response.message, **(response.additional or {}))
 
+    def _get_ssh_config(self) -> dict:
+        from helpers import plugins
+        cfg = plugins.get_plugin_config("code_execution", agent=self.agent) or {}
+        from helpers import settings as settings_helper, runtime
+        current_settings = settings_helper.get_settings()
+        runtime_cfg = settings_helper.get_runtime_config(current_settings)
+        return {
+            "ssh_enabled": runtime_cfg.get("code_exec_ssh_enabled", cfg.get("ssh_enabled", True)),
+            "ssh_addr": runtime_cfg.get("code_exec_ssh_addr", cfg.get("ssh_addr", "localhost")),
+            "ssh_port": runtime_cfg.get("code_exec_ssh_port", cfg.get("ssh_port", 55022)),
+            "ssh_user": runtime_cfg.get("code_exec_ssh_user", cfg.get("ssh_user", "root")),
+            "ssh_pass": cfg.get("ssh_pass", ""),
+        }
+
     async def prepare_state(self, reset=False, session: int | None = None):
+        ssh_cfg = self._get_ssh_config()
         self.state: State | None = self.agent.get_data("_cet_state")
-        # always reset state when ssh_enabled changes
-        if not self.state or self.state.ssh_enabled != self.agent.config.code_exec_ssh_enabled:
-            # initialize shells dictionary if not exists
+        if not self.state or self.state.ssh_enabled != ssh_cfg["ssh_enabled"]:
             shells: dict[int, ShellWrap] = {}
         else:
             shells = self.state.shells.copy()
 
-        # Only reset the specified session if provided
         if reset and session is not None and session in shells:
             await shells[session].session.close()
             del shells[session]
         elif reset and not session:
-            # Close all sessions if full reset requested
             for s in list(shells.keys()):
                 await shells[s].session.close()
             shells = {}
 
-        # initialize local or remote interactive shell interface for session 0 if needed
         if session is not None and session not in shells:
             cwd = await self.ensure_cwd()
-            if self.agent.config.code_exec_ssh_enabled:
+            if ssh_cfg["ssh_enabled"]:
                 pswd = (
-                    self.agent.config.code_exec_ssh_pass
-                    if self.agent.config.code_exec_ssh_pass
+                    ssh_cfg["ssh_pass"]
+                    if ssh_cfg["ssh_pass"]
                     else await rfc_exchange.get_root_password()
                 )
                 shell = SSHInteractiveSession(
                     self.agent.context.log,
-                    self.agent.config.code_exec_ssh_addr,
-                    self.agent.config.code_exec_ssh_port,
-                    self.agent.config.code_exec_ssh_user,
+                    ssh_cfg["ssh_addr"],
+                    ssh_cfg["ssh_port"],
+                    ssh_cfg["ssh_user"],
                     pswd,
                     cwd=cwd,
                 )
@@ -156,7 +166,7 @@ class CodeExecution(Tool):
             shells[session] = ShellWrap(id=session, session=shell, running=False)
             await shell.connect()
 
-        self.state = State(shells=shells, ssh_enabled=self.agent.config.code_exec_ssh_enabled)
+        self.state = State(shells=shells, ssh_enabled=ssh_cfg["ssh_enabled"])
         self.agent.set_data("_cet_state", self.state)
         return self.state
 
@@ -175,7 +185,8 @@ class CodeExecution(Tool):
     async def execute_terminal_command(
         self, session: int, command: str, reset: bool = False
     ):
-        prefix = ("bash>" if not runtime.is_windows() or self.agent.config.code_exec_ssh_enabled else "PS>") + self.format_command_for_output(command) + "\n\n"
+        ssh_cfg = self._get_ssh_config()
+        prefix = ("bash>" if not runtime.is_windows() or ssh_cfg["ssh_enabled"] else "PS>") + self.format_command_for_output(command) + "\n\n"
         return await self.terminal_session(session, command, reset, prefix)
 
     async def terminal_session(

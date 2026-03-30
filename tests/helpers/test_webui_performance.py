@@ -319,14 +319,15 @@ class TestChatRenameRefresh:
         ext.agent.context = MagicMock()
         ext.agent.context.name = "Old Name"
         ext.agent.history.output_text.return_value = "hi"
-        ext.agent.config.utility_model.ctx_length = 1000
         ext.agent.read_prompt = MagicMock(return_value="prompt")
         ext.agent.call_utility_model = fake_call_utility_model
 
         with patch("extensions.python.monologue_start._60_rename_chat.persist_chat") as mock_persist, \
              patch("extensions.python.monologue_start._60_rename_chat.tokens") as mock_tokens, \
              patch("helpers.state_snapshot.touch_chat_list") as mock_touch, \
-             patch("helpers.state_monitor_integration.mark_dirty_all") as mock_dirty:
+             patch("helpers.state_monitor_integration.mark_dirty_all") as mock_dirty, \
+             patch("plugins.model_config.helpers.model_config.get_utility_model_config",
+                   return_value={"ctx_length": 1000}):
             mock_tokens.trim_to_tokens.return_value = "hi"
             asyncio.get_event_loop().run_until_complete(
                 RenameChat.change_name(ext)

@@ -35,13 +35,14 @@ class TestRenameChat:
     async def test_schedules_rename_task(self, mock_agent, mock_loop_data):
         mock_agent.history = MagicMock()
         mock_agent.history.output_text.return_value = "chat history"
-        mock_agent.config.utility_model = MagicMock()
-        mock_agent.config.utility_model.ctx_length = 8000
         mock_agent.context.name = "Chat 1"
 
         with patch(
             "extensions.python.monologue_start._60_rename_chat.asyncio.create_task",
-        ) as mock_create:
+        ) as mock_create, patch(
+            "plugins.model_config.helpers.model_config.get_utility_model_config",
+            return_value={"ctx_length": 8000},
+        ):
             from extensions.python.monologue_start._60_rename_chat import RenameChat
 
             ext = RenameChat(agent=mock_agent)
@@ -53,14 +54,14 @@ class TestRenameChat:
     async def test_change_name_trims_long_name(self, mock_agent):
         mock_agent.history = MagicMock()
         mock_agent.history.output_text.return_value = "short history"
-        mock_agent.config.utility_model = MagicMock()
-        mock_agent.config.utility_model.ctx_length = 8000
         mock_agent.context.name = "Old Chat"
         mock_agent.read_prompt = MagicMock(side_effect=lambda t, **kw: "sys" if "sys" in t else ("x" * 50))
         mock_agent.call_utility_model = AsyncMock(return_value="A" * 50)
         mock_agent.context.id = "ctx-1"
 
-        with patch("extensions.python.monologue_start._60_rename_chat.persist_chat.save_tmp_chat", MagicMock()):
+        with patch("extensions.python.monologue_start._60_rename_chat.persist_chat.save_tmp_chat", MagicMock()), \
+             patch("plugins.model_config.helpers.model_config.get_utility_model_config",
+                   return_value={"ctx_length": 8000}):
             from extensions.python.monologue_start._60_rename_chat import RenameChat
 
             ext = RenameChat(agent=mock_agent)
@@ -72,14 +73,14 @@ class TestRenameChat:
     async def test_change_name_saves_context(self, mock_agent):
         mock_agent.history = MagicMock()
         mock_agent.history.output_text.return_value = "history"
-        mock_agent.config.utility_model = MagicMock()
-        mock_agent.config.utility_model.ctx_length = 8000
         mock_agent.context.name = "Old"
         mock_agent.read_prompt = MagicMock(side_effect=lambda t, **kw: "sys" if "sys" in t else "New Name")
         mock_agent.call_utility_model = AsyncMock(return_value="New Name")
         mock_agent.context.id = "ctx-1"
 
-        with patch("extensions.python.monologue_start._60_rename_chat.persist_chat.save_tmp_chat", MagicMock()) as mock_save:
+        with patch("extensions.python.monologue_start._60_rename_chat.persist_chat.save_tmp_chat", MagicMock()) as mock_save, \
+             patch("plugins.model_config.helpers.model_config.get_utility_model_config",
+                   return_value={"ctx_length": 8000}):
             from extensions.python.monologue_start._60_rename_chat import RenameChat
 
             ext = RenameChat(agent=mock_agent)
@@ -92,13 +93,13 @@ class TestRenameChat:
     async def test_change_name_handles_empty_response(self, mock_agent):
         mock_agent.history = MagicMock()
         mock_agent.history.output_text.return_value = "history"
-        mock_agent.config.utility_model = MagicMock()
-        mock_agent.config.utility_model.ctx_length = 8000
         mock_agent.context.name = "Original"
         mock_agent.read_prompt = MagicMock(return_value="prompt")
         mock_agent.call_utility_model = AsyncMock(return_value=None)
 
-        with patch("extensions.python.monologue_start._60_rename_chat.persist_chat.save_tmp_chat", MagicMock()):
+        with patch("extensions.python.monologue_start._60_rename_chat.persist_chat.save_tmp_chat", MagicMock()), \
+             patch("plugins.model_config.helpers.model_config.get_utility_model_config",
+                   return_value={"ctx_length": 8000}):
             from extensions.python.monologue_start._60_rename_chat import RenameChat
 
             ext = RenameChat(agent=mock_agent)

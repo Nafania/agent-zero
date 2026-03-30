@@ -30,9 +30,7 @@ def mock_agent():
     agent = MagicMock()
     agent.handle_intervention = AsyncMock()
     agent.config = MagicMock()
-    agent.config.browser_model = MagicMock()
-    agent.config.browser_model.vision = True
-    agent.config.browser_http_headers = {}
+    agent.config.profile = ""
     agent.context = MagicMock()
     agent.context.id = "test-ctx-001"
     agent.context.generate_id = MagicMock(return_value="guid-123")

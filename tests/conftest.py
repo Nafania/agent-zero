@@ -11,8 +11,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 def mock_agent():
     agent = MagicMock()
     agent.config = MagicMock()
-    agent.config.chat_model = "openrouter/test-model"
-    agent.config.embeddings_model = "openai/text-embedding-3-small"
+    agent.config.profile = ""
     agent.context = MagicMock()
     agent.context.id = "test-ctx-001"
     agent.context.log = MagicMock()

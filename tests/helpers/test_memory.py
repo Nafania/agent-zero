@@ -387,7 +387,6 @@ class TestMemoryCallsConfigureCognee:
         mock_agent.context = MagicMock()
         mock_agent.context.config = MagicMock()
         mock_agent.context.config.knowledge_subdirs = []
-        mock_agent.context.config.memory_subdir = "default"
 
         with patch("plugins.memory.helpers.memory.get_agent_memory_subdir", return_value="default"), \
              patch("plugins.memory.helpers.memory.get_knowledge_subdirs_by_memory_subdir", return_value=[]):

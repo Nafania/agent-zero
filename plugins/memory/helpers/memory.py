@@ -632,7 +632,9 @@ def get_context_memory_subdir(context: AgentContext) -> str:
     memory_subdir = get_project_memory_subdir(context)
     if memory_subdir:
         return memory_subdir
-    return context.config.memory_subdir or "default"
+    from helpers import plugins
+    cfg = plugins.get_plugin_config("memory", agent=context.streaming_agent or (context.agents[0] if context.agents else None)) or {}
+    return cfg.get("memory_subdir", "default")
 
 
 def get_existing_memory_subdirs() -> list[str]:

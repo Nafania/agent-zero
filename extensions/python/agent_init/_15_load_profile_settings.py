@@ -36,15 +36,11 @@ class LoadProfileSettings(Extension):
             current_config = self.agent.config
             new_config = initialize_agent(override_settings=settings_override)
 
-            for override_key, config_attr in (
-                ("agent_profile", "profile"),
-                ("mcp_servers", "mcp_servers"),
-                ("browser_http_headers", "browser_http_headers"),
-            ):
-                if override_key not in settings_override:
+            for config_attr in ("profile", "mcp_servers"):
+                if config_attr not in settings_override and config_attr != "profile":
                     setattr(new_config, config_attr, getattr(current_config, config_attr))
-            # agent_memory_subdir removed from settings; subagent keeps parent's memory namespace
-            new_config.memory_subdir = current_config.memory_subdir
+            if "agent_profile" not in settings_override:
+                new_config.profile = current_config.profile
             self.agent.config = new_config
             # self.agent.context.log.log(
             #     type="info",
