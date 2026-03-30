@@ -517,7 +517,7 @@ def find_plugin_assets(
 
     if project_name:
         if agent_profile:
-            path = projects.get_project_meta(
+            path = projects.get_project_meta_folder(
                 project_name,
                 files.AGENTS_DIR,
                 agent_profile,
@@ -528,7 +528,7 @@ def find_plugin_assets(
             if _collect(path, project_name, agent_profile):
                 return results
         if not agent_profile or agent_profile == "*":
-            path = projects.get_project_meta(
+            path = projects.get_project_meta_folder(
                 project_name, files.PLUGINS_DIR, plugin_name, *subpaths
             )
             if _collect(path, project_name, ""):
@@ -585,7 +585,7 @@ def determine_plugin_asset_path(
     if project_name:
         from helpers import projects
 
-        base_path = projects.get_project_meta(project_name)
+        base_path = projects.get_project_meta_folder(project_name)
 
     if agent_profile:
         base_path = files.get_abs_path(base_path, files.AGENTS_DIR, agent_profile)
