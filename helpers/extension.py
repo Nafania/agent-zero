@@ -16,6 +16,11 @@ if TYPE_CHECKING:
 _EXTENSIONS_CACHE_AREA = "extension_folder_classes(extensions)"
 _CLASSES_CACHE_AREA = "extension_classes(extensions)"
 
+# Disable extension caches until register_extensions_watchdogs() is called.
+# Without watchdog invalidation, cached classes would never reflect FS changes.
+cache.toggle_area(_EXTENSIONS_CACHE_AREA, False)
+cache.toggle_area(_CLASSES_CACHE_AREA, False)
+
 
 class _Unset:
     pass
@@ -37,7 +42,7 @@ def _log_extension_call(name: str):
     _EXTENSIONS_LOG_COUNTS["_total"] = _EXTENSIONS_LOG_COUNTS.get("_total", 0) + 1
     if _EXTENSIONS_LOG_COUNTS["_total"] % every == 0:
         for key, count in _EXTENSIONS_LOG_COUNTS.items():
-            print(f"{str(count):<6} {key}")
+            PrintStyle.debug(f"{str(count):<6} {key}")
 
 
 def extensible(func):
@@ -49,13 +54,22 @@ def extensible(func):
     """
 
     def _get_agent(args, kwargs):
-        from agent import Agent
+        try:
+            from agent import Agent
+        except (ImportError, TypeError):
+            return None
         candidate = kwargs.get("agent")
-        if isinstance(candidate, Agent) and bool(getattr(candidate, "__dict__", None)):
-            return candidate
+        try:
+            if isinstance(candidate, Agent) and bool(getattr(candidate, "__dict__", None)):
+                return candidate
+        except TypeError:
+            pass
         for a in args:
-            if isinstance(a, Agent) and bool(getattr(a, "__dict__", None)):
-                return a
+            try:
+                if isinstance(a, Agent) and bool(getattr(a, "__dict__", None)):
+                    return a
+            except TypeError:
+                continue
         return None
 
     def _prepare_inputs(args, kwargs):
@@ -116,10 +130,11 @@ def extensible(func):
 
         if (result := _process_result(data)) is _UNSET:
             _call_original(data)
-            try:
-                data["result"] = await data["result"]
-            except Exception as e:
-                data["exception"] = e
+            if data.get("exception") is None:
+                try:
+                    data["result"] = await data["result"]
+                except Exception as e:
+                    data["exception"] = e
 
         await call_extensions_async(end_point, agent=agent, data=data)
 
@@ -265,6 +280,9 @@ def _get_extensions(folder: str) -> list[Type[Extension]]:
 
 def register_extensions_watchdogs():
     from helpers import watchdog, projects
+
+    cache.toggle_area(_EXTENSIONS_CACHE_AREA, True)
+    cache.toggle_area(_CLASSES_CACHE_AREA, True)
 
     def extensions_changed(items: list[watchdog.WatchItem]):
         cache.clear(_EXTENSIONS_CACHE_AREA)

@@ -1,6 +1,6 @@
-import re, os, importlib, importlib.util, inspect, sys
+import os, importlib, importlib.util, inspect, sys
 from types import ModuleType
-from typing import Any, Type, TypeVar
+from typing import Any, TypeVar
 from helpers.files import get_abs_path
 from fnmatch import fnmatch
 
@@ -9,6 +9,8 @@ T = TypeVar("T")  # Define a generic type variable
 
 
 def import_module(file_path: str) -> ModuleType:
+    # Does not register the module in sys.modules, so repeated calls re-execute
+    # the file — intentional for extension loading (isolated fresh namespace).
     abs_path = get_abs_path(file_path)
     module_name = os.path.basename(abs_path).replace(".py", "")
     spec = importlib.util.spec_from_file_location(module_name, abs_path)
@@ -20,8 +22,8 @@ def import_module(file_path: str) -> ModuleType:
 
 
 def load_classes_from_folder(
-    folder: str, name_pattern: str, base_class: Type[T], one_per_file: bool = True
-) -> list[Type[T]]:
+    folder: str, name_pattern: str, base_class: type[T], one_per_file: bool = True
+) -> list[type[T]]:
     classes = []
     abs_folder = get_abs_path(folder)
     py_files = sorted(

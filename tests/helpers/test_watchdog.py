@@ -1,7 +1,8 @@
-"""Tests for helpers/watchdog.py — pattern matching and normalization utilities."""
+"""Tests for helpers/watchdog.py — pattern matching, normalization, and public API."""
 
 import os
 import sys
+import time
 from pathlib import Path
 from unittest.mock import patch
 
@@ -19,6 +20,9 @@ from helpers.watchdog import (
     _normalize_patterns,
     _normalize_debounce,
     _VALID_EVENTS,
+    add_watchdog,
+    remove_watchdog,
+    clear_watchdogs,
 )
 
 
@@ -161,3 +165,56 @@ class TestNormalizeDebounce:
     def test_negative_raises(self):
         with pytest.raises(ValueError, match="debounce"):
             _normalize_debounce(-1)
+
+
+class TestAddWatchdog:
+    def test_handler_required(self):
+        with pytest.raises(ValueError, match="handler"):
+            add_watchdog(id="test-no-handler", roots=["/tmp"])
+
+    def test_add_and_remove(self, tmp_path):
+        called = []
+        add_watchdog(
+            id="test-add-remove",
+            roots=[str(tmp_path)],
+            handler=lambda items: called.append(items),
+        )
+        removed = remove_watchdog("test-add-remove")
+        assert removed is True
+
+    def test_remove_nonexistent(self):
+        removed = remove_watchdog("nonexistent-watch-id")
+        assert removed is False
+
+    def test_clear_all(self, tmp_path):
+        add_watchdog(
+            id="test-clear-1",
+            roots=[str(tmp_path)],
+            handler=lambda items: None,
+        )
+        add_watchdog(
+            id="test-clear-2",
+            roots=[str(tmp_path)],
+            handler=lambda items: None,
+        )
+        clear_watchdogs()
+        assert remove_watchdog("test-clear-1") is False
+        assert remove_watchdog("test-clear-2") is False
+
+    def test_handler_called_on_file_change(self, tmp_path):
+        called = []
+        add_watchdog(
+            id="test-handler-trigger",
+            roots=[str(tmp_path)],
+            debounce=0,
+            handler=lambda items: called.extend(items),
+        )
+        try:
+            test_file = tmp_path / "trigger.txt"
+            test_file.write_text("hello")
+            deadline = time.monotonic() + 3
+            while not called and time.monotonic() < deadline:
+                time.sleep(0.1)
+            assert len(called) > 0, "handler was not called within 3 seconds"
+        finally:
+            remove_watchdog("test-handler-trigger")

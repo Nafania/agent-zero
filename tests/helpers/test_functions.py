@@ -77,3 +77,21 @@ class TestSafeCallVarArgs:
         args, kwargs = safe_call(_both, 1, 2, x="a")
         assert args == (1, 2)
         assert kwargs == {"x": "a"}
+
+
+def _keyword_only(a, *, key=None, flag=False):
+    return (a, key, flag)
+
+
+class TestSafeCallKeywordOnly:
+    def test_keyword_only_accepted(self):
+        result = safe_call(_keyword_only, 1, key="x")
+        assert result == (1, "x", False)
+
+    def test_unknown_kwargs_dropped_with_keyword_only(self):
+        result = safe_call(_keyword_only, 1, key="x", unknown="y")
+        assert result == (1, "x", False)
+
+    def test_keyword_only_defaults(self):
+        result = safe_call(_keyword_only, 1)
+        assert result == (1, None, False)

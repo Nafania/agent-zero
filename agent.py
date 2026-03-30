@@ -957,7 +957,7 @@ class Agent:
             raise ValueError("Tool request must be a dictionary")
         if not tool_request.get("tool_name") or not isinstance(tool_request.get("tool_name"), str):
             raise ValueError("Tool request must have a tool_name (type string) field")
-        if not tool_request.get("tool_args") or not isinstance(tool_request.get("tool_args"), dict):
+        if "tool_args" not in tool_request or not isinstance(tool_request.get("tool_args"), dict):
             raise ValueError("Tool request must have a tool_args (type dictionary) field")
 
     @extensible
@@ -968,7 +968,6 @@ class Agent:
         if tool_request is not None:
             await self.validate_tool_request(tool_request)
 
-        if tool_request is not None:
             raw_tool_name = tool_request.get("tool_name", tool_request.get("tool",""))  # Get the raw tool name
             tool_args = tool_request.get("tool_args", tool_request.get("args", {}))
 
