@@ -18,6 +18,7 @@ from typing import (
 )
 
 from helpers import files, notification, print_style, yaml as yaml_helper, cache
+from helpers.print_style import PrintStyle
 from helpers import extract_tools
 from pydantic import BaseModel, Field
 
@@ -84,9 +85,28 @@ class PluginListItem(BaseModel):
     toggle_state: ToggleState = "disabled"
 
 
+def refresh_plugin_modules(plugin_names: list[str] | None = None):
+    """Purge plugin modules from sys.modules so they get re-imported fresh."""
+    from helpers import modules
+
+    if plugin_names is None:
+        plugin_names = get_plugins_list()
+
+    for name in plugin_names:
+        plugin_dir = find_plugin_dir(name)
+        if not plugin_dir:
+            continue
+        # Derive the Python namespace from the plugin directory structure
+        # e.g. "plugins/memory" -> "plugins.memory"
+        rel_path = files.deabsolute_path(plugin_dir)
+        namespace = rel_path.replace("/", ".").replace("\\", ".")
+        modules.purge_namespace(namespace)
+
+
 def after_plugin_change(plugin_names: list[str] | None = None, python_change: bool = False):
     clear_plugin_cache(plugin_names)
-    # TODO(a3): if python_change: refresh_plugin_modules(plugin_names)
+    if python_change:
+        refresh_plugin_modules(plugin_names)
     send_frontend_reload_notification(plugin_names)
 
 
@@ -638,6 +658,23 @@ def send_frontend_reload_notification(plugin_names: list[str] | None = None):
     DeferredTask().start_task(_send_later)
 
 
+def register_watchdogs():
+    from helpers import watchdog
+
+    def plugins_changed(items: list[watchdog.WatchItem]):
+        clear_plugin_cache()
+        PrintStyle.debug("Plugins watchdog triggered:", items)
+
+    watchdog.add_watchdog(
+        id="plugins_base",
+        roots=[
+            files.get_abs_path(files.PLUGINS_DIR),
+            files.get_abs_path(files.USER_DIR, files.PLUGINS_DIR),
+        ],
+        handler=plugins_changed,
+    )
+
+
 def call_plugin_hook(
     plugin_name: str, hook_name: str, default: Any = None, *args, **kwargs
 ):
@@ -648,8 +685,10 @@ def call_plugin_hook(
         if not plugin_dir:
             return default
         hooks_script = files.get_abs_path(plugin_dir, HOOKS_SCRIPT)
+        from helpers import modules
+
         hooks = (
-            extract_tools.import_module(hooks_script)
+            modules.import_module(hooks_script)
             if files.exists(hooks_script)
             else None
         )
@@ -664,6 +703,8 @@ def call_plugin_hook(
     if not hook:
         return default
 
+    from helpers.functions import safe_call
+
     try:
         if asyncio.iscoroutinefunction(hook):
             try:
@@ -672,12 +713,12 @@ def call_plugin_hook(
                 loop = None
 
             if loop and loop.is_running():
-                import nest_asyncio
-                nest_asyncio.apply(loop)
-                return loop.run_until_complete(hook(*args, **kwargs))
+                import nest_asyncio2
+                nest_asyncio2.apply(loop)
+                return loop.run_until_complete(safe_call(hook, *args, **kwargs))
             else:
-                return asyncio.run(hook(*args, **kwargs))
+                return asyncio.run(safe_call(hook, *args, **kwargs))
 
-        return hook(*args, **kwargs)
+        return safe_call(hook, *args, **kwargs)
     except Exception:
         return default

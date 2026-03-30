@@ -86,15 +86,19 @@ class TestDeferredTask:
         async def slow_task():
             await asyncio.sleep(10)
 
-        mock_future = asyncio.Future()
-        mock_elt = MagicMock()
-        mock_elt.run_coroutine = MagicMock(return_value=mock_future)
-        mock_elt.loop = MagicMock()
+        loop = asyncio.new_event_loop()
+        try:
+            mock_future = loop.create_future()
+            mock_elt = MagicMock()
+            mock_elt.run_coroutine = MagicMock(return_value=mock_future)
+            mock_elt.loop = MagicMock()
 
-        with patch("helpers.defer.EventLoopThread", return_value=mock_elt):
-            task = DeferredTask()
-            task.start_task(slow_task)
-            assert task.is_alive() is True
+            with patch("helpers.defer.EventLoopThread", return_value=mock_elt):
+                task = DeferredTask()
+                task.start_task(slow_task)
+                assert task.is_alive() is True
+        finally:
+            loop.close()
 
     def test_kill_cancels_future(self):
         from helpers.defer import DeferredTask
@@ -103,16 +107,20 @@ class TestDeferredTask:
             while True:
                 await asyncio.sleep(1)
 
-        mock_future = asyncio.Future()
-        mock_elt = MagicMock()
-        mock_elt.run_coroutine = MagicMock(return_value=mock_future)
-        mock_elt.loop = MagicMock()
+        loop = asyncio.new_event_loop()
+        try:
+            mock_future = loop.create_future()
+            mock_elt = MagicMock()
+            mock_elt.run_coroutine = MagicMock(return_value=mock_future)
+            mock_elt.loop = MagicMock()
 
-        with patch("helpers.defer.EventLoopThread", return_value=mock_elt):
-            task = DeferredTask()
-            task.start_task(never_ends)
-            task.kill()
-            assert mock_future.cancelled()
+            with patch("helpers.defer.EventLoopThread", return_value=mock_elt):
+                task = DeferredTask()
+                task.start_task(never_ends)
+                task.kill()
+                assert mock_future.cancelled()
+        finally:
+            loop.close()
 
     def test_add_child_task(self):
         from helpers.defer import DeferredTask, ChildTask

@@ -26,6 +26,7 @@ from litellm.types.utils import ModelResponse
 from helpers import dotenv
 from helpers import settings, dirty_json
 from helpers.dotenv import load_dotenv
+from helpers.extension import extensible
 from helpers.providers import ModelType as ProviderModelType, get_provider_config
 from helpers.rate_limiter import RateLimiter
 from helpers.tokens import approximate_tokens
@@ -277,6 +278,7 @@ rate_limiters: dict[str, RateLimiter] = {}
 api_keys_round_robin: dict[str, int] = {}
 
 
+@extensible
 def get_api_key(service: str) -> str:
     from helpers.connected_providers import ProviderPool
     pool = ProviderPool.get_instance()
@@ -379,9 +381,9 @@ def apply_rate_limiter_sync(
 ):
     if not model_config:
         return
-    import asyncio, nest_asyncio
+    import asyncio, nest_asyncio2
 
-    nest_asyncio.apply()
+    nest_asyncio2.apply()
     return asyncio.run(
         apply_rate_limiter(model_config, input_text, rate_limiter_callback)
     )

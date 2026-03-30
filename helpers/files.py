@@ -18,6 +18,7 @@ import mimetypes
 from simpleeval import simple_eval
 
 AGENTS_DIR = "agents"
+EXTENSIONS_DIR = "extensions"
 PLUGINS_DIR = "plugins"
 USER_DIR = "usr"
 

@@ -1,0 +1,74 @@
+---
+description: Mandatory Docker + browser UI verification after any code changes
+alwaysApply: true
+---
+
+# Docker Verification Protocol
+
+After completing implementation work on any branch, browser-based UI verification is **MANDATORY** before marking work as complete or creating a PR.
+
+## Docker Build & Run
+
+1. Build from the worktree/branch being tested:
+   ```bash
+   WORKTREE="<worktree-path>"
+   cd "$WORKTREE" && docker build -t agent-zero-test .
+   ```
+
+2. Run with the worktree as `/a0` AND the **main repo's `usr/`** mounted on top to preserve all real data (settings, chats, API keys, cognee, etc.). Symlinks do NOT work inside Docker, so use a separate volume mount:
+   ```bash
+   MAIN_REPO="/Users/ivan/Documents/work/ai-girlfriend-project/ai-team/agent-zero"
+
+   docker run -d --name a0-test \
+     -v "$WORKTREE":/a0 \
+     -v "$MAIN_REPO/usr":/a0/usr \
+     -p 50081:80 \
+     agent-zero-test
+   ```
+
+   This gives the container:
+   - Code from the worktree branch (everything except usr/)
+   - Real runtime data from the main repo's `usr/`:
+     - `usr/.env` — API keys
+     - `usr/settings.json` — runtime settings
+     - `usr/chats/` — existing chat history (verifies nothing broke)
+     - `usr/cognee/` — memory/knowledge data
+     - `usr/projects/`, `usr/skills/`, `usr/secrets.env`, etc.
+
+3. Wait for full startup (ML model preload takes 1-2 minutes):
+   ```bash
+   until curl -s -o /dev/null -w "%{http_code}" http://localhost:50081/ | grep -q 200; do sleep 5; done
+   ```
+
+## Browser Verification Checklist
+
+Open `http://localhost:50081` in the browser and verify:
+
+- [ ] Main UI loads (dashboard with New Chat, Settings, Memory, etc.)
+- [ ] **Existing chats** visible in sidebar (proves usr/chats/ is mounted)
+- [ ] Settings page opens — model config shows correct provider/model
+- [ ] Chat input works (type and send a message)
+- [ ] Agent responds correctly (proves API keys from usr/.env work)
+- [ ] **Memory save**: send a message that triggers memorization (e.g. "remember that X is Y")
+- [ ] **Memory recall**: in a new chat, ask the agent to recall the saved fact — confirms the full memory pipeline (save + Cognee + recall)
+- [ ] Any feature-specific UI related to the current branch changes
+
+## Docker Logs Check
+
+After browser testing, always check logs for errors:
+```bash
+docker logs a0-test 2>&1 | grep -i "error\|traceback\|exception" | grep -v "INFO\|DEBUG\|deprecation\|DeprecationWarning\|PydanticDeprecated\|oauth\|OAuth"
+```
+
+## Cleanup
+
+```bash
+docker stop a0-test && docker rm a0-test
+```
+
+## Key Paths
+
+- Docker compose: `docker/run/docker-compose.yml`
+- Dockerfile: `Dockerfile` (root)
+- Runtime state (main repo): `usr/.env`, `usr/settings.json`, `usr/chats/`, `usr/cognee/`
+- Port: 50080 (production), 50081 (testing)

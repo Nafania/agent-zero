@@ -1,7 +1,7 @@
 import asyncio, random, string, threading, time
-import nest_asyncio
+import nest_asyncio2
 
-nest_asyncio.apply()
+nest_asyncio2.apply()
 
 from collections import OrderedDict
 from dataclasses import dataclass, field
@@ -457,6 +457,7 @@ class Agent:
                     )
                     await self.handle_intervention()
 
+                    loop_exception = None
                     try:
                         # prepare LLM chain (model, system, history)
                         prompt = await self.prepare_prompt(loop_data=self.loop_data)
@@ -558,17 +559,18 @@ class Agent:
                         PrintStyle(font_color="red", padding=True).print(msg["message"])
                         self.context.log.log(type="warning", content=msg["message"])
                     except Exception as e:
+                        loop_exception = e
                         # Retry critical exceptions before failing
                         error_retries = await self.retry_critical_exception(
                             e, error_retries
                         )
 
                     finally:
-                        # call message_loop_end extensions
-                        if self.context.task and self.context.task.is_alive(): # don't call extensions post mortem
+                        if self.context.task and self.context.task.is_alive():
                             await self.call_extensions(
-                                "message_loop_end", loop_data=self.loop_data
+                                "message_loop_end", loop_data=self.loop_data, exception=loop_exception
                             )
+                        loop_exception = None
 
             # exceptions outside message loop:
             except InterventionException as e:
@@ -950,11 +952,22 @@ class Agent:
             await asyncio.sleep(0.1)
 
     @extensible
+    async def validate_tool_request(self, tool_request: Any):
+        if not isinstance(tool_request, dict):
+            raise ValueError("Tool request must be a dictionary")
+        if not tool_request.get("tool_name") or not isinstance(tool_request.get("tool_name"), str):
+            raise ValueError("Tool request must have a tool_name (type string) field")
+        if "tool_args" not in tool_request or not isinstance(tool_request.get("tool_args"), dict):
+            raise ValueError("Tool request must have a tool_args (type dictionary) field")
+
+    @extensible
     async def process_tools(self, msg: str):
         # search for tool usage requests in agent message
         tool_request = extract_tools.json_parse_dirty(msg)
 
         if tool_request is not None:
+            await self.validate_tool_request(tool_request)
+
             raw_tool_name = tool_request.get("tool_name", tool_request.get("tool",""))  # Get the raw tool name
             tool_args = tool_request.get("tool_args", tool_request.get("args", {}))
 

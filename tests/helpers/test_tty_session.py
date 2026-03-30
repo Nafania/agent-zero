@@ -76,6 +76,14 @@ class TestTTYSessionStart:
                     assert session._proc is not None
                     assert hasattr(session, "_pump_task")
 
+                    await asyncio.sleep(0)
+                    session._pump_task.cancel()
+                    try:
+                        await session._pump_task
+                    except asyncio.CancelledError:
+                        pass
+                    session._proc = None
+
 
 class TestTTYSessionClose:
     """Tests for TTYSession.close."""

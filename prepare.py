@@ -23,6 +23,11 @@ try:
 
     runtime.initialize()
 
+    from helpers.extension import register_extensions_watchdogs
+    from helpers.plugins import register_watchdogs as register_plugins_watchdogs
+    register_extensions_watchdogs()
+    register_plugins_watchdogs()
+
     # generate random root password if not set (for SSH)
     root_pass = dotenv.get_dotenv_value(dotenv.KEY_ROOT_PASSWORD)
     if not root_pass:
