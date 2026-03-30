@@ -351,6 +351,8 @@ class TestHistAddMessageUpdatesContext:
         from agent import Agent
 
         agent = MagicMock(spec=Agent)
+        agent.config = MagicMock()
+        agent.config.profile = ""
         agent.context = MagicMock()
         agent.context.last_message = datetime(2020, 1, 1, tzinfo=timezone.utc)
         agent.history = MagicMock()
@@ -368,6 +370,8 @@ class TestHistAddMessageUpdatesContext:
         from agent import Agent
 
         agent = MagicMock(spec=Agent)
+        agent.config = MagicMock()
+        agent.config.profile = ""
         agent.context = MagicMock()
         agent.context.last_message = datetime(2020, 1, 1, tzinfo=timezone.utc)
         agent.history = MagicMock()
@@ -387,6 +391,8 @@ class TestHistAddMessageUpdatesContext:
         from agent import Agent
 
         agent = MagicMock(spec=Agent)
+        agent.config = MagicMock()
+        agent.config.profile = ""
         agent.context = MagicMock()
         agent.context.last_message = datetime(2020, 1, 1, tzinfo=timezone.utc)
         agent.history = MagicMock()
