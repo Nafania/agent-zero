@@ -3,7 +3,8 @@ import os
 import shutil
 
 from helpers.api import ApiHandler, Input, Output, Request, Response
-from helpers import runtime, skills, projects, files, skills_cli
+from helpers import runtime, projects, files
+from plugins.skills.helpers import skills, skills_cli
 
 
 class Skills(ApiHandler):
