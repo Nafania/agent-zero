@@ -244,16 +244,16 @@ Compare our implementation against upstream `origin/development` HEAD.
 | `find_plugin_assets()` | ✅ | ✅ | ✅ compatible |
 | `determine_plugin_asset_path()` | ✅ | ✅ | ✅ compatible |
 | `send_frontend_reload_notification()` | ✅ (no args) | ✅ (optional `plugin_names`) | ✅ compatible (superset) |
-| `after_plugin_change()` | ✅ (no args) | ✅ (optional `plugin_names`) | ✅ compatible (superset) |
-| `clear_plugin_cache()` | ✅ | ✅ | ✅ compatible |
-| `uninstall_plugin()` | ❌ | ✅ | ✅ our extra |
-| `call_plugin_hook()` | ❌ | ✅ | ✅ our extra |
+| `after_plugin_change()` | ✅ (`plugin_names`, `python_change`) | ✅ (matching signature) | ✅ compatible |
+| `clear_plugin_cache()` | ✅ (`plugin_names`) | ✅ (matching signature) | ✅ compatible |
+| `uninstall_plugin()` | ✅ | ✅ | ✅ compatible |
+| `call_plugin_hook()` | ✅ (`default` param) | ✅ (matching signature) | ✅ compatible |
 
 #### `helpers/extension.py` — public API
 
 | Symbol | Upstream | Ours | Status |
 |--------|----------|------|--------|
-| `@extensible` decorator | ✅ | ✅ (applied to 43 functions) | ✅ resolved |
+| `@extensible` decorator | ✅ | ✅ (applied to 46 functions) | ✅ resolved |
 | `Extension` base class | ✅ | ✅ | ✅ compatible |
 | `call_extensions_async()` | ✅ | ✅ | ✅ compatible |
 | `call_extensions_sync()` | ✅ | ✅ | ✅ compatible |
@@ -294,8 +294,8 @@ Compare our implementation against upstream `origin/development` HEAD.
 | `delete_config` | ✅ | ✅ | ✅ resolved |
 | `delete_plugin` | ✅ | ✅ | ✅ resolved |
 | `get_doc` | ✅ | ✅ | ✅ resolved |
-| `run_init_script` | ✅ | ✅ | ✅ resolved |
-| `get_init_exec` | ✅ | ✅ | ✅ resolved |
+| `run_execute_script` | ✅ | ✅ | ✅ resolved (renamed from `run_init_script`) |
+| `get_execute_record` | ✅ | ✅ | ✅ resolved (renamed from `get_init_exec`) |
 
 #### Plugins — directory comparison
 
@@ -321,19 +321,48 @@ Compare our implementation against upstream `origin/development` HEAD.
 
 ### Identified Gaps — ALL RESOLVED
 
-1. **`@extensible` applied to 43 functions** ✅
-   - `agent.py`: 32 methods (AgentContext: 10, LoopData: 1, Agent: 21)
-   - `initialize.py`: 6 functions
+1. **`@extensible` applied to 46 functions** ✅
+   - `agent.py`: 34 methods (AgentContext: 11 incl. `handle_exception`, LoopData: 1, Agent: 22 incl. `handle_exception`)
+   - `initialize.py`: 7 functions (incl. `initialize_cognee`)
    - `run_ui.py`: 5 functions
+   - `api/plugins.py`: 13 methods (11 upstream + 2 extras: `_list`, `_uninstall`)
    - Fixed `_get_agent` in decorator to handle mocked Agent classes (TypeError) and spec'd mock instances (hasattr guard)
 
-2. **`api/plugins.py` — all 14 actions now present** ✅
-   - Added: `list_configs`, `delete_config`, `delete_plugin`, `get_doc`, `run_init_script`, `get_init_exec`
-   - Added `toggle_plugin` alias for upstream compat (original `toggle` kept)
-   - Enhanced `get_toggle_status` to match upstream response format (project_name/agent_profile)
+2. **`api/plugins.py` — restructured to per-method `@extensible`** ✅
+   - Monolithic `process()` → dispatcher calling 13 `@extensible` methods
+   - All 11 upstream actions present + 2 extras (`list`, `uninstall`)
+   - `toggle` + `toggle_plugin` both route to `_toggle_plugin`
+   - Renamed: `run_init_script` → `run_execute_script`, `get_init_exec` → `get_execute_record`
+   - Script filename: `initialize.py` → `execute.py`, record: `init_exec.json` → `execute_record.json`
 
 3. **`example_agent` plugin added** ✅
    - Copied from upstream: plugin.yaml, agent.yaml, system prompt
+
+4. **`call_plugin_hook()` — `default` parameter added** ✅
+   - Signature matches upstream: `(plugin_name, hook_name, default=None, *args, **kwargs)`
+   - Error-safe call with try/except (A3: replace with `functions.safe_call`)
+
+5. **`clear_plugin_cache()` and `after_plugin_change()` — signatures aligned** ✅
+   - `clear_plugin_cache(plugin_names=None)` — expanded cache clear areas
+   - `after_plugin_change(plugin_names=None, python_change=False)` — TODO(a3) for `refresh_plugin_modules`
+
+6. **`handle_exception()` added to `AgentContext` and `Agent`** ✅
+   - Extensible hook matching upstream; `_process_chain` updated to use it
+
+### Deferred to A3
+
+| Item | Reason |
+|------|--------|
+| `helpers/modules.py` | New infrastructure module |
+| `helpers/watchdog.py` | New infrastructure module |
+| `helpers/functions.py` (`safe_call`) | New infrastructure module |
+| `register_watchdogs()` | Depends on `watchdog.py` |
+| `register_extensions_watchdogs()` | Depends on `watchdog.py` |
+| `_log_extension_call()` | Minor, depends on `watchdog.py` ecosystem |
+| `refresh_plugin_modules()` | Depends on `modules.py` |
+| `get_custom_plugins_updates()` | Depends on git helpers |
+| `_apply_defaults_from_env()` | Plugin config env overrides |
+| `validate_tool_request()` | New upstream feature (commit `1b89a0d3`) |
 
 ### How to verify implementation against upstream
 
