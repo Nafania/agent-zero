@@ -4,7 +4,8 @@ import subprocess
 import time
 import sys
 from typing import Optional, Tuple
-from helpers import tty_session, runtime
+from plugins.code_execution.helpers import tty_session
+from helpers import runtime
 from plugins.code_execution.helpers.shell_ssh import clean_string
 
 class LocalInteractiveSession:

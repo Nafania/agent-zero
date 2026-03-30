@@ -192,7 +192,7 @@ def get_plugin_meta(plugin_name: str) -> PluginMetadata | None:
 
 
 def find_plugin_dir(plugin_name: str) -> str | None:
-    if not plugin_name:
+    if not plugin_name or "/" in plugin_name or "\\" in plugin_name or plugin_name in (".", ".."):
         return None
 
     user_plugin_path = files.get_abs_path(

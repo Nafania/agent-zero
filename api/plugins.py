@@ -84,10 +84,12 @@ class Plugins(ApiHandler):
             loaded_agent_profile = entry.get("agent_profile", "")
         else:
             settings = plugins.get_plugin_config(plugin_name, agent=None) or {}
-            default_path = files.get_abs_path(
-                plugins.find_plugin_dir(plugin_name), plugins.CONFIG_DEFAULT_FILE_NAME
-            )
-            path = default_path if files.exists(default_path) else ""
+            plugin_dir = plugins.find_plugin_dir(plugin_name)
+            if plugin_dir:
+                default_path = files.get_abs_path(plugin_dir, plugins.CONFIG_DEFAULT_FILE_NAME)
+                path = default_path if files.exists(default_path) else ""
+            else:
+                path = ""
             loaded_project_name = ""
             loaded_agent_profile = ""
 
