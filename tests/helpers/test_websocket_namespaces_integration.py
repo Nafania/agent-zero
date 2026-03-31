@@ -64,10 +64,6 @@ async def test_unregistered_namespace_connection_fails_with_unknown_namespace_co
         def requires_csrf(cls) -> bool:
             return False
 
-        @classmethod
-        def get_event_types(cls) -> list[str]:
-            return ["open_ping"]
-
         async def process_event(self, event_type: str, data: dict[str, Any], sid: str):
             return {"ok": True}
 
