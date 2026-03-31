@@ -39,7 +39,7 @@ class Message(ApiHandler):
                     filename = safe_filename(attachment.filename)
                     if not filename:
                         continue
-                    save_path = os.path.join(upload_folder_ext, filename)
+                    save_path = files.get_abs_path(upload_folder_ext, filename)
                     attachment.save(save_path)
                     attachment_paths.append(os.path.join(upload_folder_int, filename))
         else:
@@ -58,7 +58,7 @@ class Message(ApiHandler):
 
         # call extension point, alow it to modify data
         data = { "message": message, "attachment_paths": attachment_paths }
-        await extension.call_extensions("user_message_ui", agent=context.get_agent(), data=data)
+        await extension.call_extensions_async("user_message_ui", agent=context.get_agent(), data=data)
         message = data.get("message", "")
         attachment_paths = data.get("attachment_paths", [])
 
@@ -68,4 +68,4 @@ class Message(ApiHandler):
         # Log to console and UI using helper function
         mq.log_user_message(context, message, attachment_paths, message_id)
 
-        return context.communicate(UserMessage(message, attachment_paths)), context
+        return context.communicate(UserMessage(message=message, attachments=attachment_paths, id=message_id or "")), context

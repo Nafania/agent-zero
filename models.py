@@ -1,11 +1,7 @@
-import asyncio
 from dataclasses import dataclass, field
 from enum import Enum
 import logging
 import os
-
-os.environ.setdefault("DISABLE_AIOHTTP_TRANSPORT", "True")
-
 from typing import (
     Any,
     Awaitable,
@@ -26,11 +22,11 @@ from litellm.types.utils import ModelResponse
 from helpers import dotenv
 from helpers import settings, dirty_json
 from helpers.dotenv import load_dotenv
-from helpers.extension import extensible
 from helpers.providers import ModelType as ProviderModelType, get_provider_config
 from helpers.rate_limiter import RateLimiter
 from helpers.tokens import approximate_tokens
-from helpers import dirty_json, browser_use_monkeypatch
+from helpers import dirty_json
+from helpers.extension import extensible  # extensible: allows plugins to intercept get_api_key()
 
 from langchain_core.language_models.chat_models import SimpleChatModel
 from langchain_core.outputs.chat_generation import ChatGenerationChunk
@@ -44,7 +40,7 @@ from langchain_core.messages import (
     HumanMessage,
     SystemMessage,
 )
-from langchain_core.embeddings import Embeddings
+from langchain.embeddings.base import Embeddings
 from sentence_transformers import SentenceTransformer
 from pydantic import ConfigDict
 
@@ -62,84 +58,6 @@ def turn_off_logging():
 # init
 load_dotenv()
 turn_off_logging()
-browser_use_monkeypatch.apply()
-
-litellm.modify_params = True # helps fix anthropic tool calls by browser-use
-litellm.disable_aiohttp_transport = True  # use httpx instead — aiohttp has event-loop bugs that silently kill streams
-
-
-# --- Mitigate litellm httpx file descriptor leak ---
-# LiteLLM creates new httpx.AsyncClient instances per API call and relies on
-# GC to close them. In long-running async processes GC can't keep up, and the
-# accumulated orphaned TCP sockets exhaust the OS file-descriptor limit.
-# Fix: patch httpx client constructors to always use tight connection-pool
-# limits so each leaked client holds very few idle sockets.
-# (upstream: BerriAI/litellm#12872, #13220)
-import gc as _gc
-import httpx as _httpx
-
-_FD_SAFE_LIMITS = _httpx.Limits(
-    max_connections=50,
-    max_keepalive_connections=10,
-    keepalive_expiry=30,
-)
-
-_orig_async_client_init = _httpx.AsyncClient.__init__
-def _patched_async_client_init(self, **kwargs):
-    kwargs.setdefault("limits", _FD_SAFE_LIMITS)
-    _orig_async_client_init(self, **kwargs)
-_httpx.AsyncClient.__init__ = _patched_async_client_init  # type: ignore[method-assign]
-
-_orig_sync_client_init = _httpx.Client.__init__
-def _patched_sync_client_init(self, **kwargs):
-    kwargs.setdefault("limits", _FD_SAFE_LIMITS)
-    _orig_sync_client_init(self, **kwargs)
-_httpx.Client.__init__ = _patched_sync_client_init  # type: ignore[method-assign]
-# --- end httpx FD leak mitigation ---
-
-
-class _AiohttpLoopFilter(logging.Filter):
-    def filter(self, record):
-        msg = record.getMessage()
-        return "attached to a different loop" not in msg
-
-logging.getLogger("asyncio").addFilter(_AiohttpLoopFilter())
-
-
-# --- LLM Usage Tracking Hooks & Metrics ---
-LLMUsageCallback = Callable[[dict[str, Any]], None]
-_llm_usage_callbacks: list[LLMUsageCallback] = []
-
-
-def register_llm_callback(callback: LLMUsageCallback) -> None:
-    """Register a callback to receive LLM usage events."""
-    if callback not in _llm_usage_callbacks:
-        _llm_usage_callbacks.append(callback)
-
-
-def unregister_llm_callback(callback: LLMUsageCallback) -> None:
-    """Remove a previously registered callback."""
-    try:
-        _llm_usage_callbacks.remove(callback)
-    except ValueError:
-        pass
-
-
-def _emit_usage_event(event: dict[str, Any]) -> None:
-    """Emit usage event to all registered callbacks. Callback errors are silenced."""
-    for cb in _llm_usage_callbacks:
-        try:
-            cb(event)
-        except Exception:
-            pass
-
-
-# Auto-register the built-in metrics collector
-from helpers.metrics_collector import collector as _metrics_collector
-register_llm_callback(_metrics_collector.record)
-from helpers import files as _files
-_metrics_collector.enable_persistence(_files.get_abs_path("usr", "metrics.json"))
-
 
 class ModelType(Enum):
     CHAT = "Chat"
@@ -151,28 +69,21 @@ class ModelConfig:
     type: ModelType
     provider: str
     name: str
+    api_key: str = ""
     api_base: str = ""
     ctx_length: int = 0
     limit_requests: int = 0
     limit_input: int = 0
     limit_output: int = 0
-    limit_concurrent: int = 0
     vision: bool = False
     kwargs: dict = field(default_factory=dict)
 
     def build_kwargs(self):
         kwargs = self.kwargs.copy() or {}
+        if self.api_key and "api_key" not in kwargs:
+            kwargs["api_key"] = self.api_key
         if self.api_base and "api_base" not in kwargs:
             kwargs["api_base"] = self.api_base
-
-        if self.provider == "anthropic_oauth":
-            session_token = get_api_key("anthropic_oauth")
-            if session_token and session_token != "None":
-                if "extra_headers" not in kwargs:
-                    kwargs["extra_headers"] = {}
-                kwargs["extra_headers"]["Authorization"] = f"Bearer {session_token}"
-                kwargs["api_key"] = "oauth-session-token"
-
         return kwargs
 
 
@@ -290,33 +201,29 @@ api_keys_round_robin: dict[str, int] = {}
 
 @extensible
 def get_api_key(service: str) -> str:
-    from helpers.connected_providers import ProviderPool
-    pool = ProviderPool.get_instance()
-    key = pool.get_credential(service)
-    if key and key not in ("None", "NA"):
-        if "," in key:
-            api_keys = [k.strip() for k in key.split(",") if k.strip()]
-            api_keys_round_robin[service] = api_keys_round_robin.get(service, -1) + 1
-            key = api_keys[api_keys_round_robin[service] % len(api_keys)]
-        return key
-
-    if not key and service.lower() in ("anthropic", "anthropic_oauth"):
-        key = dotenv.get_dotenv_value("ANTHROPIC_SESSION_TOKEN")
-        if key:
-            return key
-
-    return "None"
+    # get api key for the service
+    key = (
+        dotenv.get_dotenv_value(f"API_KEY_{service.upper()}")
+        or dotenv.get_dotenv_value(f"{service.upper()}_API_KEY")
+        or dotenv.get_dotenv_value(f"{service.upper()}_API_TOKEN")
+        or "None"
+    )
+    # if the key contains a comma, use round-robin
+    if "," in key:
+        api_keys = [k.strip() for k in key.split(",") if k.strip()]
+        api_keys_round_robin[service] = api_keys_round_robin.get(service, -1) + 1
+        key = api_keys[api_keys_round_robin[service] % len(api_keys)]
+    return key
 
 
 def get_rate_limiter(
-    provider: str, name: str, requests: int, input: int, output: int, concurrent: int = 0
+    provider: str, name: str, requests: int, input: int, output: int
 ) -> RateLimiter:
     key = f"{provider}\\{name}"
     rate_limiters[key] = limiter = rate_limiters.get(key, RateLimiter(seconds=60))
     limiter.limits["requests"] = requests or 0
     limiter.limits["input"] = input or 0
     limiter.limits["output"] = output or 0
-    limiter.set_concurrent_limit(concurrent or 0)
     return limiter
 
 
@@ -332,9 +239,6 @@ def _is_transient_litellm_error(exc: Exception) -> bool:
             return True
         return False
 
-    if isinstance(exc, (TimeoutError, asyncio.TimeoutError)):
-        return True
-
     # Fallback to exception classes mapped by LiteLLM/OpenAI
     transient_types = (
         getattr(openai, "APITimeoutError", Exception),
@@ -348,25 +252,6 @@ def _is_transient_litellm_error(exc: Exception) -> bool:
     return isinstance(exc, transient_types)
 
 
-def _extract_retry_after(exc: Exception) -> float | None:
-    """Extract Retry-After value from API error response headers if present."""
-    headers = getattr(exc, "headers", None) or {}
-    if not isinstance(headers, dict):
-        headers = dict(headers) if hasattr(headers, "__iter__") else {}
-    val = headers.get("retry-after") or headers.get("Retry-After")
-    if val is None:
-        response = getattr(exc, "response", None)
-        if response is not None:
-            resp_headers = getattr(response, "headers", {})
-            val = resp_headers.get("retry-after") or resp_headers.get("Retry-After")
-    if val is not None:
-        try:
-            return float(val)
-        except (ValueError, TypeError):
-            pass
-    return None
-
-
 async def apply_rate_limiter(
     model_config: ModelConfig | None,
     input_text: str,
@@ -375,20 +260,18 @@ async def apply_rate_limiter(
     ) = None,
 ):
     if not model_config:
-        return None, None
+        return
     limiter = get_rate_limiter(
         model_config.provider,
         model_config.name,
         model_config.limit_requests,
         model_config.limit_input,
         model_config.limit_output,
-        model_config.limit_concurrent,
     )
     limiter.add(input=approximate_tokens(input_text))
     limiter.add(requests=1)
     await limiter.wait(rate_limiter_callback)
-    semaphore = await limiter.acquire(rate_limiter_callback)
-    return limiter, semaphore
+    return limiter
 
 
 def apply_rate_limiter_sync(
@@ -399,57 +282,13 @@ def apply_rate_limiter_sync(
     ) = None,
 ):
     if not model_config:
-        return None, None
-    import asyncio, nest_asyncio2
+        return
+    import asyncio, nest_asyncio
 
-    nest_asyncio2.apply()
+    nest_asyncio.apply()
     return asyncio.run(
         apply_rate_limiter(model_config, input_text, rate_limiter_callback)
     )
-
-
-def _resolve_max_output_tokens(model_name: str) -> int | None:
-    """Look up the model's max output tokens from LiteLLM's registry.
-
-    Returns the value if found, or None so the caller can let LiteLLM
-    fall back to its own (often too-small) default.
-    """
-    try:
-        info = litellm.get_model_info(model=model_name)
-        value = info.get("max_output_tokens") or info.get("max_tokens")
-        if isinstance(value, int) and value > 0:
-            return value
-    except Exception:
-        pass
-    return None
-
-
-def _cap_max_tokens_for_context(model_name: str, call_kwargs: dict, msgs: list) -> None:
-    """Reduce max_tokens if input + max_tokens would exceed the context window."""
-    max_tok = call_kwargs.get("max_tokens")
-    if not max_tok or not isinstance(max_tok, int):
-        return
-    try:
-        info = litellm.get_model_info(model=model_name)
-        ctx_window = info.get("max_input_tokens") or info.get("max_tokens", 0)
-        if not ctx_window or ctx_window <= 0:
-            return
-        est_input = litellm.token_counter(model=model_name, messages=msgs)
-        headroom = ctx_window - est_input
-        from helpers.print_style import PrintStyle
-        PrintStyle(font_color="cyan", padding=False).print(
-            f"_cap_max_tokens: model={model_name} ctx={ctx_window} "
-            f"est_input={est_input} headroom={headroom} "
-            f"max_tokens={max_tok} msgs={len(msgs)}"
-        )
-        if headroom < max_tok:
-            new_max = max(headroom, 1024)
-            PrintStyle(font_color="yellow", padding=True).print(
-                f"_cap_max_tokens: capping max_tokens {max_tok} -> {new_max}"
-            )
-            call_kwargs["max_tokens"] = new_max
-    except Exception:
-        pass
 
 
 class LiteLLMChatWrapper(SimpleChatModel):
@@ -471,10 +310,6 @@ class LiteLLMChatWrapper(SimpleChatModel):
         **kwargs: Any,
     ):
         model_value = f"{provider}/{model}"
-        if "max_tokens" not in kwargs:
-            resolved = _resolve_max_output_tokens(model_value)
-            if resolved is not None:
-                kwargs["max_tokens"] = resolved
         super().__init__(model_name=model_value, provider=provider, kwargs=kwargs)  # type: ignore
         # Set A0 model config as instance attribute after parent init
         self.a0_model_conf = model_config
@@ -528,10 +363,12 @@ class LiteLLMChatWrapper(SimpleChatModel):
             if tool_call_id:
                 message_dict["tool_call_id"] = tool_call_id
 
+            # fix messages with empty content, this breaks some LLMs
             content = message_dict.get("content")
             has_content = bool(content) if not isinstance(content, list) else len(content) > 0
             if not has_content:
-                continue
+                message_dict["content"] = "empty"
+
             result.append(message_dict)
 
         if explicit_caching and result:
@@ -551,25 +388,22 @@ class LiteLLMChatWrapper(SimpleChatModel):
         run_manager: Optional[CallbackManagerForLLMRun] = None,
         **kwargs: Any,
     ) -> str:
+        import asyncio
+
         msgs = self._convert_messages(messages)
 
         # Apply rate limiting if configured
-        limiter, semaphore = apply_rate_limiter_sync(self.a0_model_conf, str(msgs))
+        apply_rate_limiter_sync(self.a0_model_conf, str(msgs))
 
-        try:
-            merged_kwargs = {**self.kwargs, **kwargs}
-            _cap_max_tokens_for_context(self.model_name, merged_kwargs, msgs)
-            resp = completion(
-                model=self.model_name, messages=msgs, stop=stop, **merged_kwargs
-            )
+        # Call the model
+        resp = completion(
+            model=self.model_name, messages=msgs, stop=stop, **{**self.kwargs, **kwargs}
+        )
 
-            # Parse output
-            parsed = _parse_chunk(resp)
-            output = ChatGenerationResult(parsed).output()
-            return output["response_delta"]
-        finally:
-            if limiter:
-                limiter.release(semaphore)
+        # Parse output
+        parsed = _parse_chunk(resp)
+        output = ChatGenerationResult(parsed).output()
+        return output["response_delta"]
 
     def _stream(
         self,
@@ -578,35 +412,31 @@ class LiteLLMChatWrapper(SimpleChatModel):
         run_manager: Optional[CallbackManagerForLLMRun] = None,
         **kwargs: Any,
     ) -> Iterator[ChatGenerationChunk]:
+        import asyncio
+
         msgs = self._convert_messages(messages)
 
         # Apply rate limiting if configured
-        limiter, semaphore = apply_rate_limiter_sync(self.a0_model_conf, str(msgs))
+        apply_rate_limiter_sync(self.a0_model_conf, str(msgs))
 
-        try:
-            result = ChatGenerationResult()
-            merged_kwargs = {**self.kwargs, **kwargs}
-            _cap_max_tokens_for_context(self.model_name, merged_kwargs, msgs)
+        result = ChatGenerationResult()
 
-            for chunk in completion(
-                model=self.model_name,
-                messages=msgs,
-                stream=True,
-                stop=stop,
-                **merged_kwargs,
-            ):
-                # parse chunk
-                parsed = _parse_chunk(chunk) # chunk parsing
-                output = result.add_chunk(parsed) # chunk processing
+        for chunk in completion(
+            model=self.model_name,
+            messages=msgs,
+            stream=True,
+            stop=stop,
+            **{**self.kwargs, **kwargs},
+        ):
+            # parse chunk
+            parsed = _parse_chunk(chunk) # chunk parsing
+            output = result.add_chunk(parsed) # chunk processing
 
-                # Only yield chunks with non-None content
-                if output["response_delta"]:
-                    yield ChatGenerationChunk(
-                        message=AIMessageChunk(content=output["response_delta"])
-                    )
-        finally:
-            if limiter:
-                limiter.release(semaphore)
+            # Only yield chunks with non-None content
+            if output["response_delta"]:
+                yield ChatGenerationChunk(
+                    message=AIMessageChunk(content=output["response_delta"])
+                )
 
     async def _astream(
         self,
@@ -618,33 +448,27 @@ class LiteLLMChatWrapper(SimpleChatModel):
         msgs = self._convert_messages(messages)
 
         # Apply rate limiting if configured
-        limiter, semaphore = await apply_rate_limiter(self.a0_model_conf, str(msgs))
+        await apply_rate_limiter(self.a0_model_conf, str(msgs))
 
-        try:
-            result = ChatGenerationResult()
-            merged_kwargs = {**self.kwargs, **kwargs}
-            _cap_max_tokens_for_context(self.model_name, merged_kwargs, msgs)
+        result = ChatGenerationResult()
 
-            response = await acompletion(
-                model=self.model_name,
-                messages=msgs,
-                stream=True,
-                stop=stop,
-                **merged_kwargs,
-            )
-            async for chunk in response:  # type: ignore
-                # parse chunk
-                parsed = _parse_chunk(chunk) # chunk parsing
-                output = result.add_chunk(parsed) # chunk processing
+        response = await acompletion(
+            model=self.model_name,
+            messages=msgs,
+            stream=True,
+            stop=stop,
+            **{**self.kwargs, **kwargs},
+        )
+        async for chunk in response:  # type: ignore
+            # parse chunk
+            parsed = _parse_chunk(chunk) # chunk parsing
+            output = result.add_chunk(parsed) # chunk processing
 
-                # Only yield chunks with non-None content
-                if output["response_delta"]:
-                    yield ChatGenerationChunk(
-                        message=AIMessageChunk(content=output["response_delta"])
-                    )
-        finally:
-            if limiter:
-                limiter.release(semaphore)
+            # Only yield chunks with non-None content
+            if output["response_delta"]:
+                yield ChatGenerationChunk(
+                    message=AIMessageChunk(content=output["response_delta"])
+                )
 
     async def unified_call(
         self,
@@ -658,7 +482,6 @@ class LiteLLMChatWrapper(SimpleChatModel):
             Callable[[str, str, int, int], Awaitable[bool]] | None
         ) = None,
         explicit_caching: bool = False,
-        _metrics_context: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> Tuple[str, str]:
 
@@ -675,43 +498,24 @@ class LiteLLMChatWrapper(SimpleChatModel):
         # convert to litellm format
         msgs_conv = self._convert_messages(messages, explicit_caching=explicit_caching)
 
+        # Apply rate limiting if configured
+        limiter = await apply_rate_limiter(
+            self.a0_model_conf, str(msgs_conv), rate_limiter_callback
+        )
+
         # Prepare call kwargs and retry config (strip A0-only params before calling LiteLLM)
         call_kwargs: dict[str, Any] = {**self.kwargs, **kwargs}
         max_retries: int = int(call_kwargs.pop("a0_retry_attempts", 2))
         retry_delay_s: float = float(call_kwargs.pop("a0_retry_delay_seconds", 1.5))
-        retry_exp_base: float = float(call_kwargs.pop("a0_retry_exponential_base", 2.0))
-        retry_max_delay: float = float(call_kwargs.pop("a0_retry_max_delay", 30.0))
-        retry_jitter: bool = bool(call_kwargs.pop("a0_retry_jitter", True))
-        chunk_idle_timeout: float = float(call_kwargs.pop("a0_stream_chunk_timeout", 45.0))
-        call_timeout: float = float(call_kwargs.pop("a0_timeout", 600.0))
-        first_chunk_timeout: float = float(call_kwargs.pop("a0_stream_timeout", 60.0))
         stream = reasoning_callback is not None or response_callback is not None or tokens_callback is not None
-
-        call_kwargs.setdefault("timeout", call_timeout)
-        if stream:
-            call_kwargs.setdefault("stream_timeout", first_chunk_timeout)
-
-        import time as _time
-        import datetime as _dt
 
         # results
         result = ChatGenerationResult()
-        _t0 = _time.monotonic()
-        _ttft: float | None = None  # time to first token (seconds)
-        _last_chunk = None
-        _mctx = _metrics_context or {}
 
         attempt = 0
         while True:
-            limiter, semaphore = await apply_rate_limiter(
-                self.a0_model_conf, str(msgs_conv), rate_limiter_callback
-            )
             got_any_chunk = False
-            _stream_finish_reason: str | None = None
             try:
-                if stream:
-                    call_kwargs.setdefault("stream_options", {"include_usage": True})
-                _cap_max_tokens_for_context(self.model_name, call_kwargs, msgs_conv)
                 # call model
                 _completion = await acompletion(
                     model=self.model_name,
@@ -721,30 +525,14 @@ class LiteLLMChatWrapper(SimpleChatModel):
                 )
 
                 if stream:
-                    # iterate over chunks with idle-timeout between chunks
-                    chunk_iter = _completion.__aiter__()  # type: ignore
-                    while True:
-                        try:
-                            chunk = await asyncio.wait_for(
-                                chunk_iter.__anext__(), timeout=chunk_idle_timeout
-                            )
-                        except StopAsyncIteration:
-                            break
-                        except asyncio.TimeoutError:
-                            raise TimeoutError(
-                                f"Stream stalled: no chunk received for {chunk_idle_timeout:.0f}s "
-                                f"(model={self.model_name}, got_chunks={got_any_chunk})"
-                            )
-                        if not got_any_chunk:
-                            _ttft = _time.monotonic() - _t0
+                    # iterate over chunks
+                    async for chunk in _completion:  # type: ignore
                         got_any_chunk = True
-                        _last_chunk = chunk
-                        _fr = _get_finish_reason(chunk)
-                        if _fr is not None:
-                            _stream_finish_reason = _fr
+                        # parse chunk
                         parsed = _parse_chunk(chunk)
                         output = result.add_chunk(parsed)
 
+                        # collect reasoning delta and call callbacks
                         if output["reasoning_delta"]:
                             if reasoning_callback:
                                 await reasoning_callback(output["reasoning_delta"], result.reasoning)
@@ -753,8 +541,10 @@ class LiteLLMChatWrapper(SimpleChatModel):
                                     output["reasoning_delta"],
                                     approximate_tokens(output["reasoning_delta"]),
                                 )
+                            # Add output tokens to rate limiter if configured
                             if limiter:
                                 limiter.add(output=approximate_tokens(output["reasoning_delta"]))
+                        # collect response delta and call callbacks
                         if output["response_delta"]:
                             if response_callback:
                                 await response_callback(output["response_delta"], result.response)
@@ -763,6 +553,7 @@ class LiteLLMChatWrapper(SimpleChatModel):
                                     output["response_delta"],
                                     approximate_tokens(output["response_delta"]),
                                 )
+                            # Add output tokens to rate limiter if configured
                             if limiter:
                                 limiter.add(output=approximate_tokens(output["response_delta"]))
 
@@ -776,221 +567,18 @@ class LiteLLMChatWrapper(SimpleChatModel):
                         if output["reasoning_delta"]:
                             limiter.add(output=approximate_tokens(output["reasoning_delta"]))
 
-                # Determine finish reason (use tracked value for streams)
-                _finish = _stream_finish_reason if stream else (
-                    _get_finish_reason(_completion) if _completion else None
-                )
-
-                # Detect silently truncated streams: got chunks but transport
-                # closed the connection without a proper finish_reason.
-                if stream and got_any_chunk and _finish is None:
-                    from helpers.print_style import PrintStyle
-                    PrintStyle(font_color="red", padding=True).print(
-                        f"⚠ Stream silently truncated: got chunks but no finish_reason "
-                        f"(model={self.model_name}). Retrying..."
-                    )
-                    raise TimeoutError(
-                        f"Stream silently truncated: received chunks but no finish_reason "
-                        f"(model={self.model_name}). Transport closed connection without error."
-                    )
-
-                if _finish == "length":
-                    _max_used = call_kwargs.get("max_tokens", "?")
-                    from helpers.print_style import PrintStyle
-                    PrintStyle(font_color="orange", padding=True).print(
-                        f"⚠ Response truncated: model hit max_tokens={_max_used} "
-                        f"(model={self.model_name}). "
-                        f"Increase max_tokens in chat model kwargs or shorten the conversation."
-                    )
-
-                # Emit usage tracking event
-                if _llm_usage_callbacks:
-                    usage_src = _last_chunk if stream else _completion
-                    usage_data = getattr(usage_src, "usage", None) or {}
-                    if isinstance(usage_data, dict):
-                        tokens_in = usage_data.get("prompt_tokens", 0)
-                        tokens_out = usage_data.get("completion_tokens", 0)
-                    else:
-                        tokens_in = getattr(usage_data, "prompt_tokens", 0) or 0
-                        tokens_out = getattr(usage_data, "completion_tokens", 0) or 0
-                    _elapsed_s = _time.monotonic() - _t0
-                    _elapsed_ms = int(_elapsed_s * 1000)
-                    _emit_usage_event({
-                        "event_type": "llm_call",
-                        "model": self.model_name,
-                        "provider": self.a0_model_conf.provider if self.a0_model_conf else None,
-                        "tokens_in": tokens_in,
-                        "tokens_out": tokens_out,
-                        "latency_ms": _elapsed_ms,
-                        "ttft_ms": int(_ttft * 1000) if _ttft is not None else None,
-                        "prompt_tps": round(tokens_in / _elapsed_s, 1) if _elapsed_s > 0 else 0,
-                        "response_tps": round(tokens_out / _elapsed_s, 1) if _elapsed_s > 0 else 0,
-                        "success": True,
-                        "error": None,
-                        "stream": stream,
-                        "attempts": attempt + 1,
-                        "timestamp": _dt.datetime.now(_dt.timezone.utc).isoformat(),
-                        "usage_type": _mctx.get("usage_type"),
-                        "agent_name": _mctx.get("agent_name"),
-                        "context_id": _mctx.get("context_id"),
-                        "project": _mctx.get("project"),
-                        "chat_name": _mctx.get("chat_name"),
-                    })
-
-                _gc.collect(0)
+                # Successful completion of stream
                 return result.response, result.reasoning
 
             except Exception as e:
-                import random
+                import asyncio
 
-                is_stream_stall = isinstance(e, (TimeoutError, asyncio.TimeoutError))
-                if (got_any_chunk and not is_stream_stall) or not _is_transient_litellm_error(e) or attempt >= max_retries:
-                    if _llm_usage_callbacks:
-                        _emit_usage_event({
-                            "event_type": "llm_call",
-                            "model": self.model_name,
-                            "provider": self.a0_model_conf.provider if self.a0_model_conf else None,
-                            "tokens_in": 0,
-                            "tokens_out": 0,
-                            "latency_ms": int((_time.monotonic() - _t0) * 1000),
-                            "ttft_ms": None,
-                            "prompt_tps": 0,
-                            "response_tps": 0,
-                            "success": False,
-                            "error": f"{type(e).__name__}: {e}",
-                            "stream": stream,
-                            "attempts": attempt + 1,
-                            "timestamp": _dt.datetime.now(_dt.timezone.utc).isoformat(),
-                            "usage_type": _mctx.get("usage_type"),
-                            "agent_name": _mctx.get("agent_name"),
-                            "context_id": _mctx.get("context_id"),
-                            "project": _mctx.get("project"),
-                            "chat_name": _mctx.get("chat_name"),
-                        })
+                # Retry only if no chunks received and error is transient
+                if got_any_chunk or not _is_transient_litellm_error(e) or attempt >= max_retries:
                     raise
                 attempt += 1
+                await asyncio.sleep(retry_delay_s)
 
-                retry_after = _extract_retry_after(e)
-                if retry_after is not None:
-                    delay = min(retry_after, retry_max_delay)
-                else:
-                    delay = min(retry_delay_s * (retry_exp_base ** (attempt - 1)), retry_max_delay)
-                if retry_jitter:
-                    delay *= 0.5 + random.random()
-
-                result = ChatGenerationResult()
-                _last_chunk = None
-                _stream_finish_reason = None
-                _ttft = None
-                _t0 = _time.monotonic()
-
-                from helpers.print_style import PrintStyle
-                PrintStyle(font_color="yellow").print(
-                    f"LLM retry {attempt}/{max_retries} for {self.model_name}: "
-                    f"{type(e).__name__} (backoff {delay:.1f}s)"
-                )
-                await asyncio.sleep(delay)
-            finally:
-                if limiter:
-                    limiter.release(semaphore)
-
-
-class AsyncAIChatReplacement:
-    class _Completions:
-        def __init__(self, wrapper):
-            self._wrapper = wrapper
-
-        async def create(self, *args, **kwargs):
-            # call the async _acall method on the wrapper
-            return await self._wrapper._acall(*args, **kwargs)
-
-    class _Chat:
-        def __init__(self, wrapper):
-            self.completions = AsyncAIChatReplacement._Completions(wrapper)
-
-    def __init__(self, wrapper, *args, **kwargs):
-        self._wrapper = wrapper
-        self.chat = AsyncAIChatReplacement._Chat(wrapper)
-
-
-from browser_use.llm import ChatOllama, ChatOpenRouter, ChatGoogle, ChatAnthropic, ChatGroq, ChatOpenAI
-
-class BrowserCompatibleChatWrapper(ChatOpenRouter):
-    """
-    A wrapper for browser agent that can filter/sanitize messages
-    before sending them to the LLM.
-    """
-
-    def __init__(self, *args, **kwargs):
-        turn_off_logging()
-        # Create the underlying LiteLLM wrapper
-        self._wrapper = LiteLLMChatWrapper(*args, **kwargs)
-        # Browser-use may expect a 'model' attribute
-        self.model = self._wrapper.model_name
-        self.kwargs = self._wrapper.kwargs
-
-    @property
-    def model_name(self) -> str:
-        return self._wrapper.model_name
-
-    @property
-    def provider(self) -> str:
-        return self._wrapper.provider
-
-    def get_client(self, *args, **kwargs):  # type: ignore
-        return AsyncAIChatReplacement(self, *args, **kwargs)
-
-    async def _acall(
-        self,
-        messages: List[BaseMessage],
-        stop: Optional[List[str]] = None,
-        run_manager: Optional[CallbackManagerForLLMRun] = None,
-        **kwargs: Any,
-    ):
-        # Apply rate limiting if configured
-        limiter, semaphore = apply_rate_limiter_sync(self._wrapper.a0_model_conf, str(messages))
-
-        try:
-            model = kwargs.pop("model", None)
-            kwrgs = {**self._wrapper.kwargs, **kwargs}
-
-            # hack from browser-use to fix json schema for gemini (additionalProperties, $defs, $ref)
-            if "response_format" in kwrgs and "json_schema" in kwrgs["response_format"] and model.startswith("gemini/"):
-                kwrgs["response_format"]["json_schema"] = ChatGoogle("")._fix_gemini_schema(kwrgs["response_format"]["json_schema"])
-
-            resp = await acompletion(
-                model=self._wrapper.model_name,
-                messages=messages,
-                stop=stop,
-                **kwrgs,
-            )
-
-            # Gemini: strip triple backticks and conform schema
-            try:
-                msg = resp.choices[0].message # type: ignore
-                if self.provider == "gemini" and isinstance(getattr(msg, "content", None), str):
-                    cleaned = browser_use_monkeypatch.gemini_clean_and_conform(msg.content) # type: ignore
-                    if cleaned:
-                        msg.content = cleaned
-            except Exception:
-                pass
-
-        except Exception as e:
-            raise e
-        finally:
-            if limiter:
-                limiter.release(semaphore)
-
-        # another hack for browser-use post process invalid jsons
-        try:
-            if "response_format" in kwrgs and "json_schema" in kwrgs["response_format"] or "json_object" in kwrgs["response_format"]:
-                if resp.choices[0].message.content is not None and not resp.choices[0].message.content.startswith("{"): # type: ignore
-                    js = dirty_json.parse(resp.choices[0].message.content) # type: ignore
-                    resp.choices[0].message.content = dirty_json.stringify(js) # type: ignore
-        except Exception as e:
-            pass
-
-        return resp
 
 class LiteLLMEmbeddingWrapper(Embeddings):
     model_name: str
@@ -1010,29 +598,21 @@ class LiteLLMEmbeddingWrapper(Embeddings):
 
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
         # Apply rate limiting if configured
-        limiter, semaphore = apply_rate_limiter_sync(self.a0_model_conf, " ".join(texts))
+        apply_rate_limiter_sync(self.a0_model_conf, " ".join(texts))
 
-        try:
-            resp = embedding(model=self.model_name, input=texts, **self.kwargs)
-            return [
-                item.get("embedding") if isinstance(item, dict) else item.embedding  # type: ignore
-                for item in resp.data  # type: ignore
-            ]
-        finally:
-            if limiter:
-                limiter.release(semaphore)
+        resp = embedding(model=self.model_name, input=texts, **self.kwargs)
+        return [
+            item.get("embedding") if isinstance(item, dict) else item.embedding  # type: ignore
+            for item in resp.data  # type: ignore
+        ]
 
     def embed_query(self, text: str) -> List[float]:
         # Apply rate limiting if configured
-        limiter, semaphore = apply_rate_limiter_sync(self.a0_model_conf, text)
+        apply_rate_limiter_sync(self.a0_model_conf, text)
 
-        try:
-            resp = embedding(model=self.model_name, input=[text], **self.kwargs)
-            item = resp.data[0]  # type: ignore
-            return item.get("embedding") if isinstance(item, dict) else item.embedding  # type: ignore
-        finally:
-            if limiter:
-                limiter.release(semaphore)
+        resp = embedding(model=self.model_name, input=[text], **self.kwargs)
+        item = resp.data[0]  # type: ignore
+        return item.get("embedding") if isinstance(item, dict) else item.embedding  # type: ignore
 
 
 class LocalSentenceTransformerWrapper(Embeddings):
@@ -1069,28 +649,20 @@ class LocalSentenceTransformerWrapper(Embeddings):
 
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
         # Apply rate limiting if configured
-        limiter, semaphore = apply_rate_limiter_sync(self.a0_model_conf, " ".join(texts))
+        apply_rate_limiter_sync(self.a0_model_conf, " ".join(texts))
 
-        try:
-            embeddings = self.model.encode(texts, convert_to_tensor=False)  # type: ignore
-            return embeddings.tolist() if hasattr(embeddings, "tolist") else embeddings  # type: ignore
-        finally:
-            if limiter:
-                limiter.release(semaphore)
+        embeddings = self.model.encode(texts, convert_to_tensor=False)  # type: ignore
+        return embeddings.tolist() if hasattr(embeddings, "tolist") else embeddings  # type: ignore
 
     def embed_query(self, text: str) -> List[float]:
         # Apply rate limiting if configured
-        limiter, semaphore = apply_rate_limiter_sync(self.a0_model_conf, text)
+        apply_rate_limiter_sync(self.a0_model_conf, text)
 
-        try:
-            embedding = self.model.encode([text], convert_to_tensor=False)  # type: ignore
-            result = (
-                embedding[0].tolist() if hasattr(embedding[0], "tolist") else embedding[0]
-            )
-            return result  # type: ignore
-        finally:
-            if limiter:
-                limiter.release(semaphore)
+        embedding = self.model.encode([text], convert_to_tensor=False)  # type: ignore
+        result = (
+            embedding[0].tolist() if hasattr(embedding[0], "tolist") else embedding[0]
+        )
+        return result  # type: ignore
 
 
 def _get_litellm_chat(
@@ -1178,22 +750,8 @@ def _parse_chunk(chunk: Any) -> ChatChunk:
     return ChatChunk(reasoning_delta=reasoning_delta, response_delta=response_delta)
 
 
-def _get_finish_reason(chunk: Any) -> str | None:
-    """Extract finish_reason from the last chunk/response."""
-    try:
-        return chunk["choices"][0].get("finish_reason")
-    except Exception:
-        return None
-
-
 
 def _adjust_call_args(provider_name: str, model_name: str, kwargs: dict):
-    # for openrouter add app reference
-    if provider_name == "openrouter":
-        kwargs["extra_headers"] = {
-            "HTTP-Referer": "https://agent-zero.ai",
-            "X-Title": "Agent Zero",
-        }
 
     # remap other to openai for litellm
     if provider_name == "other":
@@ -1258,17 +816,6 @@ def get_chat_model(
     return _get_litellm_chat(
         LiteLLMChatWrapper, name, provider_name, model_config, **kwargs
     )
-
-
-def get_browser_model(
-    provider: str, name: str, model_config: Optional[ModelConfig] = None, **kwargs: Any
-) -> BrowserCompatibleChatWrapper:
-    orig = provider.lower()
-    provider_name, kwargs = _merge_provider_defaults("chat", orig, kwargs)
-    return _get_litellm_chat(
-        BrowserCompatibleChatWrapper, name, provider_name, model_config, **kwargs
-    )
-
 
 def get_embedding_model(
     provider: str, name: str, model_config: Optional[ModelConfig] = None, **kwargs: Any

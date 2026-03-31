@@ -12,7 +12,8 @@ import { store as stepDetailStore } from "/components/modals/process-step-detail
 import { store as preferencesStore } from "/components/sidebar/bottom/preferences/preferences-store.js";
 import { formatDuration } from "./time-utils.js";
 import { Scroller } from "./scroller.js";
-import { mountMemoryRecallFeedback } from "./memory-recall-feedback.js";
+import { callJsExtensions } from "/js/extensions.js";
+import { addBlankTargetsToLinks } from "/js/html-links.js";
 
 // Delay before collapsing previous steps when a new step is added
 const STEP_COLLAPSE_DELAY = {
@@ -29,12 +30,62 @@ let _chatHistory = null;
 let _massRender = false;
 let _scrollOnNextProcessGroup = null;
 
+/**
+ * @typedef {object} MessageHandlerArgs
+ * @property {number} [no]
+ * @property {string | number} id
+ * @property {string} type
+ * @property {string | undefined} [heading]
+ * @property {string | undefined} [content]
+ * @property {object | undefined} [kvps]
+ * @property {number | undefined} [timestamp]
+ * @property {number} [agentno]
+ */
+
+/**
+ * @typedef {{ element: Element } & Record<string, any>} MessageHandlerResult
+ */
+
+/**
+ * @typedef {object} SetMessageResult
+ * @property {IArguments} args
+ * @property {MessageHandlerResult} result
+ */
+
+/**
+ * @typedef {(args: MessageHandlerArgs & Record<string, any>) => (MessageHandlerResult|Promise<MessageHandlerResult>)} MessageHandler
+ */
+
+/**
+ * @typedef {object} ProcessStepArgs
+ * @property {string | number} id
+ * @property {string} title
+ * @property {string} code
+ * @property {string[] | undefined} [classes]
+ * @property {any} [kvps]
+ * @property {string | undefined} [content]
+ * @property {string[] | undefined} [contentClasses]
+ * @property {Element[] | undefined} [actionButtons]
+ * @property {any} log
+ * @property {boolean} [allowCompletedGroup]
+ */
+
+
 export function scrollOnNextProcessGroup() {
   _scrollOnNextProcessGroup = "wait";
 }
 
 // handlers for log message rendering
-export function getMessageHandler(type) {
+/**
+ * Returns a message renderer for a given log message type.
+ *
+ * The returned handler has the same input object shape as `setMessage(...)` passes through
+ * and may return a rich object `{ element, actionButtons?, ...additional }`.
+ *
+ * @param {string} type
+ * @returns {Promise<MessageHandler>}
+ */
+export async function getMessageHandler(type) {
   switch (type) {
     case "user":
       return drawMessageUser;
@@ -44,10 +95,6 @@ export function getMessageHandler(type) {
       return drawMessageResponse;
     case "tool":
       return drawMessageTool;
-    case "code_exe":
-      return drawMessageCodeExe;
-    case "browser":
-      return drawMessageBrowser;
     case "progress":
       return drawMessageProgress;
     case "mcp":
@@ -67,102 +114,83 @@ export function getMessageHandler(type) {
     case "hint":
       return drawMessageHint;
     default:
-      return drawMessageDefault;
+      return await getHandlerFromExtensions(type);
+  }
+
+  async function getHandlerFromExtensions(type){
+    const extData = { type: type, handler: undefined }
+    await callJsExtensions("get_message_handler", extData);
+    // return handler from extensions
+    if(typeof extData.handler == "function") return extData.handler;
+    //not set by extensions, return default
+    return drawMessageDefault;
   }
 }
 
+
 // entrypoint called from poll/WS communication, this is how all messages are rendered and updated
 // input is raw log format
-export function setMessages(messages) {
-  // set _massRender flag for handlers to know how to behave
-  const history = getChatHistoryEl();
-  const historyEmpty = !history || history.childElementCount === 0;
-  const isLargeAppend = !historyEmpty && messages.length > 10;
-  const cutoff = isLargeAppend ? Math.max(0, messages.length - 2) : 0;
-  const massRender = historyEmpty || isLargeAppend;
+export async function setMessages(messages) {
+  const context = {
+    messages,
+    history: getChatHistoryEl(),
+    historyEmpty: false,
+    isLargeAppend: false,
+    cutoff: 0,
+    massRender: false,
+    scrollerOptions: {
+      smooth: true,
+      toleranceRem: 4,
+      reapplyDelayMs: 1000,
+      applyStabilization: true,
+    },
+    /** @type {Scroller | null} */
+    mainScroller: null,
+    /** @type {SetMessageResult[]} */
+    results: [],
+  };
 
-  const mainScroller = new Scroller(history, {
-    smooth: !massRender,
-    toleranceRem: 4,
-    reapplyDelayMs: 1000,
-    applyStabilization: true,
-  });
+  context.historyEmpty = !context.history || context.history.childElementCount === 0;
+  context.isLargeAppend = !context.historyEmpty && context.messages.length > 10;
+  context.cutoff = context.isLargeAppend ? Math.max(0, context.messages.length - 2) : 0;
+  context.massRender = context.historyEmpty || context.isLargeAppend;
+  context.scrollerOptions.smooth = !context.massRender;
 
-  const results = [];
-  const BATCH_SIZE = 20;
+  await callJsExtensions("set_messages_before_loop", context);
 
-  if (massRender && messages.length > BATCH_SIZE) {
-    for (let i = 0; i < Math.min(BATCH_SIZE, messages.length); i++) {
-      _massRender = true;
-      results.push(setMessage(messages[i]) || {});
-    }
-    _massRender = false;
+  //@ts-ignore
+  context.mainScroller = new Scroller(context.history, context.scrollerOptions);
 
-    const shouldScroll = historyEmpty || !results[results.length - 1]?.dontScroll;
-
-    let batchStart = BATCH_SIZE;
-    const renderNextBatch = () => {
-      if (batchStart >= messages.length) {
-        if (shouldScroll) {
-          mainScroller.reApplyScroll();
-        }
-        return;
-      }
-      const batchEnd = Math.min(batchStart + BATCH_SIZE, messages.length);
-      _massRender = true;
-      for (let i = batchStart; i < batchEnd; i++) {
-        setMessage(messages[i]);
-      }
-      _massRender = false;
-      batchStart = batchEnd;
-      requestAnimationFrame(renderNextBatch);
-    };
-    requestAnimationFrame(renderNextBatch);
-    return results;
-  } else {
-    for (let i = 0; i < messages.length; i++) {
-      _massRender = historyEmpty || (isLargeAppend && i < cutoff);
-      results.push(setMessage(messages[i]) || {});
-    }
+  // process messages
+  for (let i = 0; i < context.messages.length; i++) {
+    _massRender = context.historyEmpty || (context.isLargeAppend && i < context.cutoff);
+    context.results.push(await setMessage(context.messages[i]));
   }
 
+  await callJsExtensions("set_messages_after_loop", context);
+
+  // reset _massRender flag
   _massRender = false;
 
-  const shouldScroll = historyEmpty || !results[results.length - 1]?.dontScroll;
+  const shouldScroll = context.historyEmpty || !context.results[context.results.length - 1]?.result?.dontScroll;
 
-  if (shouldScroll) mainScroller.reApplyScroll();
+  if (shouldScroll) context.mainScroller?.reApplyScroll();
 
   if (_scrollOnNextProcessGroup === "scroll") {
     requestAnimationFrame(() => {
-      mainScroller.scrollToBottom();
+      context.mainScroller?.scrollToBottom();
       _scrollOnNextProcessGroup = null;
     });
   }
 }
 
-export function prependMessages(messages) {
-  if (!messages || messages.length === 0) return;
-
-  const history = getChatHistoryEl();
-  if (!history) return;
-
-  const existingFragment = document.createDocumentFragment();
-  while (history.firstChild) {
-    existingFragment.appendChild(history.firstChild);
-  }
-
-  _massRender = true;
-  for (const msg of messages) {
-    setMessage(msg);
-  }
-  _massRender = false;
-
-  history.appendChild(existingFragment);
-}
-
 // entrypoint called from poll/WS communication, this is how all messages are rendered and updated
 // input is raw log format
-export function setMessage({
+/**
+ * @param {MessageHandlerArgs & Record<string, any>} param0
+ * @returns {Promise<SetMessageResult>}
+ */
+export async function setMessage({
   no,
   id,
   type,
@@ -173,10 +201,11 @@ export function setMessage({
   agentno,
   ...additional
 }) {
-  const handler = getMessageHandler(type);
+  const handler = await getMessageHandler(type);
   // prefer log ID if set to match user message created on frontend with backend updates
-  return handler({
-    id: id || no,
+  const handlerResult = await handler({
+    no,
+    id: id || String(no) || "",
     type,
     heading,
     content,
@@ -185,6 +214,10 @@ export function setMessage({
     agentno,
     ...additional,
   });
+  return {
+    args: arguments[0],
+    result: handlerResult,
+  }
 }
 
 function getOrCreateMessageContainer(
@@ -283,7 +316,7 @@ function getOrCreateProcessGroup(id, allowCompleted = true) {
   return group;
 }
 
-function buildDetailPayload(stepData, extras = {}) {
+export function buildDetailPayload(stepData, extras = {}) {
   if (!stepData) return null;
   return {
     ...stepData,
@@ -291,7 +324,11 @@ function buildDetailPayload(stepData, extras = {}) {
   };
 }
 
-function drawProcessStep({
+/**
+ * @param {ProcessStepArgs & Record<string, any>} param0
+ * @returns {MessageHandlerResult}
+ */
+export function drawProcessStep({
   id,
   title,
   code,
@@ -325,7 +362,7 @@ function drawProcessStep({
     group.setAttribute("data-start-timestamp", String(log.timestamp));
   }
 
-  if (isNewStep) {
+  if (!step) {
     // create the base DOM element for the step
     step = document.createElement("div");
     step.id = stepId;
@@ -333,7 +370,7 @@ function drawProcessStep({
 
     // set data attributes of the step
     step.setAttribute("data-log-type", log.type);
-    step.setAttribute("data-step-id", id);
+    step.setAttribute("data-step-id", String(id));
     step.setAttribute("data-agent-number", log.agentno);
 
     // set timestamp attribute (convert to milliseconds for duration calculation)
@@ -445,7 +482,6 @@ function drawProcessStep({
     if (prevCode) step.classList.remove(prevCode);
     step.setAttribute("data-step-code", code);
     step.classList.add(code);
-    step.querySelector(".step-badge").textContent = code;
     badge.innerText = code;
   }
 
@@ -507,12 +543,13 @@ function drawProcessStep({
 
   // return anything useful
   return {
+    element: step,
+    actionButtons,
     step,
     detail: stepDetail,
     content: stepDetailContent,
     contentScroller: detailScroller,
     kvpsTable,
-    actionButtons: stepActionBtns,
     isExpanded,
   };
 }
@@ -681,7 +718,7 @@ export function _drawMessage({
       // KaTeX rendering for markdown
       if (latex) {
         contentDiv.querySelectorAll("latex").forEach((element) => {
-          katex.render(element.innerHTML, element, {
+          globalThis.katex.render(element.innerHTML, element, {
             throwOnError: false,
           });
         });
@@ -726,31 +763,12 @@ export function _drawMessage({
   return messageDiv;
 }
 
-export function addBlankTargetsToLinks(str) {
-  const doc = new DOMParser().parseFromString(str, "text/html");
+export { addBlankTargetsToLinks };
 
-  doc.querySelectorAll("a").forEach((anchor) => {
-    const href = anchor.getAttribute("href") || "";
-    if (
-      href.startsWith("#") ||
-      href.trim().toLowerCase().startsWith("javascript")
-    )
-      return;
-    if (
-      !anchor.hasAttribute("target") ||
-      anchor.getAttribute("target") === ""
-    ) {
-      anchor.setAttribute("target", "_blank");
-    }
-
-    const rel = (anchor.getAttribute("rel") || "").split(/\s+/).filter(Boolean);
-    if (!rel.includes("noopener")) rel.push("noopener");
-    if (!rel.includes("noreferrer")) rel.push("noreferrer");
-    anchor.setAttribute("rel", rel.join(" "));
-  });
-  return doc.body.innerHTML;
-}
-
+/**
+ * @param {MessageHandlerArgs & Record<string, any>} param0
+ * @returns {MessageHandlerResult}
+ */
 export function drawMessageDefault({
   id,
   heading,
@@ -766,7 +784,7 @@ export function drawMessageDefault({
       ].filter(Boolean)
     : [];
 
-  return drawStandaloneMessage({
+  const element = drawStandaloneMessage({
     id,
     heading,
     content,
@@ -778,15 +796,21 @@ export function drawMessageDefault({
     kvps,
     actionButtons,
   });
+
+  return { element };
 }
 
+/**
+ * @param {MessageHandlerArgs & Record<string, any>} param0
+ * @returns {MessageHandlerResult}
+ */
 export function drawMessageAgent({
   id,
   type,
   heading,
   content,
-  kvps = null,
-  timestamp = null,
+  kvps = undefined,
+  timestamp = undefined,
   agentno = 0,
   ...additional
 }) {
@@ -819,20 +843,24 @@ export function drawMessageAgent({
     id,
     title,
     code: "GEN",
-    classes: null,
+    classes: undefined,
     kvps: displayKvps,
     actionButtons,
     log: arguments[0],
   });
 }
 
+/**
+ * @param {MessageHandlerArgs & Record<string, any>} param0
+ * @returns {MessageHandlerResult}
+ */
 export function drawMessageResponse({
   id,
   type,
   heading,
   content,
-  kvps = null,
-  timestamp = null,
+  kvps = undefined,
+  timestamp = undefined,
   agentno = 0,
   ...additional
 }) {
@@ -894,9 +922,9 @@ export function drawMessageResponse({
 
   const messageDiv = _drawMessage({
     messageContainer: container,
-    heading: null,
+    heading: undefined,
     content,
-    kvps: null,
+    kvps: undefined,
     messageClasses: [],
     contentClasses: [],
     markdown: true,
@@ -922,9 +950,13 @@ export function drawMessageResponse({
 
   if (group) updateProcessGroupHeader(group);
 
-  return container;
+  return { element: container };
 }
 
+/**
+ * @param {MessageHandlerArgs & Record<string, any>} param0
+ * @returns {MessageHandlerResult}
+ */
 export function drawMessageUser({
   id,
   heading,
@@ -966,7 +998,7 @@ export function drawMessageUser({
       spanElement = document.createElement("pre");
       textDiv.appendChild(spanElement);
     }
-    spanElement.innerHTML = formatUserMessageContent(content);
+    spanElement.innerHTML = escapeHTML(content);
   } else {
     if (textDiv) textDiv.remove();
   }
@@ -1024,6 +1056,7 @@ export function drawMessageUser({
 
       attachmentDiv.addEventListener("click", displayInfo.clickHandler);
 
+      // @ts-ignore
       attachmentsContainer.appendChild(attachmentDiv);
     });
   } else {
@@ -1061,15 +1094,21 @@ export function drawMessageUser({
   userActionButtons.forEach((button) =>
     actionButtonsContainer.appendChild(button),
   );
+
+  return { element: messageContainer };
 }
 
-export function drawMessageTool({
+/**
+ * @param {MessageHandlerArgs & Record<string, any>} param0
+ * @returns {Promise<MessageHandlerResult>}
+ */
+export async function drawMessageTool({
   id,
   type,
   heading,
   content,
-  kvps = null,
-  timestamp = null,
+  kvps,
+  timestamp,
   agentno = 0,
   ...additional
 }) {
@@ -1078,27 +1117,41 @@ export function drawMessageTool({
   if (!tool_name) {
     return drawMessageToolSimple({ ...arguments[0] });
   } else if (kvps._tool_name === "skills_tool") {
-    return drawMessageToolSimple({ ...arguments[0], code: "SKL" });
+    const displayKvps = { ...(kvps || {}) };
+    delete displayKvps._tool_name;
+    return drawMessageToolSimple({ ...arguments[0], code: "SKL", displayKvps });
   } else if (kvps._tool_name === "vision_load") {
     return drawMessageToolSimple({ ...arguments[0], code: "EYE" });
   } else if (kvps._tool_name === "search_engine") {
     return drawMessageToolSimple({ ...arguments[0], code: "WEB" });
-  } else if (kvps._tool_name === "browser_agent") {
-    return drawMessageToolSimple({ ...arguments[0], code: "WWW" });
   } else if (kvps._tool_name.startsWith("memory_")) {
     return drawMessageToolSimple({ ...arguments[0], code: "MEM" });
-  } else {
-    return drawMessageToolSimple({ ...arguments[0] });
   }
+
+  /** @type {{ tool_name: string, kvps: any, handler: Function | undefined }} */
+  const extData = {
+    tool_name,
+    kvps,
+    handler: undefined,
+  };
+  await callJsExtensions("get_tool_message_handler", extData);
+  if (typeof extData.handler === "function") {
+    return extData.handler(arguments[0]);
+  }
+  return drawMessageToolSimple({ ...arguments[0] });
 }
 
+/**
+ * @param {MessageHandlerArgs & Record<string, any>} param0
+ * @returns {MessageHandlerResult}
+ */
 export function drawMessageToolSimple({
   id,
   type,
   heading,
   content,
-  kvps = null,
-  timestamp = null,
+  kvps,
+  timestamp,
   agentno = 0,
   code,
   displayKvps,
@@ -1126,7 +1179,7 @@ export function drawMessageToolSimple({
     id,
     title,
     code: code || "USE",
-    classes: null,
+    classes: undefined,
     kvps: displayKvps,
     content,
     // contentClasses: [],
@@ -1135,115 +1188,17 @@ export function drawMessageToolSimple({
   });
 }
 
-export function drawMessageCodeExe({
-  id,
-  type,
-  heading,
-  content,
-  kvps = null,
-  timestamp = null,
-  agentno = 0,
-  ...additional
-}) {
-  let title = "Code Execution";
-  // show command at the start and end
-  if (kvps?.code && /done_all|code_execution_tool/.test(heading || "")) {
-    const s = kvps.session;
-    title = `${s != null ? `[${s}] ` : ""}${kvps.runtime || "bash"}> ${kvps.code.trim()}`;
-  } else {
-    // during execution show the original heading (current step)
-    title = cleanStepTitle(heading);
-  }
-
-  // KVPS to show
-  const displayKvps = {};
-  // if (kvps?.runtime) displayKvps.runtime = kvps.runtime;
-  // if (kvps?.session>=0) displayKvps.session = kvps.session;
-
-  const headerLabels = [
-    kvps?.runtime && { label: kvps.runtime, class: "tool-name-badge" },
-    kvps?.session != null && {
-      label: `Session ${kvps.session}`,
-      class: "header-label",
-    },
-  ].filter(Boolean);
-
-  // render the standard step
-  const commandText = String(kvps?.code ?? "");
-  const outputText = String(content ?? "");
-  const actionButtons = [
-    createActionButton("detail", "", () =>
-      stepDetailStore.showStepDetail(
-        buildDetailPayload(arguments[0], { headerLabels }),
-      ),
-    ),
-    commandText.trim()
-      ? createActionButton("copy", "Command", () =>
-          copyToClipboard(commandText),
-        )
-      : null,
-    outputText.trim()
-      ? createActionButton("copy", "Output", () => copyToClipboard(outputText))
-      : null,
-  ].filter(Boolean);
-  const stepData = drawProcessStep({
-    id,
-    title,
-    code: "EXE",
-    classes: null,
-    kvps: displayKvps,
-    content,
-    contentClasses: ["terminal-output"],
-    actionButtons,
-    log: arguments[0],
-  });
-}
-
-export function drawMessageBrowser({
-  id,
-  type,
-  heading,
-  content,
-  kvps = null,
-  timestamp = null,
-  agentno = 0,
-  ...additional
-}) {
-  const title = cleanStepTitle(heading);
-  let displayKvps = { ...kvps };
-  const answerText = String(kvps?.answer ?? "");
-  const actionButtons = answerText.trim()
-    ? [
-        createActionButton("detail", "", () =>
-          stepDetailStore.showStepDetail(
-            buildDetailPayload(arguments[0], { headerLabels: [] }),
-          ),
-        ),
-        createActionButton("speak", "", () => speechStore.speak(answerText)),
-        createActionButton("copy", "", () => copyToClipboard(answerText)),
-      ].filter(Boolean)
-    : [];
-
-  return drawProcessStep({
-    id,
-    title,
-    code: "WWW",
-    classes: null,
-    kvps: displayKvps,
-    content,
-    // contentClasses: [],
-    actionButtons,
-    log: arguments[0],
-  });
-}
-
+/**
+ * @param {MessageHandlerArgs & Record<string, any>} param0
+ * @returns {MessageHandlerResult}
+ */
 export function drawMessageMcp({
   id,
   type,
   heading,
   content,
-  kvps = null,
-  timestamp = null,
+  kvps,
+  timestamp,
   agentno = 0,
   ...additional
 }) {
@@ -1269,7 +1224,7 @@ export function drawMessageMcp({
     id,
     title,
     code: "MCP",
-    classes: null,
+    classes: undefined,
     kvps: displayKvps,
     content,
     // contentClasses: [],
@@ -1278,13 +1233,17 @@ export function drawMessageMcp({
   });
 }
 
+/**
+ * @param {MessageHandlerArgs & Record<string, any>} param0
+ * @returns {MessageHandlerResult}
+ */
 export function drawMessageSubagent({
   id,
   type,
   heading,
   content,
-  kvps = null,
-  timestamp = null,
+  kvps,
+  timestamp,
   agentno = 0,
   ...additional
 }) {
@@ -1310,7 +1269,7 @@ export function drawMessageSubagent({
     id,
     title,
     code: "SUB",
-    classes: null,
+    classes: undefined,
     kvps: displayKvps,
     content,
     // contentClasses: [],
@@ -1319,11 +1278,15 @@ export function drawMessageSubagent({
   });
 }
 
+/**
+ * @param {MessageHandlerArgs & Record<string, any>} param0
+ * @returns {MessageHandlerResult}
+ */
 export function drawMessageInfo({
   id,
   heading,
   content,
-  kvps = null,
+  kvps,
   ...additional
 }) {
   const title = cleanStepTitle(heading || content);
@@ -1340,7 +1303,7 @@ export function drawMessageInfo({
     id,
     title,
     code: "INF",
-    classes: null,
+    classes: undefined,
     kvps: displayKvps,
     content,
     // contentClasses: [],
@@ -1349,13 +1312,17 @@ export function drawMessageInfo({
   });
 }
 
+/**
+ * @param {MessageHandlerArgs & Record<string, any>} param0
+ * @returns {MessageHandlerResult}
+ */
 export function drawMessageUtil({
   id,
   type,
   heading,
   content,
-  kvps = null,
-  timestamp = null,
+  kvps,
+  timestamp,
   agentno = 0,
   ...additional
 }) {
@@ -1368,44 +1335,33 @@ export function drawMessageUtil({
       ].filter(Boolean)
     : [];
 
-  let displayKvps = kvps;
-  let feedbackRaw = null;
-  if (kvps && typeof kvps === "object" && "memory_feedback_items" in kvps) {
-    displayKvps = { ...kvps };
-    feedbackRaw = displayKvps.memory_feedback_items;
-    delete displayKvps.memory_feedback_items;
-  }
-
   const result = drawProcessStep({
     id,
     title,
     code: "UTL",
     classes: ["message-util"],
-    kvps: displayKvps,
+    kvps,
     content,
     actionButtons,
     log: arguments[0],
     allowCompletedGroup: true,
   });
 
-  if (feedbackRaw != null && result.contentScroller?.element) {
-    mountMemoryRecallFeedback(result.contentScroller.element, feedbackRaw);
-  } else if (feedbackRaw != null && result.detail) {
-    const scroll = result.detail.querySelector(".process-step-detail-scroll");
-    if (scroll) mountMemoryRecallFeedback(scroll, feedbackRaw);
-  }
-
   result.dontScroll = !preferencesStore.showUtils;
   return result;
 }
 
+/**
+ * @param {MessageHandlerArgs & Record<string, any>} param0
+ * @returns {MessageHandlerResult}
+ */
 export function drawMessageHint({
   id,
   type,
   heading,
   content,
-  kvps = null,
-  timestamp = null,
+  kvps,
+  timestamp,
   agentno = 0,
   ...additional
 }) {
@@ -1418,28 +1374,33 @@ export function drawMessageHint({
       ].filter(Boolean)
     : [];
 
-  return drawStandaloneMessage({
+  const element = drawStandaloneMessage({
     id,
-    title,
+    heading: title,
     // statusClass,
-    statusCode: "HNT",
+    // statusCode: "HNT",
     kvps,
-    type,
-    heading,
+    // type,
     content,
-    timestamp,
-    agentno,
+    // timestamp,
+    // agentno,
     actionButtons,
   });
+
+  return { element };
 }
 
+/**
+ * @param {MessageHandlerArgs & Record<string, any>} param0
+ * @returns {MessageHandlerResult}
+ */
 export function drawMessageProgress({
   id,
   type,
   heading,
   content,
-  kvps = null,
-  timestamp = null,
+  kvps,
+  timestamp,
   agentno = 0,
   ...additional
 }) {
@@ -1450,7 +1411,7 @@ export function drawMessageProgress({
     id,
     title,
     code: "HDL",
-    classes: null,
+    classes: undefined,
     kvps: displayKvps,
     content,
     // contentClasses: [],
@@ -1459,6 +1420,10 @@ export function drawMessageProgress({
   });
 }
 
+/**
+ * @param {MessageHandlerArgs & Record<string, any>} param0
+ * @returns {MessageHandlerResult}
+ */
 export function drawMessageWarning({
   id,
   type,
@@ -1494,9 +1459,9 @@ export function drawMessageWarning({
   }
 
   // if no process group is running, draw as standalone
-  return drawStandaloneMessage({
+  const element = drawStandaloneMessage({
     id,
-    title,
+    heading: title,
     content,
     position: "mid",
     containerClasses: ["ai-container", "center-container"],
@@ -1504,8 +1469,14 @@ export function drawMessageWarning({
     kvps: displayKvps,
     actionButtons,
   });
+
+  return { element };
 }
 
+/**
+ * @param {MessageHandlerArgs & Record<string, any>} param0
+ * @returns {MessageHandlerResult}
+ */
 export function drawMessageError({
   id,
   type,
@@ -1517,18 +1488,22 @@ export function drawMessageError({
   const contentText = String(content ?? "");
   let title = getStepTitle(heading, content, type);
   let displayKvps = { ...kvps };
-  const actionButtons = [
+
+  const actionButtons = [];
+  actionButtons.push(
     createActionButton("detail", "", () =>
       stepDetailStore.showStepDetail(
         buildDetailPayload(arguments[0], { headerLabels: [] }),
       ),
     ),
-    contentText.trim()
-      ? createActionButton("copy", "", () => copyToClipboard(contentText))
-      : null,
-  ].filter(Boolean);
+  );
+  if (contentText.trim()) {
+    actionButtons.push(
+      createActionButton("copy", "", () => copyToClipboard(contentText)),
+    );
+  }
 
-  return drawStandaloneMessage({
+  const element = drawStandaloneMessage({
     id,
     heading: title,
     content: contentText,
@@ -1538,6 +1513,8 @@ export function drawMessageError({
     kvps: displayKvps,
     actionButtons,
   });
+
+  return { element };
 }
 
 function drawKvpsIncremental(container, kvps, latex) {
@@ -1640,7 +1617,7 @@ function drawKvpsIncremental(container, kvps, latex) {
         // KaTeX rendering for markdown
         if (latex) {
           span.querySelectorAll("latex").forEach((element) => {
-            katex.render(element.innerHTML, element, {
+            globalThis.katex.render(element.innerHTML, element, {
               throwOnError: false,
             });
           });
@@ -1705,18 +1682,6 @@ function escapeHTML(str) {
     '"': "&quot;",
   };
   return str.replace(/[&<>'"]/g, (char) => escapeChars[char]);
-}
-
-const _SKILL_MSG_RE = /^\[Load and use skill:\s*([^\]]+)\]\s*/i;
-
-function formatUserMessageContent(content) {
-  const m = content.match(_SKILL_MSG_RE);
-  if (!m) return escapeHTML(content);
-
-  const skillName = m[1].trim();
-  const rest = content.slice(m[0].length);
-  const chip = `<span class="msg-skill-chip"><span class="msg-skill-slash">/</span>${escapeHTML(skillName)}</span>`;
-  return rest.trim() ? chip + " " + escapeHTML(rest) : chip;
 }
 
 function convertPathsToLinks(str) {
@@ -2045,7 +2010,7 @@ export function convertIcons(html, classes = "") {
  * Clean step title by removing icon:// prefixes and status phrases
  * Preserves agent markers (A1:, A2:, etc.) so users can see which subordinate agent is executing
  */
-function cleanStepTitle(text, maxLength = 100) {
+export function cleanStepTitle(text, maxLength = 100) {
   if (!text) return "";
   let cleaned = String(text)
     .replace(/icon:\/\/[a-zA-Z0-9_]+(\[(?:\\.|[^\]])*\])?\s*/g, "")
@@ -2224,8 +2189,16 @@ function truncateText(text, maxLength) {
 }
 
 // gets or creates a child DOM element
+/**
+ * @param {Element} parent
+ * @param {string} selector
+ * @param {string} tagName
+ * @param {...string} classNames
+ * @returns {HTMLElement}
+ */
 function ensureChild(parent, selector, tagName, ...classNames) {
-  let el = parent.querySelector(selector);
+  /** @type {HTMLElement | null} */
+  let el = /** @type {any} */ (parent.querySelector(selector));
   if (!el) {
     el = document.createElement(tagName);
     if (classNames.length) el.classList.add(...classNames);

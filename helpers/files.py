@@ -1,27 +1,26 @@
 from abc import ABC, abstractmethod
 from fnmatch import fnmatch
 import json
-from ntpath import isabs
 import os
-import sys
 import re
 import base64
 import shutil
 import tempfile
 from typing import Any, Literal
 import zipfile
-import importlib
-import importlib.util
-import inspect
 import glob
 import mimetypes
 from simpleeval import simple_eval
+from helpers import yaml
 
 AGENTS_DIR = "agents"
-EXTENSIONS_DIR = "extensions"
 PLUGINS_DIR = "plugins"
+PROJECTS_DIR = "projects"
+EXTENSIONS_DIR = "extensions"
 USER_DIR = "usr"
-
+TEMP_DIR = "tmp"
+API_DIR = "api"
+_base_dir = os.path.dirname(os.path.abspath(os.path.join(__file__, "../")))
 
 class VariablesPlugin(ABC):
     @abstractmethod
@@ -48,9 +47,9 @@ def load_plugin_variables(
 
     if plugin_file and exists(plugin_file):
 
-        from helpers import extract_tools
+        from helpers import modules
 
-        classes = extract_tools.load_classes_from_file(
+        classes = modules.load_classes_from_file(
             plugin_file, VariablesPlugin, one_per_file=False
         )
         for cls in classes:
@@ -135,10 +134,10 @@ def read_prompt_file(
 
     # Find the file in the directories
     absolute_path = find_file_in_dirs(_file, _directories)
+    source_dir = os.path.dirname(absolute_path)
 
     # Read the file content
     with open(absolute_path, "r", encoding=_encoding) as f:
-        # content = remove_code_fences(f.read())
         content = f.read()
 
     variables = load_plugin_variables(_file, _directories, **kwargs) or {}  # type: ignore
@@ -150,11 +149,13 @@ def read_prompt_file(
     # Replace placeholders with values from kwargs
     content = replace_placeholders_text(content, **variables)
 
-    # Process include statements
+    # Process include statements (with source tracking for {{include original}})
     content = process_includes(
         # here we use kwargs, the plugin variables are not inherited
         content,
         _directories,
+        _source_file=_file,
+        _source_dir=source_dir,
         **kwargs,
     )
 
@@ -216,24 +217,25 @@ def read_file(relative_path: str, encoding="utf-8"):
     with open(absolute_path, "r", encoding=encoding) as f:
         return f.read()
 
-
 def read_file_json(relative_path: str, encoding="utf-8"):
+    # Try to get the absolute path for the file from the original directory or backup directories
     absolute_path = get_abs_path(relative_path)
+
+    # Read the file content
     with open(absolute_path, "r", encoding=encoding) as f:
         return json.load(f)
 
-
 def read_file_yaml(relative_path: str, encoding="utf-8"):
-    from helpers import yaml as yaml_helper
-
     absolute_path = get_abs_path(relative_path)
-    with open(absolute_path, "r", encoding=encoding) as f:
-        return yaml_helper.loads(f.read())
 
+    with open(absolute_path, "r", encoding=encoding) as f:
+        return yaml.loads(f.read())
 
 def read_file_bin(relative_path: str):
+    # Try to get the absolute path for the file from the original directory or backup directories
     absolute_path = get_abs_path(relative_path)
 
+    # read binary content
     with open(absolute_path, "rb") as f:
         return f.read()
 
@@ -263,11 +265,7 @@ def is_probably_binary_bytes(data: bytes, threshold: float = 0.3) -> bool:
 
     # Count suspicious control bytes
     allowed = {8, 9, 10, 12, 13}  # \b \t \n \f \r
-    suspicious = sum(
-        1
-        for b in data
-        if ((b < 32 and b not in allowed) or b == 127)
-    )
+    suspicious = sum(1 for b in data if ((b < 32 and b not in allowed) or b == 127))
     return (suspicious / len(data)) > threshold
 
 
@@ -331,24 +329,56 @@ def replace_placeholders_dict(_content: dict, **kwargs):
     return replace_value(_content)
 
 
-def process_includes(_content: str, _directories: list[str], **kwargs):
-    # Regex to find {{ include 'path' }} or {{include'path'}}
+def process_includes(
+    _content: str,
+    _directories: list[str],
+    _source_file: str = "",
+    _source_dir: str = "",
+    **kwargs,
+):
+    # {{include original}} — include same file from lower-priority directory
+    original_pattern = re.compile(r"{{\s*include\s+original\s*}}")
+
+    def replace_original(match):
+        if not _source_file or not _source_dir:
+            return match.group(0)
+        remaining_dirs = _get_dirs_after(_directories, _source_dir)
+        if not remaining_dirs:
+            return ""
+        try:
+            return read_prompt_file(_source_file, remaining_dirs, **kwargs)
+        except FileNotFoundError:
+            return ""
+
+    _content = re.sub(original_pattern, replace_original, _content)
+
+    # {{ include 'path' }} — include a named file
     include_pattern = re.compile(r"{{\s*include\s*['\"](.*?)['\"]\s*}}")
 
     def replace_include(match):
         include_path = match.group(1)
-        # if the path is absolute, do not process it
         if os.path.isabs(include_path):
             return match.group(0)
-        # Search for the include file in the directories
         try:
-            included_content = read_prompt_file(include_path, _directories, **kwargs)
-            return included_content
+            return read_prompt_file(include_path, _directories, **kwargs)
         except FileNotFoundError:
-            return match.group(0)  # Return original if file not found
+            return match.group(0)
 
-    # Replace all includes with the file content
     return re.sub(include_pattern, replace_include, _content)
+
+
+def _get_dirs_after(_directories: list[str], _source_dir: str) -> list[str]:
+    """Return directories after _source_dir in the priority list."""
+    source_abs = os.path.normpath(os.path.abspath(_source_dir))
+    found = False
+    result: list[str] = []
+    for d in _directories:
+        d_abs = os.path.normpath(os.path.abspath(get_abs_path(d)))
+        if found:
+            result.append(d)
+        elif d_abs == source_abs:
+            found = True
+    return result
 
 
 def find_file_in_dirs(_filename: str, _directories: list[str]):
@@ -369,7 +399,11 @@ def find_file_in_dirs(_filename: str, _directories: list[str]):
     )
 
 
-def get_unique_filenames_in_dirs(dir_paths: list[str], pattern: str = "*", type: Literal["file", "dir", "any"] = "file"):
+def get_unique_filenames_in_dirs(
+    dir_paths: list[str],
+    pattern: str = "*",
+    type: Literal["file", "dir", "any"] = "file",
+):
     # returns absolute paths for unique filenames, priority by order in dir_paths
     seen = set()
     result = []
@@ -377,7 +411,11 @@ def get_unique_filenames_in_dirs(dir_paths: list[str], pattern: str = "*", type:
         full_dir = get_abs_path(dir_path)
         for file_path in glob.glob(os.path.join(full_dir, pattern)):
             fname = os.path.basename(file_path)
-            if fname not in seen and (type == "any" or (type == "file" and os.path.isfile(file_path)) or (type == "dir" and os.path.isdir(file_path))):
+            if fname not in seen and (
+                type == "any"
+                or (type == "file" and os.path.isfile(file_path))
+                or (type == "dir" and os.path.isdir(file_path))
+            ):
                 seen.add(fname)
                 result.append(get_abs_path(file_path))
     # sort by filename (basename), not the full path
@@ -424,6 +462,10 @@ def write_file(relative_path: str, content: str, encoding: str = "utf-8"):
     with open(abs_path, "w", encoding=encoding) as f:
         f.write(content)
 
+def delete_file(relative_path: str):
+    abs_path = get_abs_path(relative_path)
+    if exists(abs_path):
+        os.remove(abs_path)
 
 def write_file_bin(relative_path: str, content: bytes):
     abs_path = get_abs_path(relative_path)
@@ -439,22 +481,6 @@ def write_file_base64(relative_path: str, content: str):
     os.makedirs(os.path.dirname(abs_path), exist_ok=True)
     with open(abs_path, "wb") as f:
         f.write(data)
-
-
-def delete_file(relative_path: str):
-    abs_path = get_abs_path(relative_path)
-    if os.path.exists(abs_path):
-        os.remove(abs_path)
-
-
-def is_file(*relative_paths):
-    path = get_abs_path(*relative_paths)
-    return os.path.isfile(path)
-
-
-def is_dir(*relative_paths):
-    path = get_abs_path(*relative_paths)
-    return os.path.isdir(path)
 
 
 def delete_dir(relative_path: str):
@@ -489,14 +515,16 @@ def move_dir(old_path: str, new_path: str):
     abs_new = get_abs_path(new_path)
     if not os.path.isdir(abs_old):
         return  # nothing to rename
-    
+
     # ensure parent directory exists
     os.makedirs(os.path.dirname(abs_new), exist_ok=True)
-    
+
     try:
         os.rename(abs_old, abs_new)
-    except Exception:
-        pass  # suppress all errors, keep behavior consistent
+    except OSError:
+        # os.rename fails across Docker volume mount points
+        import shutil
+        shutil.move(abs_old, abs_new)
 
 
 # move dir safely, remove with number if needed
@@ -538,17 +566,26 @@ def make_dirs(relative_path: str):
     os.makedirs(os.path.dirname(abs_path), exist_ok=True)
 
 
+def _resolve_path(*relative_paths):
+    if len(relative_paths) == 1 and os.path.isabs(relative_paths[0]):
+        return relative_paths[0]
+    return os.path.join(_base_dir, *relative_paths)
+
+
 def get_abs_path(*relative_paths):
     "Convert relative paths to absolute paths based on the base directory."
-    return os.path.join(get_base_dir(), *relative_paths)
+    return _resolve_path(*relative_paths)
+
 
 def get_abs_path_dockerized(*relative_paths):
     "Ensures the abs path is dockerized (i.e. /a0/... path)"
     abs = get_abs_path(*relative_paths)
     from helpers import runtime
+
     if runtime.is_dockerized():
         return abs
     return normalize_a0_path(abs)
+
 
 def get_abs_path_development(*relative_paths):
     "Ensures the abs path is relevant for dev environment"
@@ -580,13 +617,22 @@ def normalize_a0_path(path: str):
 
 
 def exists(*relative_paths):
-    path = get_abs_path(*relative_paths)
+    path = _resolve_path(*relative_paths)
     return os.path.exists(path)
 
 
+def is_file(*relative_paths):
+    path = _resolve_path(*relative_paths)
+    return os.path.isfile(path)
+
+
+def is_dir(*relative_paths):
+    path = _resolve_path(*relative_paths)
+    return os.path.isdir(path)
+
+
 def get_base_dir():
-    # Project root: helpers/ is one level below base (do not dirname() again after abspath — that would step above the project).
-    return os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    return _base_dir
 
 
 def basename(path: str, suffix: str | None = None):
@@ -600,10 +646,10 @@ def dirname(path: str):
 
 
 def is_in_base_dir(path: str):
-    return is_in_dir(path,get_base_dir())
+    return is_in_dir(path, get_base_dir())
 
 
-def is_in_dir(path:str,dir:str):
+def is_in_dir(path: str, dir: str):
     # check if the given path is within the directory
     abs_path = os.path.abspath(path)
     abs_dir = os.path.abspath(dir)
@@ -653,6 +699,7 @@ def move_file(relative_path: str, new_path: str):
     except OSError:
         # fallback to copy and delete
         import shutil
+
         shutil.copy2(abs_path, new_abs_path)
         try:
             os.unlink(abs_path)
@@ -691,6 +738,7 @@ def read_text_files_in_dir(
             continue
     return result
 
+
 def list_files_in_dir_recursively(relative_path: str) -> list[str]:
     abs_path = get_abs_path(relative_path)
     if not os.path.exists(abs_path):
@@ -703,4 +751,3 @@ def list_files_in_dir_recursively(relative_path: str) -> list[str]:
             rel_path = os.path.relpath(file_path, abs_path)
             result.append(rel_path)
     return result
-    

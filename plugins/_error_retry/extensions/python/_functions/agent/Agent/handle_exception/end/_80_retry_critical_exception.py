@@ -30,7 +30,7 @@ class RetryCriticalException(Extension):
             self.agent.set_data(DATA_NAME_COUNTER, 0)
             return
 
-        config = plugins.get_plugin_config("error_retry", agent=self.agent) or {}
+        config = plugins.get_plugin_config("_error_retry", agent=self.agent) or {}
 
         if not config.get("retry_on_critical", True):
             return

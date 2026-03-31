@@ -110,7 +110,7 @@ const model = {
   // Load settings from server
   async loadSettings() {
     try {
-      const response = await fetchApi("/api/settings_get", { method: "POST" });
+      const response = await fetchApi("/settings_get", { method: "POST" });
       const data = await response.json();
       const settings = data?.settings || {};
 
@@ -425,7 +425,7 @@ const model = {
   async speakWithKokoro(text, waitForPrevious = false, terminator = null) {
     try {
       // synthesize on the backend
-      const response = await sendJsonData("/api/synthesize", { text });
+      const response = await sendJsonData("/synthesize", { text });
 
       // wait for previous to finish if requested
       while (waitForPrevious && this.isSpeaking) await sleep(25);
@@ -881,7 +881,7 @@ class MicrophoneInput {
     const base64 = await this.convertBlobToBase64Wav(audioBlob);
 
     try {
-      const result = await sendJsonData("/api/transcribe", { audio: base64 });
+      const result = await sendJsonData("/transcribe", { audio: base64 });
       const text = this.filterResult(result.text || "");
 
       if (text) {

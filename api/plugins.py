@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -8,13 +9,13 @@ from helpers import plugins, files, extension
 
 
 class Plugins(ApiHandler):
-    """Plugin management API: list, toggle, get/save config, uninstall."""
+    """
+    Core plugin management API.
+    Actions: get_config, save_config
+    """
 
     async def process(self, input: dict, request: Request) -> dict | Response:
-        action = input.get("action", "list")
-
-        if action == "list":
-            return self._list(input)
+        action = input.get("action", "")
 
         if action == "get_config":
             return self._get_config(input)
@@ -37,11 +38,8 @@ class Plugins(ApiHandler):
         if action == "save_config":
             return self._save_config(input)
 
-        if action in ("toggle", "toggle_plugin"):
+        if action == "toggle_plugin":
             return self._toggle_plugin(input)
-
-        if action == "uninstall":
-            return self._uninstall(input)
 
         if action == "get_doc":
             return self._get_doc(input)
@@ -53,13 +51,6 @@ class Plugins(ApiHandler):
             return self._get_execute_record(input)
 
         return Response(status=400, response=f"Unknown action: {action}")
-
-    @extension.extensible
-    def _list(self, input: dict) -> dict | Response:
-        custom = input.get("custom", True)
-        builtin = input.get("builtin", True)
-        items = plugins.get_enhanced_plugins_list(custom=custom, builtin=builtin)
-        return {"ok": True, "plugins": [item.model_dump() for item in items]}
 
     @extension.extensible
     def _get_config(self, input: dict) -> dict | Response:
@@ -84,12 +75,10 @@ class Plugins(ApiHandler):
             loaded_agent_profile = entry.get("agent_profile", "")
         else:
             settings = plugins.get_plugin_config(plugin_name, agent=None) or {}
-            plugin_dir = plugins.find_plugin_dir(plugin_name)
-            if plugin_dir:
-                default_path = files.get_abs_path(plugin_dir, plugins.CONFIG_DEFAULT_FILE_NAME)
-                path = default_path if files.exists(default_path) else ""
-            else:
-                path = ""
+            default_path = files.get_abs_path(
+                plugins.find_plugin_dir(plugin_name), plugins.CONFIG_DEFAULT_FILE_NAME
+            )
+            path = default_path if files.exists(default_path) else ""
             loaded_project_name = ""
             loaded_agent_profile = ""
 
@@ -204,7 +193,7 @@ class Plugins(ApiHandler):
             return {"ok": True}
 
         try:
-            files.delete_file(files.deabsolute_path(path))
+            os.remove(path)
         except Exception as e:
             return Response(status=500, response=f"Failed to delete config: {str(e)}")
 
@@ -216,7 +205,7 @@ class Plugins(ApiHandler):
         if not plugin_name:
             return Response(status=400, response="Missing plugin_name")
         try:
-            plugins.delete_plugin(plugin_name)
+            plugins.uninstall_plugin(plugin_name)
         except FileNotFoundError as e:
             return Response(status=404, response=str(e))
         except ValueError as e:
@@ -263,17 +252,6 @@ class Plugins(ApiHandler):
             plugin_name, bool(enabled), project_name, agent_profile, clear_overrides
         )
         return {"ok": True}
-
-    @extension.extensible
-    def _uninstall(self, input: dict) -> dict | Response:
-        plugin_name = input.get("plugin_name", "")
-        if not plugin_name:
-            return Response(status=400, response="Missing plugin_name")
-        try:
-            plugins.uninstall_plugin(plugin_name)
-            return {"ok": True}
-        except (FileNotFoundError, ValueError) as e:
-            return Response(status=400, response=str(e))
 
     @extension.extensible
     def _get_doc(self, input: dict) -> dict | Response:

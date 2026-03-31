@@ -49,7 +49,7 @@
                 // Fetch token from settings API - try a2a_token first, fallback to mcp_server_token
                 let token = "";
                 try {
-                    const response = await API.callJsonApi("/api/settings_get", null);
+                    const response = await API.callJsonApi("settings_get", null);
                     token = response?.settings?.mcp_server_token || "";
                 } catch (e) {
                     console.error("Failed to fetch token:", e);
@@ -58,7 +58,12 @@
                 // Fetch and populate projects
                 const projectSelect = document.getElementById('a2a-project-select');
                 try {
-                    const data = await API.callJsonApi('/api/projects', { action: 'list' });
+                    const response = await fetchApi('/projects', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'list' })
+                    });
+                    const data = await response.json();
                     if (data.ok && data.data) {
                         data.data.forEach(project => {
                             const option = document.createElement('option');

@@ -102,11 +102,13 @@ class MCPTool(Tool):
     """MCP Tool wrapper"""
 
     def get_log_object(self) -> LogItem:
+        import uuid
         return self.agent.context.log.log(
             type="mcp",
             heading=f"icon://extension {self.agent.agent_name}: Using MCP tool '{self.name}'",
             content="",
             kvps={"tool_name": self.name, **self.args},
+            id=str(uuid.uuid4()),
         )
 
     async def execute(self, **kwargs: Any):
@@ -198,7 +200,7 @@ class MCPTool(Tool):
 
         final_text_for_agent = raw_tool_response
 
-        self.agent.hist_add_tool_result(self.name, final_text_for_agent)
+        self.agent.hist_add_tool_result(self.name, final_text_for_agent, id=self.log.id if self.log else "")
         (
             PrintStyle(
                 font_color="#1B4F72", background_color="white", padding=True, bold=True
@@ -259,9 +261,9 @@ class MCPServerRemote(BaseModel):
         self, tool_name: str, input_data: Dict[str, Any]
     ) -> CallToolResult:
         """Call a tool with the given input data"""
-        # No lock here: each call creates its own session via _execute_with_session,
-        # holding threading.Lock across await blocks the event loop and causes deadlocks.
-        return await self.__client.call_tool(tool_name, input_data)  # type: ignore
+        with self.__lock:
+            # We already run in an event loop, dont believe Pylance
+            return await self.__client.call_tool(tool_name, input_data)  # type: ignore
 
     def update(self, config: dict[str, Any]) -> "MCPServerRemote":
         with self.__lock:
@@ -337,9 +339,9 @@ class MCPServerLocal(BaseModel):
         self, tool_name: str, input_data: Dict[str, Any]
     ) -> CallToolResult:
         """Call a tool with the given input data"""
-        # No lock here: each call creates its own session via _execute_with_session,
-        # holding threading.Lock across await blocks the event loop and causes deadlocks.
-        return await self.__client.call_tool(tool_name, input_data)  # type: ignore
+        with self.__lock:
+            # We already run in an event loop, dont believe Pylance
+            return await self.__client.call_tool(tool_name, input_data)  # type: ignore
 
     def update(self, config: dict[str, Any]) -> "MCPServerLocal":
         with self.__lock:
@@ -796,15 +798,11 @@ class MCPConfig(BaseModel):
         if "." not in tool_name:
             raise ValueError(f"Tool {tool_name} not found")
         server_name_part, tool_name_part = tool_name.split(".")
-        target_server = None
         with self.__lock:
             for server in self.servers:
                 if server.name == server_name_part and server.has_tool(tool_name_part):
-                    target_server = server
-                    break
-        if target_server is None:
+                    return await server.call_tool(tool_name_part, input_data)
             raise ValueError(f"Tool {tool_name} not found")
-        return await target_server.call_tool(tool_name_part, input_data)
 
 
 T = TypeVar("T")
@@ -982,11 +980,7 @@ class MCPClientBase(ABC):
             return response
 
         try:
-            set = settings.get_settings()
-            return await self._execute_with_session(
-                call_tool_op,
-                read_timeout_seconds=set["mcp_client_tool_timeout"],
-            )
+            return await self._execute_with_session(call_tool_op)
         except Exception as e:
             # Error logged by _execute_with_session. Re-raise a specific error for the caller.
             PrintStyle(
@@ -1034,23 +1028,10 @@ class MCPClientLocal(MCPClientBase):
         if not which(server.command):
             raise ValueError(f"Command '{server.command}' not found")
 
-        from helpers.secrets import get_default_secrets_manager
-        secrets_mgr = get_default_secrets_manager()
-        resolved_env = None
-        if server.env:
-            resolved_env = {
-                k: secrets_mgr.replace_placeholders(v) if isinstance(v, str) else v
-                for k, v in server.env.items()
-            }
-        resolved_args = [
-            secrets_mgr.replace_placeholders(a) if isinstance(a, str) else a
-            for a in server.args
-        ] if server.args else server.args
-
         server_params = StdioServerParameters(
             command=server.command,
-            args=resolved_args,
-            env=resolved_env,
+            args=server.args,
+            env=server.env,
             encoding=server.encoding,
             encoding_error_handler=server.encoding_error_handler,
         )
@@ -1116,16 +1097,6 @@ class MCPClientRemote(MCPClientBase):
         server: MCPServerRemote = cast(MCPServerRemote, self.server)
         set = settings.get_settings()
 
-        from helpers.secrets import get_default_secrets_manager
-        secrets_mgr = get_default_secrets_manager()
-        resolved_url = secrets_mgr.replace_placeholders(server.url) if server.url else server.url
-        resolved_headers = None
-        if server.headers:
-            resolved_headers = {
-                k: secrets_mgr.replace_placeholders(v) if isinstance(v, str) else v
-                for k, v in server.headers.items()
-            }
-
         # Resolve timeout: check server config first, then settings, defaulting to 5s/10s
         init_timeout = server.init_timeout or set["mcp_client_init_timeout"] or 5
         tool_timeout = server.tool_timeout or set["mcp_client_tool_timeout"] or 10
@@ -1136,8 +1107,8 @@ class MCPClientRemote(MCPClientBase):
             # Use streamable HTTP client
             transport_result = await current_exit_stack.enter_async_context(
                 streamablehttp_client(
-                    url=resolved_url,
-                    headers=resolved_headers,
+                    url=server.url,
+                    headers=server.headers,
                     timeout=timedelta(seconds=init_timeout),
                     sse_read_timeout=timedelta(seconds=tool_timeout),
                     httpx_client_factory=client_factory,
@@ -1154,8 +1125,8 @@ class MCPClientRemote(MCPClientBase):
             # Use traditional SSE client (default behavior)
             stdio_transport = await current_exit_stack.enter_async_context(
                 sse_client(
-                    url=resolved_url,
-                    headers=resolved_headers,
+                    url=server.url,
+                    headers=server.headers,
                     timeout=init_timeout,
                     sse_read_timeout=tool_timeout,
                     httpx_client_factory=client_factory,

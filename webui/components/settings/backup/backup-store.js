@@ -105,7 +105,7 @@ const model = {
 
     try {
       // Get resolved default patterns from backend
-      const response = await sendJsonData("/api/backup_get_defaults", {});
+      const response = await sendJsonData("backup_get_defaults", {});
 
       if (response.success) {
         // Use patterns from backend with resolved absolute paths
@@ -243,7 +243,7 @@ const model = {
       const patternsString = this.convertPatternsToString(metadata.include_patterns, metadata.exclude_patterns);
 
       // Get grouped preview for better UX
-      const response = await sendJsonData("/api/backup_preview_grouped", {
+      const response = await sendJsonData("backup_preview_grouped", {
         patterns: patternsString,
         include_hidden: metadata.include_hidden ?? true,
         max_depth: 3,
@@ -399,7 +399,7 @@ const model = {
       const metadata = this.backupMetadataConfig;
 
       // Use fetch directly since backup_create returns a file download, not JSON
-      const response = await fetchApi('/api/backup_create', {
+      const response = await fetchApi('/backup_create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -444,7 +444,7 @@ const model = {
 
   async downloadBackup(backupPath, backupName) {
     try {
-      const response = await fetchApi('/api/backup_download', {
+      const response = await fetchApi('/backup_download', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ backup_path: backupPath })
@@ -508,7 +508,7 @@ const model = {
       const metadata = this.backupMetadataConfig;
       const patternsString = this.convertPatternsToString(metadata.include_patterns, metadata.exclude_patterns);
 
-      const response = await sendJsonData("/api/backup_test", {
+      const response = await sendJsonData("backup_test", {
         patterns: patternsString,
         include_hidden: metadata.include_hidden ?? true,
         max_files: 10000
@@ -553,7 +553,7 @@ const model = {
       formData.append('overwrite_policy', this.overwritePolicy);
       formData.append('clean_before_restore', this.cleanBeforeRestore);
 
-      const response = await fetchApi('/api/backup_restore_preview', {
+      const response = await fetchApi('/backup_restore_preview', {
         method: 'POST',
         body: formData
       });
@@ -620,7 +620,7 @@ const model = {
       const formData = new FormData();
       formData.append('backup_file', file);
 
-      const response = await fetchApi('/api/backup_inspect', {
+      const response = await fetchApi('/backup_inspect', {
         method: 'POST',
         body: formData
       });
@@ -706,7 +706,7 @@ const model = {
       formData.append('overwrite_policy', this.overwritePolicy);
       formData.append('clean_before_restore', this.cleanBeforeRestore);
 
-      const response = await fetchApi('/api/backup_restore', {
+      const response = await fetchApi('/backup_restore', {
         method: 'POST',
         body: formData
       });

@@ -22,7 +22,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from helpers.cognee_init import configure_cognee
+from plugins._memory.helpers.cognee_init import configure_cognee
 
 
 def _log(msg: str):
@@ -407,7 +407,7 @@ def _migration_looks_empty(state: dict) -> bool:
 
 
 def _current_data_dir() -> str:
-    from helpers.cognee_init import get_cognee_setting
+    from plugins._memory.helpers.cognee_init import get_cognee_setting
     from helpers import files
     data_dir = files.get_abs_path(get_cognee_setting("cognee_data_dir", "usr/cognee"))
     return os.path.join(data_dir, "data_storage")
@@ -517,7 +517,7 @@ async def cleanup_backup_datasets(base_dir: str):
         return
 
     try:
-        from helpers.cognee_init import configure_cognee
+        from plugins._memory.helpers.cognee_init import configure_cognee
         configure_cognee()
         import cognee
         all_datasets = await cognee.datasets.list_datasets()

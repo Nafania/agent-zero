@@ -21,7 +21,7 @@ const maxNotifications = 100;
 const maxToasts = 5;
 
 const model = {
-  notifications: [],
+  notifications: Array(),
   loading: false,
   lastNotificationVersion: 0,
   lastNotificationGuid: "",
@@ -29,7 +29,7 @@ const model = {
   unreadPrioCount: 0,
 
   // NEW: Toast stack management
-  toastStack: [],
+  toastStack: Array(),
 
   init() {
     this.initialize();
@@ -70,11 +70,26 @@ const model = {
         // adjust notification data before adding
         this.adjustNotificationData(notification);
 
-        const isNew = !this.notifications.find((n) => n.id === notification.id);
+        const existingNotificationIndex = this.notifications.findIndex(
+          (n) => n.id === notification.id
+        );
+        const existingNotification =
+          existingNotificationIndex >= 0
+            ? this.notifications[existingNotificationIndex]
+            : null;
+        const isNew = !existingNotification;
+        const shouldRetoast =
+          !!existingNotification &&
+          shouldToast &&
+          (existingNotification.timestamp !== notification.timestamp ||
+            existingNotification.title !== notification.title ||
+            existingNotification.message !== notification.message ||
+            existingNotification.detail !== notification.detail);
+
         this.addOrUpdateNotification(notification);
 
-        // Add new unread notifications to toast stack
-        if (isNew && shouldToast) {
+        // Add new unread notifications to toast stack, and also re-toast updated unread notifications
+        if ((isNew && shouldToast) || shouldRetoast) {
           this.addToToastStack(notification);
         }
       });
@@ -125,9 +140,30 @@ const model = {
     }
 
     // Set auto-dismiss timer
+    this.restartToastTimer(toast.toastId);
+  },
+
+  clearToastTimer(toastId) {
+    const toastIndex = this.toastStack.findIndex((t) => t.toastId === toastId);
+    if (toastIndex < 0) return;
+
+    const toast = this.toastStack[toastIndex];
+    if (toast.autoRemoveTimer) {
+      clearTimeout(toast.autoRemoveTimer);
+      toast.autoRemoveTimer = null;
+    }
+  },
+
+  restartToastTimer(toastId) {
+    const toastIndex = this.toastStack.findIndex((t) => t.toastId === toastId);
+    if (toastIndex < 0) return;
+
+    const toast = this.toastStack[toastIndex];
+
+    this.clearToastTimer(toastId);
     toast.autoRemoveTimer = setTimeout(() => {
       this.removeFromToastStack(toast.toastId);
-    }, notification.display_time * 1000);
+    }, toast.display_time * 1000);
   },
 
   // NEW: Remove toast from stack
@@ -186,7 +222,21 @@ const model = {
   },
 
   // NEW: Handle toast click (opens modal)
-  async handleToastClick(toastId) {
+  async handleToastClick(toastId, event) {
+    const target = event?.target;
+    const toast = this.toastStack.find((t) => t.toastId === toastId);
+    if (
+      target instanceof Element &&
+      target.closest(
+        'button, a, input, select, textarea, summary, label, [role="button"], [data-toast-interactive]'
+      )
+    ) {
+      if (toast?.id) {
+        this.markAsRead(toast.id);
+      }
+      return;
+    }
+
     await this.openModal();
     // Modal opening will clear toast stack via markAllAsRead
   },
@@ -232,7 +282,7 @@ const model = {
 
       // Sync with backend (non-blocking)
       try {
-        await API.callJsonApi("/api/notifications_mark_read", {
+        await API.callJsonApi("notifications_mark_read", {
           notification_ids: [notificationId],
         });
       } catch (error) {
@@ -258,7 +308,7 @@ const model = {
 
     // Sync with backend (non-blocking)
     try {
-      await API.callJsonApi("/api/notifications_mark_read", {
+      await API.callJsonApi("notifications_mark_read", {
         mark_all: true,
       });
     } catch (error) {
@@ -276,7 +326,7 @@ const model = {
 
   async clearBackendNotifications() {
     try {
-      await API.callJsonApi("/api/notifications_clear", null);
+      await API.callJsonApi("notifications_clear", null);
     } catch (error) {
       console.error("Failed to clear notifications:", error);
     }
@@ -387,7 +437,7 @@ const model = {
     priority = defaultPriority
   ) {
     try {
-      const response = await globalThis.sendJsonData("/api/notification_create", {
+      const response = await globalThis.sendJsonData("/notification_create", {
         type: type,
         message: message,
         title: title,
@@ -587,6 +637,8 @@ const model = {
       toastId: `toast-${notification.id}`,
       addedAt: Date.now(),
       autoRemoveTimer: null,
+      hoverTimer: null,
+      isHovered: false,
     };
 
     // Add to bottom of stack (newest at bottom)

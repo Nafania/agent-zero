@@ -1,5 +1,6 @@
 from helpers.api import ApiHandler, Request, Response
-from helpers import files, memory, notification, projects, notification
+from helpers import files, notification, projects, notification
+from plugins._memory.helpers import memory
 import os
 
 

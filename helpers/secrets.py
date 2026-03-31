@@ -8,13 +8,14 @@ from typing import Dict, Optional, List, Literal, Set, Callable, Tuple, TYPE_CHE
 from dotenv.parser import parse_stream
 from helpers.errors import RepairableException
 from helpers import files
+from helpers.extension import extensible
 
 if TYPE_CHECKING:
     from agent import AgentContext
 
 
 # New alias-based placeholder format §§secret(KEY)
-ALIAS_PATTERN = r"(?:§§|\$\$)secret\(([A-Za-z_][A-Za-z0-9_]*)\)"
+ALIAS_PATTERN = r"§§secret\(([A-Za-z_][A-Za-z0-9_]*)\)"
 DEFAULT_SECRETS_FILE = "usr/secrets.env"
 
 
@@ -504,6 +505,7 @@ class SecretsManager:
         return merged
 
 
+@extensible
 def get_secrets_manager(context: "AgentContext|None" = None) -> SecretsManager:
     from helpers import projects
 
@@ -519,10 +521,11 @@ def get_secrets_manager(context: "AgentContext|None" = None) -> SecretsManager:
     if context:
         project = projects.get_context_project_name(context)
         if project:
-            secret_files.append(files.get_abs_path(projects.get_project_meta_folder(project), "secrets.env"))
+            secret_files.append(files.get_abs_path(projects.get_project_meta(project), "secrets.env"))
 
     return SecretsManager.get_instance(*secret_files)
 
+@extensible
 def get_project_secrets_manager(project_name: str, merge_with_global: bool = False) -> SecretsManager:
     from helpers import projects
 
@@ -533,9 +536,10 @@ def get_project_secrets_manager(project_name: str, merge_with_global: bool = Fal
         secret_files.append(DEFAULT_SECRETS_FILE)
 
     # merged with project secrets if active
-    secret_files.append(files.get_abs_path(projects.get_project_meta_folder(project_name), "secrets.env"))
+    secret_files.append(files.get_abs_path(projects.get_project_meta(project_name), "secrets.env"))
 
     return SecretsManager.get_instance(*secret_files)
 
+@extensible
 def get_default_secrets_manager() -> SecretsManager:
     return SecretsManager.get_instance()

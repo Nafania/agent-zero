@@ -11,7 +11,7 @@ import hashlib
 from helpers.print_style import PrintStyle
 from helpers import files
 from langchain_core.documents import Document
-from helpers import knowledge_import
+from plugins._memory.helpers import knowledge_import
 from helpers.log import Log, LogItem
 from enum import Enum
 from agent import Agent, AgentContext
@@ -653,7 +653,7 @@ def get_custom_knowledge_subdir_abs(agent: Agent) -> str:
 
 
 def reload():
-    import helpers.cognee_init as ci
+    import plugins._memory.helpers.cognee_init as ci
     ci._configured = False
     ci._cognee_module = None
     ci._search_type_class = None

@@ -1,4 +1,5 @@
-from helpers import files, memory
+from helpers import files
+from plugins._memory.helpers import memory
 from helpers.tool import Tool, Response
 from agent import Agent
 from helpers.log import LogItem

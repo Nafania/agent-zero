@@ -4,6 +4,7 @@ import { formatDateTime, getUserTimezone } from "/js/time-utils.js";
 import { store as chatsStore } from "/components/sidebar/chats/chats-store.js";
 import { store as projectsStore } from "/components/projects/projects-store.js";
 import { store as notificationsStore } from "/components/notifications/notification-store.js";
+
 const VIEW_MODE_STORAGE_KEY = "scheduler_view_mode";
 const NOTIFICATION_DURATION = {
   success: 3,

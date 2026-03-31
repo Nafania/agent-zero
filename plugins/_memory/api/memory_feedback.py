@@ -3,7 +3,7 @@ import json
 from flask import Response
 
 from helpers.api import ApiHandler, Request
-from helpers import cognee_feedback as cf
+from plugins._memory.helpers import cognee_feedback as cf
 
 
 class MemoryFeedback(ApiHandler):

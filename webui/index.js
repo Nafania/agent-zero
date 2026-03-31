@@ -14,7 +14,6 @@ import { store as chatTopStore } from "/components/chat/top-section/chat-top-sto
 import { store as _tooltipsStore } from "/components/tooltips/tooltip-store.js";
 import { store as messageQueueStore } from "/components/chat/message-queue/message-queue-store.js";
 import { store as syncStore } from "/components/sync/sync-store.js"
-import { store as slashCommandsStore } from "/components/chat/input/slash-commands.js"
 
 globalThis.fetchApi = api.fetchApi; // TODO - backward compatibility for non-modular scripts, remove once refactored to alpine
 
@@ -41,31 +40,14 @@ let skipOneSpeech = false;
 export async function sendMessage() {
   try {
     let message = inputStore.message.trim();
-    const attachmentsWithUrls = attachmentsStore.getAttachmentsForSending();
+    let attachmentsWithUrls = attachmentsStore.getAttachmentsForSending();
     const hasAttachments = attachmentsWithUrls.length > 0;
 
-    // Handle slash commands before sending to agent
-    if (message.startsWith("/") && !hasAttachments) {
-      const result = await handleSlashCommand(message);
-      if (result === true) {
-        inputStore.reset();
-        slashCommandsStore.hide();
-        return;
-      }
-      if (typeof result === "string") {
-        message = result;
-        inputStore.message = result;
-      }
-    }
-
-    // If a skill chip is active, prepend the skill prefix
-    if (inputStore.activeSkill) {
-      const skillName = inputStore.activeSkill;
-      const userText = message || "";
-      message = userText
-        ? `[Load and use skill: ${skillName}] ${userText}`
-        : `[Load and use skill: ${skillName}]`;
-    }
+    const sendCtx = { message, attachments: attachmentsWithUrls, context, cancel: false };
+    await callJsExtensions("send_message_before", sendCtx);
+    if (sendCtx.cancel) return;
+    message = sendCtx.message;
+    attachmentsWithUrls = sendCtx.attachments;
 
     // If empty input but has queued messages, send all queued
     if (!message && !hasAttachments && messageQueueStore.hasQueue) {
@@ -74,17 +56,13 @@ export async function sendMessage() {
     }
 
     if (message || hasAttachments) {
-      const sendCtx = { message, attachments: attachmentsWithUrls, context, cancel: false };
-      await callJsExtensions("send_message_before", sendCtx);
-      if (sendCtx.cancel) return;
-      message = sendCtx.message;
-
       // Check if agent is busy - queue instead of sending
       if (chatsStore.selectedContext.running || messageQueueStore.hasQueue) {
         const success = messageQueueStore.addToQueue(message, attachmentsWithUrls);
         // no await for the queue
         // if (success) {
           inputStore.reset();
+          adjustTextareaHeight();
         // }
         return;
       }
@@ -96,8 +74,9 @@ export async function sendMessage() {
       let response;
       const messageId = generateGUID();
 
-      // Clear input and attachments
-      inputStore.reset();
+    // Clear input and attachments
+    inputStore.reset();
+    adjustTextareaHeight();
 
       // Include attachments in the user message
       if (hasAttachments) {
@@ -107,7 +86,7 @@ export async function sendMessage() {
             : "";
 
         // Render user message with attachments
-        setMessages([{ id: messageId, type: "user", heading, content: message, kvps: {
+        await setMessages([{ id: messageId, type: "user", heading, content: message, kvps: {
           // attachments: attachmentsWithUrls, // skip here, let the backend properly log them
         }}]);
 
@@ -123,7 +102,7 @@ export async function sendMessage() {
           formData.append("attachments", attachmentsWithUrls[i].file);
         }
 
-        response = await api.fetchApi("/api/message_async", {
+        response = await api.fetchApi("/message_async", {
           method: "POST",
           body: formData,
         });
@@ -134,7 +113,7 @@ export async function sendMessage() {
           context,
           message_id: messageId,
         };
-        response = await api.fetchApi("/api/message_async", {
+        response = await api.fetchApi("/message_async", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -156,109 +135,6 @@ export async function sendMessage() {
   }
 }
 globalThis.sendMessage = sendMessage;
-
-async function handleSlashCommand(message) {
-  const parts = message.split(/\s+/);
-  const cmd = parts[0].toLowerCase();
-  const args = parts.slice(1).join(" ").trim();
-  const ctxid = context || "";
-
-  switch (cmd) {
-    case "/skill-install": {
-      if (!args) {
-        toast("Usage: /skill-install owner/repo[/skill-name]", "error");
-        return true;
-      }
-      console.log("[slash] /skill-install source:", args);
-      toast("Installing skill...", "info", 30000);
-      try {
-        const result = await api.callJsonApi("/api/skill_install", {
-          source: args,
-          ctxid,
-        });
-        console.log("[slash] /skill-install result:", result);
-        if (result.ok) {
-          const where = result.target === "global" ? "globally" : `in ${result.target}`;
-          const installed = result.installed?.length || 0;
-          const skipped = result.skipped?.length || 0;
-          let msg = `Installed ${installed} skill(s) from ${result.source} ${where}.`;
-          if (skipped > 0) msg += ` Skipped ${skipped} (already exist).`;
-          toast(msg, "success", 8000);
-          slashCommandsStore.invalidateCache();
-        } else {
-          console.error("[slash] /skill-install error:", result.error);
-          toast("Skill install failed: " + (result.error || "unknown error"), "error", 10000);
-        }
-      } catch (e) {
-        console.error("[slash] /skill-install exception:", e);
-        toast("Skill install failed: " + (e.message || e), "error", 10000);
-      }
-      return true;
-    }
-
-    case "/skill-list": {
-      try {
-        const projectName = chatsStore.selectedContext?.project?.name || "";
-        const result = await api.callJsonApi("/api/skills", {
-          action: "list",
-          project_name: projectName,
-        });
-        if (result.ok && result.data) {
-          const skills = result.data;
-          if (skills.length === 0) {
-            toast("No skills installed.", "info");
-          } else {
-            const names = skills.map((s) => s.name).join(", ");
-            toast(`${skills.length} skill(s): ${names}`, "info", 10000);
-          }
-        } else {
-          toast(result.error || "Failed to list skills", "error");
-        }
-      } catch (e) {
-        console.error("[slash] /skill-list exception:", e);
-        toast("Failed to list skills: " + (e.message || e), "error");
-      }
-      return true;
-    }
-
-    case "/skill-remove": {
-      if (!args) {
-        toast("Usage: /skill-remove <skill-path>", "error");
-        return true;
-      }
-      try {
-        const result = await api.callJsonApi("/api/skills", {
-          action: "delete",
-          skill_path: args,
-        });
-        if (result.ok) {
-          toast(`Skill removed: ${args}`, "success");
-          slashCommandsStore.invalidateCache();
-        } else {
-          toast(result.error || "Failed to remove skill", "error");
-        }
-      } catch (e) {
-        console.error("[slash] /skill-remove exception:", e);
-        toast("Failed to remove skill: " + (e.message || e), "error");
-      }
-      return true;
-    }
-
-    default:
-      break;
-  }
-
-  // Check if it matches a dynamic (installed) skill command
-  const skillName = cmd.startsWith("/") ? cmd.slice(1) : cmd;
-  if (skillName && slashCommandsStore.isInstalledSkill(skillName)) {
-    const userText = args || "";
-    return userText
-      ? `[Load and use skill: ${skillName}] ${userText}`
-      : `[Load and use skill: ${skillName}]`;
-  }
-
-  return false;
-}
 
 function getChatHistoryEl() {
   return document.getElementById("chat-history");
@@ -344,8 +220,8 @@ async function updateUserTime() {
 updateUserTime();
 setInterval(updateUserTime, 1000);
 
-function setMessages(...params) {
-  return msgs.setMessages(...params);
+async function setMessages(...params) {
+  return await msgs.setMessages(...params);
 }
 
 globalThis.loadKnowledge = async function () {
@@ -355,6 +231,7 @@ globalThis.loadKnowledge = async function () {
 function adjustTextareaHeight() {
   const chatInputEl = document.getElementById("chat-input");
   if (chatInputEl) {
+    if (!inputStore.message) chatInputEl.value = "";
     chatInputEl.style.height = "auto";
     chatInputEl.style.height = chatInputEl.scrollHeight + "px";
   }
@@ -408,9 +285,6 @@ function setConnectionStatus(connected) {
 let lastLogVersion = 0;
 let lastLogGuid = "";
 let lastSpokenNo = 0;
-let lastChatListUpdatedAt = 0;
-let hasEarlierLogs = false;
-let loadingEarlierLogs = false;
 
 export function buildStateRequestPayload(options = {}) {
   const { forceFull = false } = options || {};
@@ -419,7 +293,6 @@ export function buildStateRequestPayload(options = {}) {
     context: context || null,
     log_from: forceFull ? 0 : lastLogVersion,
     notifications_from: forceFull ? 0 : notificationStore.lastNotificationVersion || 0,
-    chat_list_since: forceFull ? 0 : lastChatListUpdatedAt,
     timezone,
   };
 }
@@ -435,14 +308,6 @@ export async function applySnapshot(snapshot, options = {}) {
     return { updated: false };
   }
 
-  const snapCtx = {
-    snapshot,
-    options,
-    skip: false,
-  };
-  await callJsExtensions("apply_snapshot_before", snapCtx);
-  if (snapCtx.skip) return { updated: false };
-
   // deselect chat if it is requested by the backend
   if (snapshot.deselect_chat) {
     chatsStore.deselectChat();
@@ -455,6 +320,14 @@ export async function applySnapshot(snapshot, options = {}) {
   ) {
     return { updated: false };
   }
+
+  const snapCtx = {
+    snapshot,
+    willUpdateMessages: lastLogVersion != snapshot.log_version,
+    skip: false,
+  };
+  await callJsExtensions("apply_snapshot_before", snapCtx);
+  if (snapCtx.skip) return { updated: false };
 
   // If the chat has been reset, reset cursors and request a resync from the caller.
   // Note: on first snapshot after a context switch, lastLogGuid is intentionally empty,
@@ -477,19 +350,12 @@ export async function applySnapshot(snapshot, options = {}) {
 
   if (lastLogVersion != snapshot.log_version) {
     updated = true;
-    setMessages(snapshot.logs);
+    await setMessages(snapshot.logs);
     afterMessagesUpdate(snapshot.logs);
   }
 
   lastLogVersion = snapshot.log_version;
   lastLogGuid = snapshot.log_guid;
-
-  if (typeof snapshot.chat_list_updated_at === "number") {
-    lastChatListUpdatedAt = snapshot.chat_list_updated_at;
-  }
-
-  hasEarlierLogs = !!snapshot.has_earlier_logs;
-  updateLoadEarlierIndicator();
 
   updateProgress(snapshot.log_progress, snapshot.log_progress_active);
 
@@ -504,13 +370,13 @@ export async function applySnapshot(snapshot, options = {}) {
     setConnectionStatus(true);
   }
 
-  if (snapshot.contexts !== null && snapshot.contexts !== undefined) {
-    chatsStore.applyContexts(snapshot.contexts);
-  }
+  // Update chats list using store
+  let contexts = snapshot.contexts || [];
+  chatsStore.applyContexts(contexts);
 
-  if (snapshot.tasks !== null && snapshot.tasks !== undefined) {
-    tasksStore.applyTasks(snapshot.tasks);
-  }
+  // Update tasks list using store
+  let tasks = snapshot.tasks || [];
+  tasksStore.applyTasks(tasks);
 
   // Make sure the active context is properly selected in both lists
   if (context) {
@@ -553,7 +419,7 @@ export async function poll() {
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     const log_from = lastLogVersion;
-    const response = await sendJsonData("/api/poll", {
+    const response = await sendJsonData("/poll", {
       log_from: log_from,
       notifications_from: notificationStore.lastNotificationVersion || 0,
       context: context || null,
@@ -615,16 +481,33 @@ function speakMessages(logs) {
 }
 
 function updateProgress(progress, active) {
-  const progressBarEl = document.getElementById("progress-bar");
-  if (!progressBarEl) return;
   if (!progress) progress = "";
 
-  setProgressBarShine(progressBarEl, active);
+  // Strip HTML tags for plain-text placeholder use
+  const plainText = progress.replace(/<[^>]*>/g, "").trim();
 
-  progress = msgs.convertIcons(progress);
+  // Update the input store so the placeholder reflects progress
+  inputStore.progressText = plainText;
+  inputStore.progressActive = !!active;
 
-  if (progressBarEl.innerHTML != progress) {
-    progressBarEl.innerHTML = progress;
+  // Apply shimmer class to the textarea when active
+  const chatInputEl = document.getElementById("chat-input");
+  if (chatInputEl) {
+    if (active && plainText) {
+      addClassToElement(chatInputEl, "progress-active");
+    } else {
+      removeClassFromElement(chatInputEl, "progress-active");
+    }
+  }
+
+  // Also update legacy progress bar element if it still exists
+  const progressBarEl = document.getElementById("progress-bar");
+  if (progressBarEl) {
+    setProgressBarShine(progressBarEl, active);
+    const html = msgs.convertIcons(progress);
+    if (progressBarEl.innerHTML != html) {
+      progressBarEl.innerHTML = html;
+    }
   }
 }
 
@@ -665,7 +548,6 @@ export const setContext = function (id) {
   lastLogGuid = "";
   lastLogVersion = 0;
   lastSpokenNo = 0;
-  hasEarlierLogs = false;
 
   // Stop speech when switching chats
   speechStore.stopAudio();
@@ -692,6 +574,13 @@ export const setContext = function (id) {
 
   //skip one speech if enabled when switching context
   if (preferencesStore.speech) skipOneSpeech = true;
+
+  // Focus the chat input
+  if (id) {
+    setTimeout(() => {
+      inputStore.focus();
+    }, 50);
+  }
 };
 
 export const deselectChat = function () {
@@ -756,83 +645,6 @@ import { store as _chatNavigationStore } from "/components/chat/navigation/chat-
 // Navigation logic in chat-navigation-store.js
 // forceScrollChatToBottom is kept here as it is used by system events
 
-
-export function getHasEarlierLogs() {
-  return hasEarlierLogs;
-}
-
-export async function loadEarlierLogs() {
-  if (loadingEarlierLogs || !hasEarlierLogs || !context) return;
-  loadingEarlierLogs = true;
-
-  try {
-    const chatHistory = document.getElementById("chat-history");
-    if (!chatHistory) return;
-
-    const firstMsg = chatHistory.querySelector("[id^='message-']");
-    let before = 0;
-    if (firstMsg) {
-      const idStr = firstMsg.id.replace("message-", "");
-      before = parseInt(idStr, 10);
-      if (isNaN(before)) before = 0;
-    }
-
-    const data = await api.callJsonApi("/api/chat_logs", {
-      context_id: context,
-      before,
-      limit: 50,
-    });
-
-    if (data.logs && data.logs.length > 0) {
-      const prevScrollHeight = chatHistory.scrollHeight;
-      const prevScrollTop = chatHistory.scrollTop;
-
-      msgs.prependMessages(data.logs);
-
-      const newScrollHeight = chatHistory.scrollHeight;
-      chatHistory.scrollTop = prevScrollTop + (newScrollHeight - prevScrollHeight);
-    }
-
-    hasEarlierLogs = !!data.has_more;
-    updateLoadEarlierIndicator();
-  } catch (error) {
-    console.error("Failed to load earlier logs:", error);
-  } finally {
-    loadingEarlierLogs = false;
-  }
-}
-
-function updateLoadEarlierIndicator() {
-  const history = document.getElementById("chat-history");
-  if (!history) return;
-
-  let indicator = document.getElementById("load-earlier-indicator");
-
-  if (hasEarlierLogs) {
-    if (!indicator) {
-      indicator = document.createElement("div");
-      indicator.id = "load-earlier-indicator";
-      indicator.className = "load-earlier-indicator";
-      indicator.innerHTML = '<button class="btn-load-earlier">Load earlier messages</button>';
-      indicator.querySelector("button").addEventListener("click", () => {
-        const btn = indicator.querySelector("button");
-        btn.textContent = "Loading...";
-        btn.disabled = true;
-        loadEarlierLogs().finally(() => {
-          if (btn) {
-            btn.textContent = "Load earlier messages";
-            btn.disabled = false;
-          }
-        });
-      });
-      history.insertBefore(indicator, history.firstChild);
-    }
-  } else {
-    if (indicator) {
-      indicator.remove();
-    }
-  }
-}
 
 // setInterval(poll, 250);
 
