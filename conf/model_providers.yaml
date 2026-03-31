@@ -30,6 +30,9 @@ chat:
     oauth:
       enabled: false
       strategy: anthropic
+  anthropic_oauth:
+    name: Anthropic OAuth (Claude Code)
+    litellm_provider: anthropic
   cometapi:
     name: CometAPI
     litellm_provider: cometapi

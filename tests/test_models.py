@@ -467,7 +467,7 @@ class TestApplyRateLimiter:
         from models import apply_rate_limiter
 
         result = await apply_rate_limiter(None, "text")
-        assert result is None
+        assert result == (None, None)
 
     @pytest.mark.asyncio
     async def test_apply_rate_limiter_returns_limiter_when_config(self):

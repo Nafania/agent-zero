@@ -8,6 +8,7 @@ chat_model:
   rl_requests: 0
   rl_input: 0
   rl_output: 0
+  rl_concurrent: 0
   kwargs: {}
 
 utility_model:
@@ -19,6 +20,7 @@ utility_model:
   rl_requests: 0
   rl_input: 0
   rl_output: 0
+  rl_concurrent: 0
   kwargs: {}
 
 embedding_model:
@@ -27,6 +29,7 @@ embedding_model:
   api_base: ""
   rl_requests: 0
   rl_input: 0
+  rl_concurrent: 0
   kwargs: {}
 
 browser_model:
@@ -37,4 +40,5 @@ browser_model:
   rl_requests: 0
   rl_input: 0
   rl_output: 0
+  rl_concurrent: 0
   kwargs: {}
