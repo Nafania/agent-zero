@@ -28,7 +28,6 @@ from helpers import files, cache
 ThreadLockType = Union[threading.Lock, threading.RLock]
 
 CACHE_AREA = "api_handlers(api)"
-cache.toggle_area(CACHE_AREA, False)
 
 Input = dict
 Output = Union[Dict[str, Any], Response, TypedDict]  # type: ignore
@@ -297,7 +296,12 @@ def register_api_route(app: Flask, lock: ThreadLockType) -> None:
 
         cached = cache.get(CACHE_AREA, path)
         if cached is not None:
-            return await cached()
+            handler_fn, allowed_methods = cached
+            if request.method not in allowed_methods:
+                return Response(
+                    f"Method {request.method} not allowed for: {path}", 405
+                )
+            return await handler_fn()
 
         handler_cls: type[ApiHandler] | None = None
 
@@ -315,8 +319,9 @@ def register_api_route(app: Flask, lock: ThreadLockType) -> None:
                 _, plugin_name, handler_name = parts
                 plugin_dir = plugins.find_plugin_dir(plugin_name)
                 if plugin_dir:
-                    plugin_file = Path(plugin_dir) / "api" / f"{handler_name}.py"
-                    if plugin_file.is_file():
+                    api_dir = Path(plugin_dir) / "api"
+                    plugin_file = api_dir / f"{handler_name}.py"
+                    if plugin_file.resolve().is_relative_to(api_dir.resolve()) and plugin_file.is_file():
                         classes = load_classes_from_file(
                             str(plugin_file), ApiHandler
                         )
@@ -345,7 +350,7 @@ def register_api_route(app: Flask, lock: ThreadLockType) -> None:
         if handler_cls.requires_loopback():
             handler_fn = requires_loopback(handler_fn)
 
-        cache.add(CACHE_AREA, path, handler_fn)
+        cache.add(CACHE_AREA, path, (handler_fn, handler_cls.get_methods()))
         return await handler_fn()
 
     app.add_url_rule(

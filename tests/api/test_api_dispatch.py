@@ -240,17 +240,51 @@ class TestDispatchResolution:
             mock_files.PLUGINS_DIR = "plugins"
             mock_files.USER_DIR = "usr"
 
-            cache.toggle_area(CACHE_AREA, True)
-            try:
-                resp1 = client.post("/api/cached")
-                assert resp1.status_code == 200
+            resp1 = client.post("/api/cached")
+            assert resp1.status_code == 200
 
-                resp2 = client.post("/api/cached")
-                assert resp2.status_code == 200
+            resp2 = client.post("/api/cached")
+            assert resp2.status_code == 200
 
-                assert mock_load.call_count == 1
-            finally:
-                cache.toggle_area(CACHE_AREA, False)
+            assert mock_load.call_count == 1
+
+    def test_cached_handler_still_checks_method(self):
+        app = _make_app()
+        lock = threading.Lock()
+        register_api_route(app, lock)
+        client = app.test_client()
+
+        class PostOnlyHandler(ApiHandler):
+            @classmethod
+            def requires_auth(cls):
+                return False
+
+            @classmethod
+            def requires_csrf(cls):
+                return False
+
+            @classmethod
+            def get_methods(cls):
+                return ["POST"]
+
+            async def process(self, input, request):
+                return {"ok": True}
+
+        with patch("helpers.api.files") as mock_files, \
+             patch(LOAD_CLASSES_PATCH, return_value=[PostOnlyHandler]):
+            mock_files.get_abs_path = MagicMock(
+                side_effect=lambda *args: "/fake/" + "/".join(str(a) for a in args)
+            )
+            mock_files.is_in_dir = MagicMock(return_value=True)
+            mock_files.exists = MagicMock(return_value=True)
+            mock_files.PLUGINS_DIR = "plugins"
+            mock_files.USER_DIR = "usr"
+
+            resp = client.post("/api/method_cached")
+            assert resp.status_code == 200
+
+            resp = client.get("/api/method_cached")
+            assert resp.status_code == 405
 
     def test_resolves_plugin_handler(self):
         app = _make_app()
