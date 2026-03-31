@@ -101,6 +101,9 @@ class TestIncludeAgentInfo:
             number=mock_agent.number,
             profile="Default",
             llm="openai/gpt-4",
+            max_depth=5,
+            remaining_depth=4,
+            is_subordinate=False,
         )
 
 
