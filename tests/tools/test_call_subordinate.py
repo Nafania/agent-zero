@@ -15,6 +15,9 @@ if str(PROJECT_ROOT) not in sys.path:
 def mock_agent():
     agent = MagicMock()
     agent.number = 0
+    agent.config = MagicMock()
+    agent.config.max_agent_depth = 5
+    agent.config.profile = "default"
     agent.get_data = MagicMock(return_value=None)
     agent.set_data = MagicMock()
     agent.context = MagicMock()
