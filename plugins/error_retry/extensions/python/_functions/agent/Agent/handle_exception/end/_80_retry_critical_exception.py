@@ -1,4 +1,5 @@
 import asyncio
+import uuid
 
 from helpers.extension import Extension
 from helpers.errors import RepairableException
@@ -9,6 +10,10 @@ from agent import HandledException
 from plugins.error_retry.extensions.python._functions.agent.Agent.monologue.start._10_reset_critical_exception_counter import DATA_NAME_COUNTER
 
 
+# NOTE: This extension becomes active when handle_exception is refactored to be the
+# central exception handler, replacing the inline handle_critical_exception /
+# retry_critical_exception code path in agent.py monologue(). Until then, the fork's
+# handle_exception() simply re-raises, so this code path is not reached in production.
 class RetryCriticalException(Extension):
     async def execute(self, data: dict = {}, **kwargs):
         if not self.agent:
@@ -23,8 +28,9 @@ class RetryCriticalException(Extension):
             self.agent.set_data(DATA_NAME_COUNTER, 0)
             return
 
-        max_retries = 1
-        delay = 3
+        config = plugins.get_plugin_config("error_retry", agent=self.agent) or {}
+        max_retries = config.get("max_retries", 3)
+        delay = config.get("retry_delay", 3)
 
         counter = self.agent.get_data(DATA_NAME_COUNTER) or 0
         if counter >= max_retries:
@@ -33,8 +39,7 @@ class RetryCriticalException(Extension):
         self.agent.set_data(DATA_NAME_COUNTER, counter + 1)
 
         error_message = errors.format_error(exception)
-        import uuid as _uuid
-        msg_id = str(_uuid.uuid4())
+        msg_id = str(uuid.uuid4())
         self.agent.context.log.log(
             type="warning",
             heading="Critical error occurred, retrying...",

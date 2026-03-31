@@ -4,6 +4,8 @@ from helpers import errors, extension
 from helpers.print_style import PrintStyle
 
 
+# NOTE: Active when handle_exception is refactored to delegate to extensions
+# instead of the current inline re-raise pattern in agent.py.
 class HandleRepairableException(Extension):
     async def execute(self, data: dict = {}, **kwargs):
         if not self.agent:
