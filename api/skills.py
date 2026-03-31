@@ -1,1 +1,1 @@
-from plugins.skills.api.skills import *  # noqa: F401,F403
+from plugins._skills.api.skills import *  # noqa: F401,F403

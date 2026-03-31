@@ -89,18 +89,16 @@ def refresh_plugin_modules(plugin_names: list[str] | None = None):
     """Purge plugin modules from sys.modules so they get re-imported fresh."""
     from helpers import modules
 
-    if plugin_names is None:
-        plugin_names = get_plugins_list()
-
-    for name in plugin_names:
-        plugin_dir = find_plugin_dir(name)
-        if not plugin_dir:
-            continue
-        # Derive the Python namespace from the plugin directory structure
-        # e.g. "plugins/memory" -> "plugins.memory"
-        rel_path = files.deabsolute_path(plugin_dir)
-        namespace = rel_path.replace("/", ".").replace("\\", ".")
-        modules.purge_namespace(namespace)
+    if plugin_names:
+        clear_plugins = any(name.startswith("_") for name in plugin_names)
+        clear_usr_plugins = any(not name.startswith("_") for name in plugin_names)
+        if clear_plugins:
+            modules.purge_namespace("plugins")
+        if clear_usr_plugins:
+            modules.purge_namespace("usr.plugins")
+    else:
+        modules.purge_namespace("plugins")
+        modules.purge_namespace("usr.plugins")
 
 
 def after_plugin_change(plugin_names: list[str] | None = None, python_change: bool = False):

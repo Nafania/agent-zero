@@ -19,12 +19,12 @@ class TestPerplexitySearch:
         mock_response.choices = [MagicMock()]
         mock_response.choices[0].message.content = "Search result text"
 
-        with patch("plugins.search.helpers.perplexity_search.OpenAI") as mock_openai_cls:
+        with patch("plugins._search.helpers.perplexity_search.OpenAI") as mock_openai_cls:
             mock_client = MagicMock()
             mock_client.chat.completions.create.return_value = mock_response
             mock_openai_cls.return_value = mock_client
 
-            with patch("plugins.search.helpers.perplexity_search.models") as mock_models:
+            with patch("plugins._search.helpers.perplexity_search.models") as mock_models:
                 mock_models.get_api_key.return_value = "test-key"
 
                 result = perplexity_search.perplexity_search("test query")
@@ -39,12 +39,12 @@ class TestPerplexitySearch:
         mock_response.choices = [MagicMock()]
         mock_response.choices[0].message.content = "ok"
 
-        with patch("plugins.search.helpers.perplexity_search.OpenAI") as mock_openai_cls:
+        with patch("plugins._search.helpers.perplexity_search.OpenAI") as mock_openai_cls:
             mock_client = MagicMock()
             mock_client.chat.completions.create.return_value = mock_response
             mock_openai_cls.return_value = mock_client
 
-            with patch("plugins.search.helpers.perplexity_search.models") as mock_models:
+            with patch("plugins._search.helpers.perplexity_search.models") as mock_models:
                 mock_models.get_api_key.return_value = "from-models"
 
                 perplexity_search.perplexity_search("q")
@@ -61,7 +61,7 @@ class TestPerplexitySearch:
         mock_response.choices = [MagicMock()]
         mock_response.choices[0].message.content = "ok"
 
-        with patch("plugins.search.helpers.perplexity_search.OpenAI") as mock_openai_cls:
+        with patch("plugins._search.helpers.perplexity_search.OpenAI") as mock_openai_cls:
             mock_client = MagicMock()
             mock_client.chat.completions.create.return_value = mock_response
             mock_openai_cls.return_value = mock_client

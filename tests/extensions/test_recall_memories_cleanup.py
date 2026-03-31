@@ -14,12 +14,12 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from agent import LoopData
-from plugins.memory.extensions.python.message_loop_prompts_after._50_recall_memories import (
+from plugins._memory.extensions.python.message_loop_prompts_after._50_recall_memories import (
     DATA_NAME_ITER,
     DATA_NAME_TASK,
     RecallMemories,
 )
-from plugins.memory.extensions.python.message_loop_prompts_after._91_recall_wait import RecallWait
+from plugins._memory.extensions.python.message_loop_prompts_after._91_recall_wait import RecallWait
 
 
 @pytest.fixture
@@ -108,8 +108,8 @@ async def test_recall_search_ignores_legacy_memory_recall_query_prep(_fake_cogne
 
     with (
         patch("helpers.settings.get_settings", return_value=settings),
-        patch("plugins.memory.helpers.memory.Memory.get", new_callable=AsyncMock, return_value=db),
-        patch("plugins.memory.helpers.cognee_init.get_cognee", return_value=(mock_cognee, MagicMock())),
+        patch("plugins._memory.helpers.memory.Memory.get", new_callable=AsyncMock, return_value=db),
+        patch("plugins._memory.helpers.cognee_init.get_cognee", return_value=(mock_cognee, MagicMock())),
     ):
         await ext.search_memories(log_item=log_item, loop_data=loop_data)
 
@@ -137,8 +137,8 @@ async def test_recall_search_ignores_legacy_memory_recall_post_filter(_fake_cogn
 
     with (
         patch("helpers.settings.get_settings", return_value=settings),
-        patch("plugins.memory.helpers.memory.Memory.get", new_callable=AsyncMock, return_value=db),
-        patch("plugins.memory.helpers.cognee_init.get_cognee", return_value=(mock_cognee, MagicMock())),
+        patch("plugins._memory.helpers.memory.Memory.get", new_callable=AsyncMock, return_value=db),
+        patch("plugins._memory.helpers.cognee_init.get_cognee", return_value=(mock_cognee, MagicMock())),
     ):
         await ext.search_memories(log_item=log_item, loop_data=loop_data)
 
@@ -167,8 +167,8 @@ async def test_recall_search_ignores_legacy_memory_recall_similarity_threshold(
 
     with (
         patch("helpers.settings.get_settings", return_value=settings),
-        patch("plugins.memory.helpers.memory.Memory.get", new_callable=AsyncMock, return_value=db),
-        patch("plugins.memory.helpers.cognee_init.get_cognee", return_value=(mock_cognee, MagicMock())),
+        patch("plugins._memory.helpers.memory.Memory.get", new_callable=AsyncMock, return_value=db),
+        patch("plugins._memory.helpers.cognee_init.get_cognee", return_value=(mock_cognee, MagicMock())),
     ):
         await ext.search_memories(log_item=log_item, loop_data=loop_data)
 

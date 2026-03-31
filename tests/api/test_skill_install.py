@@ -18,7 +18,7 @@ def _make_handler():
 
 @pytest.fixture
 def mock_skills_cli():
-    with patch("plugins.skills.api.skill_install.skills_cli") as mock:
+    with patch("plugins._skills.api.skill_install.skills_cli") as mock:
         mock.add = AsyncMock(return_value="Installed brainstorming")
         mock.SkillsCLIError = type("SkillsCLIError", (Exception,), {})
         yield mock

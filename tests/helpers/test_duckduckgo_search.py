@@ -20,7 +20,7 @@ class TestDuckDuckGoSearch:
             {"title": "Result 2", "body": "Content 2"},
         ]
 
-        with patch("plugins.search.helpers.duckduckgo_search.DDGS") as mock_ddgs_cls:
+        with patch("plugins._search.helpers.duckduckgo_search.DDGS") as mock_ddgs_cls:
             mock_ddgs = MagicMock()
             mock_ddgs.text.return_value = mock_results
             mock_ddgs_cls.return_value = mock_ddgs
@@ -40,7 +40,7 @@ class TestDuckDuckGoSearch:
     def test_search_with_custom_params(self):
         from helpers import duckduckgo_search
 
-        with patch("plugins.search.helpers.duckduckgo_search.DDGS") as mock_ddgs_cls:
+        with patch("plugins._search.helpers.duckduckgo_search.DDGS") as mock_ddgs_cls:
             mock_ddgs = MagicMock()
             mock_ddgs.text.return_value = []
             mock_ddgs_cls.return_value = mock_ddgs
@@ -65,7 +65,7 @@ class TestDuckDuckGoSearch:
 
         mock_results = [{"title": "A", "body": "B"}, 123, "plain string"]
 
-        with patch("plugins.search.helpers.duckduckgo_search.DDGS") as mock_ddgs_cls:
+        with patch("plugins._search.helpers.duckduckgo_search.DDGS") as mock_ddgs_cls:
             mock_ddgs = MagicMock()
             mock_ddgs.text.return_value = mock_results
             mock_ddgs_cls.return_value = mock_ddgs

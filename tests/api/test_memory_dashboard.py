@@ -36,7 +36,7 @@ def _make_mock_data_item(raw_location, item_id="item_1"):
 
 def _setup_cognee(mock_cognee):
     """Wire mock cognee into cognee_init globals and sys.modules."""
-    import plugins.memory.helpers.cognee_init as ci
+    import plugins._memory.helpers.cognee_init as ci
     ci._cognee_module = mock_cognee
     ci._search_type_class = MagicMock()
     sys.modules["cognee"] = mock_cognee
@@ -50,12 +50,12 @@ def _make_dashboard():
 @pytest.fixture(autouse=True)
 def _reset_state():
     """Reset module-level caches before each test."""
-    import plugins.memory.helpers.cognee_init as ci
+    import plugins._memory.helpers.cognee_init as ci
     ci._cognee_module = None
     ci._search_type_class = None
     ci._configured = False
 
-    import plugins.memory.helpers.memory as mem
+    import plugins._memory.helpers.memory as mem
     mem.Memory._initialized = False
     mem.Memory._datasets_cache.clear()
 
@@ -65,7 +65,7 @@ def _reset_state():
     if not hasattr(_mem_shim, '_get_cognee'):
         _mem_shim._get_cognee = mem._get_cognee
 
-    from plugins.memory.api.memory_dashboard import _dashboard_cache
+    from plugins._memory.api.memory_dashboard import _dashboard_cache
     _dashboard_cache.clear()
 
     saved_cognee = sys.modules.get("cognee")
@@ -255,7 +255,7 @@ class TestGetCognifyStatus:
             "last_error": None,
         }
         with patch(
-            "plugins.memory.helpers.cognee_background.CogneeBackgroundWorker"
+            "plugins._memory.helpers.cognee_background.CogneeBackgroundWorker"
         ) as MockBg:
             MockBg.get_instance.return_value = mock_worker
             result = await dashboard._get_cognify_status()
@@ -270,7 +270,7 @@ class TestGetMemorySubdirs:
     async def test_returns_subdirs(self):
         dashboard = _make_dashboard()
         with patch(
-            "plugins.memory.api.memory_dashboard.get_existing_memory_subdirs",
+            "plugins._memory.api.memory_dashboard.get_existing_memory_subdirs",
             return_value=["default", "projects/personal", "projects/work"],
         ):
             result = await dashboard._get_memory_subdirs()
@@ -291,7 +291,7 @@ class TestGetCurrentMemorySubdir:
     @pytest.mark.asyncio
     async def test_returns_default_when_context_not_found(self):
         dashboard = _make_dashboard()
-        with patch("plugins.memory.api.memory_dashboard.AgentContext") as MockCtx:
+        with patch("plugins._memory.api.memory_dashboard.AgentContext") as MockCtx:
             MockCtx.use.return_value = None
             result = await dashboard._get_current_memory_subdir(
                 {"context_id": "nonexistent"}
@@ -321,7 +321,7 @@ class TestSearchMemoriesOffset:
         mock_cognee.datasets.list_data = AsyncMock(return_value=items)
 
         with patch.dict("sys.modules", {"cognee": mock_cognee}), \
-             patch("plugins.memory.api.memory_dashboard.Memory") as MockMem:
+             patch("plugins._memory.api.memory_dashboard.Memory") as MockMem:
             mock_mem_instance = MagicMock()
             mock_mem_instance.dataset_name = "default"
             MockMem.get_by_subdir = AsyncMock(return_value=mock_mem_instance)
@@ -348,14 +348,14 @@ class TestDashboardCallsSetup:
     @pytest.mark.asyncio
     async def test_process_calls_get_cognee_before_action(self):
         """The top-level process() must call _get_cognee() before dispatching."""
-        import plugins.memory.helpers.cognee_init as ci
+        import plugins._memory.helpers.cognee_init as ci
         mock_cognee_mod = MagicMock()
         mock_cognee_mod.SearchType = MagicMock()
         ci._cognee_module = mock_cognee_mod
         ci._search_type_class = mock_cognee_mod.SearchType
 
         dashboard = _make_dashboard()
-        with patch("plugins.memory.api.memory_dashboard.get_existing_memory_subdirs", return_value=["default"]):
+        with patch("plugins._memory.api.memory_dashboard.get_existing_memory_subdirs", return_value=["default"]):
             result = await dashboard.process({"action": "get_memory_subdirs"}, MagicMock())
         assert result["success"] is True
 
@@ -369,7 +369,7 @@ class TestDashboardCallsSetup:
         mock_cognee.datasets.list_datasets = AsyncMock(return_value=[])
 
         with patch.dict("sys.modules", {"cognee": mock_cognee}), \
-             patch("plugins.memory.api.memory_dashboard.Memory") as MockMem:
+             patch("plugins._memory.api.memory_dashboard.Memory") as MockMem:
             mock_mem_instance = MagicMock()
             mock_mem_instance._area_dataset.side_effect = lambda a: f"default_{a}"
             MockMem.get_by_subdir = AsyncMock(return_value=mock_mem_instance)
@@ -400,7 +400,7 @@ class TestDashboardCallsSetup:
         )
 
         with patch.dict("sys.modules", {"cognee": mock_cognee}), \
-             patch("plugins.memory.api.memory_dashboard.Memory") as MockMem:
+             patch("plugins._memory.api.memory_dashboard.Memory") as MockMem:
             mock_mem_instance = MagicMock()
             mock_mem_instance._area_dataset.side_effect = lambda a: f"default_{a}"
             MockMem.get_by_subdir = AsyncMock(return_value=mock_mem_instance)
@@ -417,7 +417,7 @@ class TestDashboardCallsSetup:
 
     @pytest.mark.asyncio
     async def test_knowledge_graph_calls_setup_via_process(self):
-        import plugins.memory.helpers.cognee_init as ci
+        import plugins._memory.helpers.cognee_init as ci
         mock_cognee_mod = MagicMock()
         mock_cognee_mod.SearchType = MagicMock()
         mock_cognee_mod.visualize_graph = AsyncMock(return_value="<html></html>")
@@ -499,7 +499,7 @@ class TestDashboardCaching:
         })
         _setup_cognee(mock_cognee)
 
-        from plugins.memory.api.memory_dashboard import _dashboard_cache, _CACHE_TTL
+        from plugins._memory.api.memory_dashboard import _dashboard_cache, _CACHE_TTL
         dashboard = _make_dashboard()
         req_input = {"action": "search", "memory_subdir": "default", "search": ""}
 

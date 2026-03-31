@@ -1,0 +1,6 @@
+name: _a2a
+title: Agent-to-Agent
+description: A2A protocol support for inter-agent communication.
+version: 1.0.0
+settings_sections:
+  - agent

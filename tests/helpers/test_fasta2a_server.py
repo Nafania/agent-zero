@@ -19,7 +19,7 @@ if str(PROJECT_ROOT) not in sys.path:
 @pytest.fixture(autouse=True)
 def _reset_singleton():
     """Reset DynamicA2AProxy singleton between tests to avoid cross-test pollution."""
-    import plugins.a2a.helpers.fasta2a_server as fas
+    import plugins._a2a.helpers.fasta2a_server as fas
 
     old = fas.DynamicA2AProxy._instance
     fas.DynamicA2AProxy._instance = None
@@ -41,14 +41,14 @@ def mock_settings():
 
 class TestIsAvailableAndGetProxy:
     def test_get_proxy_returns_singleton(self):
-        with patch("plugins.a2a.helpers.fasta2a_server.settings") as mock_settings_mod:
+        with patch("plugins._a2a.helpers.fasta2a_server.settings") as mock_settings_mod:
             mock_settings_mod.get_settings.return_value = {"mcp_server_token": "", "a2a_server_enabled": True}
-            with patch("plugins.a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", True):
-                with patch("plugins.a2a.helpers.fasta2a_server.FastA2A"):
-                    with patch("plugins.a2a.helpers.fasta2a_server.InMemoryBroker"):
-                        with patch("plugins.a2a.helpers.fasta2a_server.InMemoryStorage"):
-                            with patch("plugins.a2a.helpers.fasta2a_server.PrintStyle"):
-                                from plugins.a2a.helpers.fasta2a_server import get_proxy, DynamicA2AProxy
+            with patch("plugins._a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", True):
+                with patch("plugins._a2a.helpers.fasta2a_server.FastA2A"):
+                    with patch("plugins._a2a.helpers.fasta2a_server.InMemoryBroker"):
+                        with patch("plugins._a2a.helpers.fasta2a_server.InMemoryStorage"):
+                            with patch("plugins._a2a.helpers.fasta2a_server.PrintStyle"):
+                                from plugins._a2a.helpers.fasta2a_server import get_proxy, DynamicA2AProxy
 
                                 p1 = get_proxy()
                                 p2 = get_proxy()
@@ -56,10 +56,10 @@ class TestIsAvailableAndGetProxy:
                                 assert isinstance(p1, DynamicA2AProxy)
 
     def test_is_available_false_when_fasta2a_not_installed(self):
-        with patch("plugins.a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", False):
-            with patch("plugins.a2a.helpers.fasta2a_server.settings") as m:
+        with patch("plugins._a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", False):
+            with patch("plugins._a2a.helpers.fasta2a_server.settings") as m:
                 m.get_settings.return_value = {"mcp_server_token": "", "a2a_server_enabled": True}
-                import plugins.a2a.helpers.fasta2a_server as fas
+                import plugins._a2a.helpers.fasta2a_server as fas
 
                 fas.DynamicA2AProxy._instance = None
                 result = fas.is_available()
@@ -71,11 +71,11 @@ class TestIsAvailableAndGetProxy:
 
 class TestAgentZeroWorkerConvertMessage:
     def test_convert_message_text_only(self):
-        with patch("plugins.a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", True):
-            with patch("plugins.a2a.helpers.fasta2a_server.Worker"):
-                with patch("plugins.a2a.helpers.fasta2a_server.InMemoryBroker"):
-                    with patch("plugins.a2a.helpers.fasta2a_server.InMemoryStorage"):
-                        from plugins.a2a.helpers.fasta2a_server import AgentZeroWorker
+        with patch("plugins._a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", True):
+            with patch("plugins._a2a.helpers.fasta2a_server.Worker"):
+                with patch("plugins._a2a.helpers.fasta2a_server.InMemoryBroker"):
+                    with patch("plugins._a2a.helpers.fasta2a_server.InMemoryStorage"):
+                        from plugins._a2a.helpers.fasta2a_server import AgentZeroWorker
 
                         broker = MagicMock()
                         storage = MagicMock()
@@ -90,11 +90,11 @@ class TestAgentZeroWorkerConvertMessage:
                         assert result.attachments == []
 
     def test_convert_message_multiple_text_parts(self):
-        with patch("plugins.a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", True):
-            with patch("plugins.a2a.helpers.fasta2a_server.Worker"):
-                with patch("plugins.a2a.helpers.fasta2a_server.InMemoryBroker"):
-                    with patch("plugins.a2a.helpers.fasta2a_server.InMemoryStorage"):
-                        from plugins.a2a.helpers.fasta2a_server import AgentZeroWorker
+        with patch("plugins._a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", True):
+            with patch("plugins._a2a.helpers.fasta2a_server.Worker"):
+                with patch("plugins._a2a.helpers.fasta2a_server.InMemoryBroker"):
+                    with patch("plugins._a2a.helpers.fasta2a_server.InMemoryStorage"):
+                        from plugins._a2a.helpers.fasta2a_server import AgentZeroWorker
 
                         worker = AgentZeroWorker(broker=MagicMock(), storage=MagicMock())
                         a2a_msg = {
@@ -107,11 +107,11 @@ class TestAgentZeroWorkerConvertMessage:
                         assert result.message == "Part 1\nPart 2"
 
     def test_convert_message_with_file_attachments(self):
-        with patch("plugins.a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", True):
-            with patch("plugins.a2a.helpers.fasta2a_server.Worker"):
-                with patch("plugins.a2a.helpers.fasta2a_server.InMemoryBroker"):
-                    with patch("plugins.a2a.helpers.fasta2a_server.InMemoryStorage"):
-                        from plugins.a2a.helpers.fasta2a_server import AgentZeroWorker
+        with patch("plugins._a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", True):
+            with patch("plugins._a2a.helpers.fasta2a_server.Worker"):
+                with patch("plugins._a2a.helpers.fasta2a_server.InMemoryBroker"):
+                    with patch("plugins._a2a.helpers.fasta2a_server.InMemoryStorage"):
+                        from plugins._a2a.helpers.fasta2a_server import AgentZeroWorker
 
                         worker = AgentZeroWorker(broker=MagicMock(), storage=MagicMock())
                         a2a_msg = {
@@ -125,11 +125,11 @@ class TestAgentZeroWorkerConvertMessage:
                         assert result.attachments == ["file:///path/to/doc.pdf"]
 
     def test_convert_message_ignores_non_text_non_file_parts(self):
-        with patch("plugins.a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", True):
-            with patch("plugins.a2a.helpers.fasta2a_server.Worker"):
-                with patch("plugins.a2a.helpers.fasta2a_server.InMemoryBroker"):
-                    with patch("plugins.a2a.helpers.fasta2a_server.InMemoryStorage"):
-                        from plugins.a2a.helpers.fasta2a_server import AgentZeroWorker
+        with patch("plugins._a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", True):
+            with patch("plugins._a2a.helpers.fasta2a_server.Worker"):
+                with patch("plugins._a2a.helpers.fasta2a_server.InMemoryBroker"):
+                    with patch("plugins._a2a.helpers.fasta2a_server.InMemoryStorage"):
+                        from plugins._a2a.helpers.fasta2a_server import AgentZeroWorker
 
                         worker = AgentZeroWorker(broker=MagicMock(), storage=MagicMock())
                         a2a_msg = {"parts": [{"kind": "other", "data": "x"}]}
@@ -138,11 +138,11 @@ class TestAgentZeroWorkerConvertMessage:
                         assert result.attachments == []
 
     def test_convert_message_empty_parts(self):
-        with patch("plugins.a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", True):
-            with patch("plugins.a2a.helpers.fasta2a_server.Worker"):
-                with patch("plugins.a2a.helpers.fasta2a_server.InMemoryBroker"):
-                    with patch("plugins.a2a.helpers.fasta2a_server.InMemoryStorage"):
-                        from plugins.a2a.helpers.fasta2a_server import AgentZeroWorker
+        with patch("plugins._a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", True):
+            with patch("plugins._a2a.helpers.fasta2a_server.Worker"):
+                with patch("plugins._a2a.helpers.fasta2a_server.InMemoryBroker"):
+                    with patch("plugins._a2a.helpers.fasta2a_server.InMemoryStorage"):
+                        from plugins._a2a.helpers.fasta2a_server import AgentZeroWorker
 
                         worker = AgentZeroWorker(broker=MagicMock(), storage=MagicMock())
                         a2a_msg = {}
@@ -157,11 +157,11 @@ class TestAgentZeroWorkerConvertMessage:
 class TestAgentZeroWorkerRunTask:
     @pytest.mark.asyncio
     async def test_run_task_updates_storage_on_success(self):
-        with patch("plugins.a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", True):
-            with patch("plugins.a2a.helpers.fasta2a_server.Worker"):
-                with patch("plugins.a2a.helpers.fasta2a_server.InMemoryBroker"):
-                    with patch("plugins.a2a.helpers.fasta2a_server.InMemoryStorage"):
-                        from plugins.a2a.helpers.fasta2a_server import AgentZeroWorker
+        with patch("plugins._a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", True):
+            with patch("plugins._a2a.helpers.fasta2a_server.Worker"):
+                with patch("plugins._a2a.helpers.fasta2a_server.InMemoryBroker"):
+                    with patch("plugins._a2a.helpers.fasta2a_server.InMemoryStorage"):
+                        from plugins._a2a.helpers.fasta2a_server import AgentZeroWorker
 
                         mock_storage = AsyncMock()
                         mock_storage.update_task = AsyncMock()
@@ -174,13 +174,13 @@ class TestAgentZeroWorkerRunTask:
                         mock_task.result = AsyncMock(return_value="Response text")
                         mock_context.communicate = MagicMock(return_value=mock_task)
 
-                        with patch("plugins.a2a.helpers.fasta2a_server.initialize_agent", return_value=mock_cfg):
-                            with patch("plugins.a2a.helpers.fasta2a_server.AgentContext", return_value=mock_context):
-                                with patch("plugins.a2a.helpers.fasta2a_server.AgentContextType"):
-                                    with patch("plugins.a2a.helpers.fasta2a_server.projects"):
-                                        with patch("plugins.a2a.helpers.fasta2a_server.remove_chat"):
-                                            with patch("plugins.a2a.helpers.fasta2a_server.AgentContext.remove"):
-                                                with patch("plugins.a2a.helpers.fasta2a_server.PrintStyle"):
+                        with patch("plugins._a2a.helpers.fasta2a_server.initialize_agent", return_value=mock_cfg):
+                            with patch("plugins._a2a.helpers.fasta2a_server.AgentContext", return_value=mock_context):
+                                with patch("plugins._a2a.helpers.fasta2a_server.AgentContextType"):
+                                    with patch("plugins._a2a.helpers.fasta2a_server.projects"):
+                                        with patch("plugins._a2a.helpers.fasta2a_server.remove_chat"):
+                                            with patch("plugins._a2a.helpers.fasta2a_server.AgentContext.remove"):
+                                                with patch("plugins._a2a.helpers.fasta2a_server.PrintStyle"):
                                                     worker = AgentZeroWorker(broker=MagicMock(), storage=mock_storage)
                                                     params = {
                                                         "id": "task-1",
@@ -196,21 +196,21 @@ class TestAgentZeroWorkerRunTask:
 
     @pytest.mark.asyncio
     async def test_run_task_updates_storage_on_failure(self):
-        with patch("plugins.a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", True):
-            with patch("plugins.a2a.helpers.fasta2a_server.Worker"):
-                with patch("plugins.a2a.helpers.fasta2a_server.InMemoryBroker"):
-                    with patch("plugins.a2a.helpers.fasta2a_server.InMemoryStorage"):
-                        from plugins.a2a.helpers.fasta2a_server import AgentZeroWorker
+        with patch("plugins._a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", True):
+            with patch("plugins._a2a.helpers.fasta2a_server.Worker"):
+                with patch("plugins._a2a.helpers.fasta2a_server.InMemoryBroker"):
+                    with patch("plugins._a2a.helpers.fasta2a_server.InMemoryStorage"):
+                        from plugins._a2a.helpers.fasta2a_server import AgentZeroWorker
 
                         mock_storage = AsyncMock()
                         mock_storage.update_task = AsyncMock()
 
-                        with patch("plugins.a2a.helpers.fasta2a_server.initialize_agent", side_effect=RuntimeError("Boom")):
-                            with patch("plugins.a2a.helpers.fasta2a_server.AgentContext"):
-                                with patch("plugins.a2a.helpers.fasta2a_server.projects"):
-                                    with patch("plugins.a2a.helpers.fasta2a_server.remove_chat"):
-                                        with patch("plugins.a2a.helpers.fasta2a_server.AgentContext.remove"):
-                                            with patch("plugins.a2a.helpers.fasta2a_server.PrintStyle"):
+                        with patch("plugins._a2a.helpers.fasta2a_server.initialize_agent", side_effect=RuntimeError("Boom")):
+                            with patch("plugins._a2a.helpers.fasta2a_server.AgentContext"):
+                                with patch("plugins._a2a.helpers.fasta2a_server.projects"):
+                                    with patch("plugins._a2a.helpers.fasta2a_server.remove_chat"):
+                                        with patch("plugins._a2a.helpers.fasta2a_server.AgentContext.remove"):
+                                            with patch("plugins._a2a.helpers.fasta2a_server.PrintStyle"):
                                                 worker = AgentZeroWorker(broker=MagicMock(), storage=mock_storage)
                                                 params = {"id": "task-2", "message": {"parts": []}}
                                                 await worker.run_task(params)
@@ -222,16 +222,16 @@ class TestAgentZeroWorkerRunTask:
 
     @pytest.mark.asyncio
     async def test_cancel_task_updates_storage(self):
-        with patch("plugins.a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", True):
-            with patch("plugins.a2a.helpers.fasta2a_server.Worker"):
-                with patch("plugins.a2a.helpers.fasta2a_server.InMemoryBroker"):
-                    with patch("plugins.a2a.helpers.fasta2a_server.InMemoryStorage"):
-                        from plugins.a2a.helpers.fasta2a_server import AgentZeroWorker
+        with patch("plugins._a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", True):
+            with patch("plugins._a2a.helpers.fasta2a_server.Worker"):
+                with patch("plugins._a2a.helpers.fasta2a_server.InMemoryBroker"):
+                    with patch("plugins._a2a.helpers.fasta2a_server.InMemoryStorage"):
+                        from plugins._a2a.helpers.fasta2a_server import AgentZeroWorker
 
                         mock_storage = AsyncMock()
                         mock_storage.update_task = AsyncMock()
 
-                        with patch("plugins.a2a.helpers.fasta2a_server.PrintStyle"):
+                        with patch("plugins._a2a.helpers.fasta2a_server.PrintStyle"):
                             worker = AgentZeroWorker(broker=MagicMock(), storage=mock_storage)
                             await worker.cancel_task({"id": "task-3"})
 
@@ -244,10 +244,10 @@ class TestAgentZeroWorkerRunTask:
 class TestDynamicA2AProxyCall:
     @pytest.mark.asyncio
     async def test_returns_503_when_fasta2a_not_available(self, mock_settings):
-        with patch("plugins.a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", False):
-            with patch("plugins.a2a.helpers.fasta2a_server.settings") as m:
+        with patch("plugins._a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", False):
+            with patch("plugins._a2a.helpers.fasta2a_server.settings") as m:
                 m.get_settings.return_value = mock_settings
-                import plugins.a2a.helpers.fasta2a_server as fas
+                import plugins._a2a.helpers.fasta2a_server as fas
 
                 proxy = fas.DynamicA2AProxy._instance or fas.DynamicA2AProxy()
                 fas.DynamicA2AProxy._instance = proxy
@@ -269,13 +269,13 @@ class TestDynamicA2AProxyCall:
     async def test_returns_403_when_a2a_disabled(self, mock_settings):
         disabled_settings = {"mcp_server_token": "tok", "a2a_server_enabled": False}
 
-        with patch("plugins.a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", True):
-            with patch("plugins.a2a.helpers.fasta2a_server.settings") as m:
+        with patch("plugins._a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", True):
+            with patch("plugins._a2a.helpers.fasta2a_server.settings") as m:
                 m.get_settings.return_value = disabled_settings
-                with patch("plugins.a2a.helpers.fasta2a_server.FastA2A"):
-                    with patch("plugins.a2a.helpers.fasta2a_server.InMemoryBroker"):
-                        with patch("plugins.a2a.helpers.fasta2a_server.InMemoryStorage"):
-                            import plugins.a2a.helpers.fasta2a_server as fas
+                with patch("plugins._a2a.helpers.fasta2a_server.FastA2A"):
+                    with patch("plugins._a2a.helpers.fasta2a_server.InMemoryBroker"):
+                        with patch("plugins._a2a.helpers.fasta2a_server.InMemoryStorage"):
+                            import plugins._a2a.helpers.fasta2a_server as fas
 
                             proxy = fas.DynamicA2AProxy()
                             proxy.app = MagicMock()
@@ -297,13 +297,13 @@ class TestDynamicA2AProxyCall:
     async def test_returns_401_when_token_invalid_in_path(self, mock_settings):
         cfg = {"mcp_server_token": "correct-token", "a2a_server_enabled": True}
 
-        with patch("plugins.a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", True):
-            with patch("plugins.a2a.helpers.fasta2a_server.settings") as m:
+        with patch("plugins._a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", True):
+            with patch("plugins._a2a.helpers.fasta2a_server.settings") as m:
                 m.get_settings.return_value = cfg
-                with patch("plugins.a2a.helpers.fasta2a_server.FastA2A"):
-                    with patch("plugins.a2a.helpers.fasta2a_server.InMemoryBroker"):
-                        with patch("plugins.a2a.helpers.fasta2a_server.InMemoryStorage"):
-                            import plugins.a2a.helpers.fasta2a_server as fas
+                with patch("plugins._a2a.helpers.fasta2a_server.FastA2A"):
+                    with patch("plugins._a2a.helpers.fasta2a_server.InMemoryBroker"):
+                        with patch("plugins._a2a.helpers.fasta2a_server.InMemoryStorage"):
+                            import plugins._a2a.helpers.fasta2a_server as fas
 
                             proxy = fas.DynamicA2AProxy()
                             proxy.app = MagicMock()
@@ -326,14 +326,14 @@ class TestDynamicA2AProxyCall:
     async def test_accepts_valid_token_in_path(self, mock_settings):
         cfg = {"mcp_server_token": "valid-token-123", "a2a_server_enabled": True}
 
-        with patch("plugins.a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", True):
-            with patch("plugins.a2a.helpers.fasta2a_server.settings") as m:
+        with patch("plugins._a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", True):
+            with patch("plugins._a2a.helpers.fasta2a_server.settings") as m:
                 m.get_settings.return_value = cfg
                 mock_app = AsyncMock()
-                with patch("plugins.a2a.helpers.fasta2a_server.FastA2A"):
-                    with patch("plugins.a2a.helpers.fasta2a_server.InMemoryBroker"):
-                        with patch("plugins.a2a.helpers.fasta2a_server.InMemoryStorage"):
-                            import plugins.a2a.helpers.fasta2a_server as fas
+                with patch("plugins._a2a.helpers.fasta2a_server.FastA2A"):
+                    with patch("plugins._a2a.helpers.fasta2a_server.InMemoryBroker"):
+                        with patch("plugins._a2a.helpers.fasta2a_server.InMemoryStorage"):
+                            import plugins._a2a.helpers.fasta2a_server as fas
 
                             proxy = fas.DynamicA2AProxy()
                             proxy.app = mock_app
@@ -353,15 +353,15 @@ class TestDynamicA2AProxyCall:
     async def test_extracts_project_from_path_and_delegates(self, mock_settings):
         cfg = {"mcp_server_token": "tok", "a2a_server_enabled": True}
 
-        with patch("plugins.a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", True):
-            with patch("plugins.a2a.helpers.fasta2a_server.settings") as m:
+        with patch("plugins._a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", True):
+            with patch("plugins._a2a.helpers.fasta2a_server.settings") as m:
                 m.get_settings.return_value = cfg
                 mock_app = AsyncMock()
-                with patch("plugins.a2a.helpers.fasta2a_server.FastA2A"):
-                    with patch("plugins.a2a.helpers.fasta2a_server.InMemoryBroker"):
-                        with patch("plugins.a2a.helpers.fasta2a_server.InMemoryStorage"):
-                            with patch("plugins.a2a.helpers.fasta2a_server.PrintStyle"):
-                                import plugins.a2a.helpers.fasta2a_server as fas
+                with patch("plugins._a2a.helpers.fasta2a_server.FastA2A"):
+                    with patch("plugins._a2a.helpers.fasta2a_server.InMemoryBroker"):
+                        with patch("plugins._a2a.helpers.fasta2a_server.InMemoryStorage"):
+                            with patch("plugins._a2a.helpers.fasta2a_server.PrintStyle"):
+                                import plugins._a2a.helpers.fasta2a_server as fas
 
                                 proxy = fas.DynamicA2AProxy()
                                 proxy.app = mock_app
@@ -395,14 +395,14 @@ class TestDynamicA2AProxyCall:
     async def test_strips_a2a_prefix_from_path(self, mock_settings):
         cfg = {"mcp_server_token": "tok", "a2a_server_enabled": True}
 
-        with patch("plugins.a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", True):
-            with patch("plugins.a2a.helpers.fasta2a_server.settings") as m:
+        with patch("plugins._a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", True):
+            with patch("plugins._a2a.helpers.fasta2a_server.settings") as m:
                 m.get_settings.return_value = cfg
                 mock_app = AsyncMock()
-                with patch("plugins.a2a.helpers.fasta2a_server.FastA2A"):
-                    with patch("plugins.a2a.helpers.fasta2a_server.InMemoryBroker"):
-                        with patch("plugins.a2a.helpers.fasta2a_server.InMemoryStorage"):
-                            import plugins.a2a.helpers.fasta2a_server as fas
+                with patch("plugins._a2a.helpers.fasta2a_server.FastA2A"):
+                    with patch("plugins._a2a.helpers.fasta2a_server.InMemoryBroker"):
+                        with patch("plugins._a2a.helpers.fasta2a_server.InMemoryStorage"):
+                            import plugins._a2a.helpers.fasta2a_server as fas
 
                             proxy = fas.DynamicA2AProxy()
                             proxy.app = mock_app
@@ -421,13 +421,13 @@ class TestDynamicA2AProxyCall:
     async def test_returns_401_when_bearer_auth_invalid(self, mock_settings):
         cfg = {"mcp_server_token": "expected-token", "a2a_server_enabled": True}
 
-        with patch("plugins.a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", True):
-            with patch("plugins.a2a.helpers.fasta2a_server.settings") as m:
+        with patch("plugins._a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", True):
+            with patch("plugins._a2a.helpers.fasta2a_server.settings") as m:
                 m.get_settings.return_value = cfg
-                with patch("plugins.a2a.helpers.fasta2a_server.FastA2A"):
-                    with patch("plugins.a2a.helpers.fasta2a_server.InMemoryBroker"):
-                        with patch("plugins.a2a.helpers.fasta2a_server.InMemoryStorage"):
-                            import plugins.a2a.helpers.fasta2a_server as fas
+                with patch("plugins._a2a.helpers.fasta2a_server.FastA2A"):
+                    with patch("plugins._a2a.helpers.fasta2a_server.InMemoryBroker"):
+                        with patch("plugins._a2a.helpers.fasta2a_server.InMemoryStorage"):
+                            import plugins._a2a.helpers.fasta2a_server as fas
 
                             proxy = fas.DynamicA2AProxy()
                             proxy.app = MagicMock()
@@ -456,14 +456,14 @@ class TestDynamicA2AProxyCall:
     async def test_accepts_bearer_auth(self, mock_settings):
         cfg = {"mcp_server_token": "secret-token", "a2a_server_enabled": True}
 
-        with patch("plugins.a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", True):
-            with patch("plugins.a2a.helpers.fasta2a_server.settings") as m:
+        with patch("plugins._a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", True):
+            with patch("plugins._a2a.helpers.fasta2a_server.settings") as m:
                 m.get_settings.return_value = cfg
                 mock_app = AsyncMock()
-                with patch("plugins.a2a.helpers.fasta2a_server.FastA2A"):
-                    with patch("plugins.a2a.helpers.fasta2a_server.InMemoryBroker"):
-                        with patch("plugins.a2a.helpers.fasta2a_server.InMemoryStorage"):
-                            import plugins.a2a.helpers.fasta2a_server as fas
+                with patch("plugins._a2a.helpers.fasta2a_server.FastA2A"):
+                    with patch("plugins._a2a.helpers.fasta2a_server.InMemoryBroker"):
+                        with patch("plugins._a2a.helpers.fasta2a_server.InMemoryStorage"):
+                            import plugins._a2a.helpers.fasta2a_server as fas
 
                             proxy = fas.DynamicA2AProxy()
                             proxy.app = mock_app
@@ -489,14 +489,14 @@ class TestDynamicA2AProxyCall:
 
 class TestDynamicA2AProxyReconfigure:
     def test_reconfigure_sets_token_and_flag(self):
-        with patch("plugins.a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", True):
-            with patch("plugins.a2a.helpers.fasta2a_server.settings") as m:
+        with patch("plugins._a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", True):
+            with patch("plugins._a2a.helpers.fasta2a_server.settings") as m:
                 m.get_settings.return_value = {"mcp_server_token": "", "a2a_server_enabled": True}
-                with patch("plugins.a2a.helpers.fasta2a_server.FastA2A"):
-                    with patch("plugins.a2a.helpers.fasta2a_server.InMemoryBroker"):
-                        with patch("plugins.a2a.helpers.fasta2a_server.InMemoryStorage"):
-                            with patch("plugins.a2a.helpers.fasta2a_server.PrintStyle"):
-                                import plugins.a2a.helpers.fasta2a_server as fas
+                with patch("plugins._a2a.helpers.fasta2a_server.FastA2A"):
+                    with patch("plugins._a2a.helpers.fasta2a_server.InMemoryBroker"):
+                        with patch("plugins._a2a.helpers.fasta2a_server.InMemoryStorage"):
+                            with patch("plugins._a2a.helpers.fasta2a_server.PrintStyle"):
+                                import plugins._a2a.helpers.fasta2a_server as fas
 
                                 proxy = fas.DynamicA2AProxy()
                                 proxy._startup_done = True
@@ -511,21 +511,21 @@ class TestDynamicA2AProxyReconfigure:
 
 class TestAgentZeroWorkerBuildMethods:
     def test_build_message_history_returns_empty(self):
-        with patch("plugins.a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", True):
-            with patch("plugins.a2a.helpers.fasta2a_server.Worker"):
-                with patch("plugins.a2a.helpers.fasta2a_server.InMemoryBroker"):
-                    with patch("plugins.a2a.helpers.fasta2a_server.InMemoryStorage"):
-                        from plugins.a2a.helpers.fasta2a_server import AgentZeroWorker
+        with patch("plugins._a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", True):
+            with patch("plugins._a2a.helpers.fasta2a_server.Worker"):
+                with patch("plugins._a2a.helpers.fasta2a_server.InMemoryBroker"):
+                    with patch("plugins._a2a.helpers.fasta2a_server.InMemoryStorage"):
+                        from plugins._a2a.helpers.fasta2a_server import AgentZeroWorker
 
                         worker = AgentZeroWorker(broker=MagicMock(), storage=MagicMock())
                         assert worker.build_message_history([1, 2, 3]) == []
 
     def test_build_artifacts_returns_empty(self):
-        with patch("plugins.a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", True):
-            with patch("plugins.a2a.helpers.fasta2a_server.Worker"):
-                with patch("plugins.a2a.helpers.fasta2a_server.InMemoryBroker"):
-                    with patch("plugins.a2a.helpers.fasta2a_server.InMemoryStorage"):
-                        from plugins.a2a.helpers.fasta2a_server import AgentZeroWorker
+        with patch("plugins._a2a.helpers.fasta2a_server.FASTA2A_AVAILABLE", True):
+            with patch("plugins._a2a.helpers.fasta2a_server.Worker"):
+                with patch("plugins._a2a.helpers.fasta2a_server.InMemoryBroker"):
+                    with patch("plugins._a2a.helpers.fasta2a_server.InMemoryStorage"):
+                        from plugins._a2a.helpers.fasta2a_server import AgentZeroWorker
 
                         worker = AgentZeroWorker(broker=MagicMock(), storage=MagicMock())
                         assert worker.build_artifacts([]) == []

@@ -11,9 +11,9 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from agent import LoopData
-from plugins.memory.extensions.python.monologue_end._50_memorize_fragments import MemorizeMemories
-from plugins.memory.extensions.python.monologue_end._51_memorize_solutions import MemorizeSolutions
-from plugins.memory.helpers.memory import Memory
+from plugins._memory.extensions.python.monologue_end._50_memorize_fragments import MemorizeMemories
+from plugins._memory.extensions.python.monologue_end._51_memorize_solutions import MemorizeSolutions
+from plugins._memory.helpers.memory import Memory
 
 
 def _stale_memorize_settings(**overrides):

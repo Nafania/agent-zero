@@ -20,7 +20,7 @@ def mock_agent():
 
 @pytest.fixture
 def tool(mock_agent):
-    from plugins.search.tools.search_engine import SearchEngine
+    from plugins._search.tools.search_engine import SearchEngine
     return SearchEngine(
         agent=mock_agent,
         name="search_engine",
@@ -40,7 +40,7 @@ class TestSearchEngineExecute:
                 {"title": "Result 2", "url": "https://example.com/2", "content": "Content 2"},
             ]
         }
-        with patch("plugins.search.tools.search_engine.searxng", new_callable=AsyncMock, return_value=mock_results):
+        with patch("plugins._search.tools.search_engine.searxng", new_callable=AsyncMock, return_value=mock_results):
             resp = await tool.execute(query="test")
         assert "Result 1" in resp.message
         assert "https://example.com/1" in resp.message
@@ -48,6 +48,6 @@ class TestSearchEngineExecute:
 
     @pytest.mark.asyncio
     async def test_search_exception_propagates(self, tool):
-        with patch("plugins.search.tools.search_engine.searxng", new_callable=AsyncMock, side_effect=Exception("Search failed")):
+        with patch("plugins._search.tools.search_engine.searxng", new_callable=AsyncMock, side_effect=Exception("Search failed")):
             with pytest.raises(Exception, match="Search failed"):
                 await tool.execute(query="test")

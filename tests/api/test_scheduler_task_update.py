@@ -12,7 +12,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from api.scheduler_task_update import SchedulerTaskUpdate
-from plugins.scheduler.helpers.task_scheduler import TaskState
+from plugins._scheduler.helpers.task_scheduler import TaskState
 
 
 def _make_handler():
@@ -26,8 +26,8 @@ class TestSchedulerTaskUpdate:
         mock_scheduler = MagicMock()
         mock_scheduler.reload = AsyncMock()
 
-        with patch("plugins.scheduler.api.scheduler_task_update.TaskScheduler.get", return_value=mock_scheduler), \
-             patch("plugins.scheduler.api.scheduler_task_update.Localization"):
+        with patch("plugins._scheduler.api.scheduler_task_update.TaskScheduler.get", return_value=mock_scheduler), \
+             patch("plugins._scheduler.api.scheduler_task_update.Localization"):
             result = await handler.process({}, MagicMock())
 
         assert "error" in result
@@ -40,8 +40,8 @@ class TestSchedulerTaskUpdate:
         mock_scheduler.reload = AsyncMock()
         mock_scheduler.get_task_by_uuid = MagicMock(return_value=None)
 
-        with patch("plugins.scheduler.api.scheduler_task_update.TaskScheduler.get", return_value=mock_scheduler), \
-             patch("plugins.scheduler.api.scheduler_task_update.Localization"):
+        with patch("plugins._scheduler.api.scheduler_task_update.TaskScheduler.get", return_value=mock_scheduler), \
+             patch("plugins._scheduler.api.scheduler_task_update.Localization"):
             result = await handler.process({"task_id": "nonexistent"}, MagicMock())
 
         assert "error" in result
@@ -61,9 +61,9 @@ class TestSchedulerTaskUpdate:
         mock_scheduler.get_task_by_uuid = MagicMock(return_value=mock_task)
         mock_scheduler.update_task = AsyncMock(return_value=mock_updated)
 
-        with patch("plugins.scheduler.api.scheduler_task_update.TaskScheduler.get", return_value=mock_scheduler), \
-             patch("plugins.scheduler.api.scheduler_task_update.serialize_task", return_value=task_dict), \
-             patch("plugins.scheduler.api.scheduler_task_update.Localization"):
+        with patch("plugins._scheduler.api.scheduler_task_update.TaskScheduler.get", return_value=mock_scheduler), \
+             patch("plugins._scheduler.api.scheduler_task_update.serialize_task", return_value=task_dict), \
+             patch("plugins._scheduler.api.scheduler_task_update.Localization"):
             result = await handler.process({
                 "task_id": "task-123",
                 "name": "Updated name",
@@ -83,8 +83,8 @@ class TestSchedulerTaskUpdate:
         mock_scheduler.reload = AsyncMock()
         mock_scheduler.get_task_by_uuid = MagicMock(return_value=mock_task)
 
-        with patch("plugins.scheduler.api.scheduler_task_update.TaskScheduler.get", return_value=mock_scheduler), \
-             patch("plugins.scheduler.api.scheduler_task_update.Localization"):
+        with patch("plugins._scheduler.api.scheduler_task_update.TaskScheduler.get", return_value=mock_scheduler), \
+             patch("plugins._scheduler.api.scheduler_task_update.Localization"):
             result = await handler.process({
                 "task_id": "task-123",
                 "project_name": "new-project",
@@ -106,9 +106,9 @@ class TestSchedulerTaskUpdate:
         mock_scheduler.get_task_by_uuid = MagicMock(return_value=mock_task)
         mock_scheduler.update_task = AsyncMock(return_value=mock_updated)
 
-        with patch("plugins.scheduler.api.scheduler_task_update.TaskScheduler.get", return_value=mock_scheduler), \
-             patch("plugins.scheduler.api.scheduler_task_update.serialize_task", return_value=task_dict), \
-             patch("plugins.scheduler.api.scheduler_task_update.Localization"):
+        with patch("plugins._scheduler.api.scheduler_task_update.TaskScheduler.get", return_value=mock_scheduler), \
+             patch("plugins._scheduler.api.scheduler_task_update.serialize_task", return_value=task_dict), \
+             patch("plugins._scheduler.api.scheduler_task_update.Localization"):
             result = await handler.process({
                 "task_id": "task-123",
                 "state": "disabled",

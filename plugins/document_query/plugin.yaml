@@ -1,5 +1,0 @@
-title: Document Query
-description: Document analysis and querying tool.
-version: 1.0.0
-settings_sections:
-  - agent

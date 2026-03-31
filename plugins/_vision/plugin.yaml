@@ -1,0 +1,6 @@
+name: _vision
+title: Vision
+description: Image and vision processing tool.
+version: 1.0.0
+settings_sections:
+  - agent
