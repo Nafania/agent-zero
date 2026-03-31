@@ -350,6 +350,7 @@ class AgentConfig:
     mcp_servers: str
     profile: str = ""
     knowledge_subdirs: list[str] = field(default_factory=lambda: ["default", "custom"])
+    max_agent_depth: int = 5
     additional: Dict[str, Any] = field(default_factory=dict)
 
 
