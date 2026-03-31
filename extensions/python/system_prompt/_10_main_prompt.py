@@ -1,16 +1,23 @@
+from typing import Any
+
 from helpers.extension import Extension, extensible
-from agent import Agent
+from agent import Agent, LoopData
 
 
 class MainPrompt(Extension):
 
-    async def execute(self, **kwargs):
-        agent = self.agent
-        system_prompt = kwargs.get("system_prompt", [])
-        prompt = get_main_prompt(agent)
+    async def execute(
+        self,
+        system_prompt: list[str] = [],
+        loop_data: LoopData = LoopData(),
+        **kwargs: Any,
+    ):
+        if not self.agent:
+            return
+        prompt = await build_prompt(self.agent)
         system_prompt.append(prompt)
 
 
 @extensible
-def get_main_prompt(agent: Agent) -> str:
+async def build_prompt(agent: Agent) -> str:
     return agent.read_prompt("agent.system.main.md")

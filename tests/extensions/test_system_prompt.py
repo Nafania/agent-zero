@@ -23,10 +23,17 @@ class TestSystemPrompt:
 
         mock_agent.read_prompt.side_effect = read_prompt
         mock_agent.context.get_data = MagicMock(return_value=None)
+        mock_agent.get_data = MagicMock(return_value=None)
 
         with patch(
             "plugins.model_config.helpers.model_config.get_chat_model_config",
             return_value={"vision": False},
+        ), patch(
+            "extensions.python.system_prompt._11_tools_prompt.subagents.get_paths",
+            return_value=["prompts"],
+        ), patch(
+            "extensions.python.system_prompt._11_tools_prompt.files.get_unique_filenames_in_dirs",
+            return_value=["/fake/agent.system.tool.code_execution.md"],
         ):
             from extensions.python.system_prompt._10_main_prompt import MainPrompt
             from extensions.python.system_prompt._11_tools_prompt import ToolsPrompt
