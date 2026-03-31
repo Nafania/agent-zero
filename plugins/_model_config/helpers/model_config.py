@@ -67,7 +67,7 @@ def _resolve_override(agent) -> dict | None:
     if not is_chat_override_allowed(agent):
         return None
     override = agent.context.get_data("chat_model_override")
-    if not override:
+    if not isinstance(override, dict):
         return None
     if "preset_name" in override:
         preset = get_preset_by_name(override["preset_name"])
