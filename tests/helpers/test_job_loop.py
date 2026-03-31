@@ -18,7 +18,7 @@ if str(PROJECT_ROOT) not in sys.path:
 @pytest.mark.asyncio
 class TestRunLoop:
     async def test_run_loop_calls_scheduler_tick_when_keep_running(self):
-        from plugins.scheduler.helpers import job_loop
+        from helpers import job_loop
 
         with patch.object(job_loop, "keep_running", True):
             with patch.object(job_loop, "scheduler_tick", new_callable=AsyncMock) as mock_tick:
@@ -30,7 +30,7 @@ class TestRunLoop:
                     mock_tick.assert_called()
 
     async def test_run_loop_sleeps_between_ticks(self):
-        from plugins.scheduler.helpers import job_loop
+        from helpers import job_loop
 
         call_count = 0
 
@@ -55,9 +55,9 @@ class TestRunLoop:
 @pytest.mark.asyncio
 class TestSchedulerTick:
     async def test_scheduler_tick_calls_task_scheduler_tick(self):
-        from plugins.scheduler.helpers.job_loop import scheduler_tick
+        from helpers.job_loop import scheduler_tick
 
-        with patch("plugins.scheduler.helpers.job_loop.TaskScheduler.get") as mock_get:
+        with patch("helpers.job_loop.TaskScheduler.get") as mock_get:
             mock_scheduler = MagicMock()
             mock_scheduler.tick = AsyncMock()
             mock_get.return_value = mock_scheduler
@@ -70,7 +70,7 @@ class TestSchedulerTick:
 
 class TestPauseResumeLoop:
     def test_pause_loop_sets_keep_running_false(self):
-        from plugins.scheduler.helpers import job_loop
+        from helpers import job_loop
         import time
 
         job_loop.keep_running = True
@@ -80,7 +80,7 @@ class TestPauseResumeLoop:
         job_loop.resume_loop()
 
     def test_resume_loop_sets_keep_running_true(self):
-        from plugins.scheduler.helpers import job_loop
+        from helpers import job_loop
 
         job_loop.keep_running = False
         job_loop.pause_time = 10
@@ -93,7 +93,7 @@ class TestPauseResumeLoop:
 
 
 def test_sleep_time_constant():
-    from plugins.scheduler.helpers.job_loop import SLEEP_TIME
+    from helpers.job_loop import SLEEP_TIME
 
     assert SLEEP_TIME == 60
 
@@ -103,10 +103,10 @@ def test_sleep_time_constant():
 
 @pytest.mark.asyncio
 async def test_run_loop_attempts_pause_in_development():
-    from plugins.scheduler.helpers import job_loop
+    from helpers import job_loop
 
-    with patch("plugins.scheduler.helpers.job_loop.runtime.is_development", return_value=True):
-        with patch("plugins.scheduler.helpers.job_loop.runtime.call_development_function", new_callable=AsyncMock) as mock_pause:
+    with patch("helpers.job_loop.runtime.is_development", return_value=True):
+        with patch("helpers.job_loop.runtime.call_development_function", new_callable=AsyncMock) as mock_pause:
             mock_pause.return_value = None
             with patch.object(job_loop, "keep_running", True):
                 with patch.object(job_loop, "scheduler_tick", new_callable=AsyncMock):

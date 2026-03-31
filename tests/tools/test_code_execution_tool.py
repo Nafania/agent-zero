@@ -12,7 +12,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 try:
-    from plugins.code_execution.tools.code_execution_tool import CodeExecution
+    from plugins._code_execution.tools.code_execution_tool import CodeExecution
 except (ImportError, AttributeError) as e:
     pytest.skip(f"Failed to import code_execution_tool: {e}", allow_module_level=True)
 
@@ -125,12 +125,12 @@ class TestCodeExecutionPrepareState:
     @pytest.mark.asyncio
     async def test_creates_state_when_none(self, mock_agent, tmp_path):
         t = CodeExecution(mock_agent, "ce", None, {"runtime": "python", "code": "1", "session": 0}, "", None)
-        with patch("plugins.code_execution.tools.code_execution_tool.files.normalize_a0_path", return_value=str(tmp_path)):
-            with patch("plugins.code_execution.tools.code_execution_tool.runtime.call_development_function", new_callable=AsyncMock):
-                with patch("plugins.code_execution.tools.code_execution_tool.projects.get_context_project_name", return_value=None):
-                    with patch("plugins.code_execution.tools.code_execution_tool.settings.get_settings") as mock_settings:
+        with patch("plugins._code_execution.tools.code_execution_tool.files.normalize_a0_path", return_value=str(tmp_path)):
+            with patch("plugins._code_execution.tools.code_execution_tool.runtime.call_development_function", new_callable=AsyncMock):
+                with patch("plugins._code_execution.tools.code_execution_tool.projects.get_context_project_name", return_value=None):
+                    with patch("plugins._code_execution.tools.code_execution_tool.settings.get_settings") as mock_settings:
                         mock_settings.return_value.get.return_value = str(tmp_path)
-                        with patch("plugins.code_execution.tools.code_execution_tool.LocalInteractiveSession") as MockShell:
+                        with patch("plugins._code_execution.tools.code_execution_tool.LocalInteractiveSession") as MockShell:
                             mock_shell = MagicMock()
                             mock_shell.connect = AsyncMock()
                             MockShell.return_value = mock_shell
@@ -141,7 +141,7 @@ class TestCodeExecutionPrepareState:
 
 class TestCodeExecutionMarkSessionIdle:
     def test_marks_session_idle(self, tool):
-        from plugins.code_execution.tools.code_execution_tool import State, ShellWrap
+        from plugins._code_execution.tools.code_execution_tool import State, ShellWrap
         mock_shell = MagicMock()
         tool.state = State(shells={0: ShellWrap(0, mock_shell, True)}, ssh_enabled=False)
         tool.mark_session_idle(0)
@@ -158,7 +158,7 @@ class TestCodeExecutionResetTerminal:
     @pytest.mark.asyncio
     async def test_reset_terminal_with_reason_prints_reason(self, tool):
         with patch.object(tool, "prepare_state", new_callable=AsyncMock):
-            with patch("plugins.code_execution.tools.code_execution_tool.PrintStyle") as mock_ps:
+            with patch("plugins._code_execution.tools.code_execution_tool.PrintStyle") as mock_ps:
                 mock_ps.return_value.print = MagicMock()
                 await tool.reset_terminal(session=0, reason="connection lost")
         assert mock_ps.return_value.print.called
@@ -205,7 +205,7 @@ class TestCodeExecutionExecuteTerminal:
     async def test_execute_terminal_bash_prefix_on_linux(self, mock_agent):
         t = CodeExecution(mock_agent, "ce", None, {"runtime": "terminal", "code": "ls", "session": 0}, "", None)
         mock_terminal = AsyncMock(return_value="ok")
-        with patch("plugins.code_execution.tools.code_execution_tool.runtime") as mock_runtime:
+        with patch("plugins._code_execution.tools.code_execution_tool.runtime") as mock_runtime:
             mock_runtime.is_windows.return_value = False
             with patch.object(t, "terminal_session", mock_terminal):
                 with patch.object(t, "prepare_state", new_callable=AsyncMock):
@@ -220,7 +220,7 @@ class TestCodeExecutionExecuteTerminal:
         t = CodeExecution(mock_agent, "ce", None, {"runtime": "terminal", "code": "dir", "session": 0}, "", None)
         mock_terminal = AsyncMock(return_value="ok")
         ssh_cfg = {"ssh_enabled": False, "ssh_addr": "localhost", "ssh_port": 55022, "ssh_user": "root", "ssh_pass": ""}
-        with patch("plugins.code_execution.tools.code_execution_tool.runtime") as mock_runtime:
+        with patch("plugins._code_execution.tools.code_execution_tool.runtime") as mock_runtime:
             mock_runtime.is_windows.return_value = True
             with patch.object(t, "terminal_session", mock_terminal):
                 with patch.object(t, "prepare_state", new_callable=AsyncMock):
@@ -254,21 +254,21 @@ class TestCodeExecutionEnsureCwd:
     @pytest.mark.asyncio
     async def test_ensure_cwd_returns_project_folder_when_project(self, mock_agent):
         t = CodeExecution(mock_agent, "ce", None, {"runtime": "python", "code": "x", "session": 0}, "", None)
-        with patch("plugins.code_execution.tools.code_execution_tool.projects.get_context_project_name", return_value="myproj"):
-            with patch("plugins.code_execution.tools.code_execution_tool.projects.get_project_folder", return_value="/abs/myproj"):
-                with patch("plugins.code_execution.tools.code_execution_tool.files.normalize_a0_path", return_value="/norm/myproj"):
-                    with patch("plugins.code_execution.tools.code_execution_tool.runtime.call_development_function", new_callable=AsyncMock):
+        with patch("plugins._code_execution.tools.code_execution_tool.projects.get_context_project_name", return_value="myproj"):
+            with patch("plugins._code_execution.tools.code_execution_tool.projects.get_project_folder", return_value="/abs/myproj"):
+                with patch("plugins._code_execution.tools.code_execution_tool.files.normalize_a0_path", return_value="/norm/myproj"):
+                    with patch("plugins._code_execution.tools.code_execution_tool.runtime.call_development_function", new_callable=AsyncMock):
                         result = await t.ensure_cwd()
         assert result == "/norm/myproj"
 
     @pytest.mark.asyncio
     async def test_ensure_cwd_returns_workdir_when_no_project(self, mock_agent, tmp_path):
         t = CodeExecution(mock_agent, "ce", None, {"runtime": "python", "code": "x", "session": 0}, "", None)
-        with patch("plugins.code_execution.tools.code_execution_tool.projects.get_context_project_name", return_value=None):
-            with patch("plugins.code_execution.tools.code_execution_tool.settings.get_settings") as mock_settings:
+        with patch("plugins._code_execution.tools.code_execution_tool.projects.get_context_project_name", return_value=None):
+            with patch("plugins._code_execution.tools.code_execution_tool.settings.get_settings") as mock_settings:
                 mock_settings.return_value.get.return_value = str(tmp_path)
-                with patch("plugins.code_execution.tools.code_execution_tool.files.normalize_a0_path", return_value=str(tmp_path)):
-                    with patch("plugins.code_execution.tools.code_execution_tool.runtime.call_development_function", new_callable=AsyncMock):
+                with patch("plugins._code_execution.tools.code_execution_tool.files.normalize_a0_path", return_value=str(tmp_path)):
+                    with patch("plugins._code_execution.tools.code_execution_tool.runtime.call_development_function", new_callable=AsyncMock):
                         result = await t.ensure_cwd()
         assert result == str(tmp_path)
 
@@ -276,7 +276,7 @@ class TestCodeExecutionEnsureCwd:
 class TestCodeExecutionPrepareStateReset:
     @pytest.mark.asyncio
     async def test_prepare_state_reset_closes_session(self, mock_agent, tmp_path):
-        from plugins.code_execution.tools.code_execution_tool import State, ShellWrap
+        from plugins._code_execution.tools.code_execution_tool import State, ShellWrap
         mock_shell = MagicMock()
         mock_shell.close = AsyncMock()
         existing = State(shells={0: ShellWrap(0, mock_shell, True)}, ssh_enabled=False)
@@ -285,12 +285,12 @@ class TestCodeExecutionPrepareStateReset:
 
         t = CodeExecution(mock_agent, "ce", None, {"runtime": "python", "code": "x", "session": 0}, "", None)
         with patch.object(t, "_get_ssh_config", return_value=ssh_cfg):
-          with patch("plugins.code_execution.tools.code_execution_tool.projects.get_context_project_name", return_value=None):
-            with patch("plugins.code_execution.tools.code_execution_tool.settings.get_settings") as mock_settings:
+          with patch("plugins._code_execution.tools.code_execution_tool.projects.get_context_project_name", return_value=None):
+            with patch("plugins._code_execution.tools.code_execution_tool.settings.get_settings") as mock_settings:
                 mock_settings.return_value.get.return_value = str(tmp_path)
-                with patch("plugins.code_execution.tools.code_execution_tool.files.normalize_a0_path", return_value=str(tmp_path)):
-                    with patch("plugins.code_execution.tools.code_execution_tool.runtime.call_development_function", new_callable=AsyncMock):
-                        with patch("plugins.code_execution.tools.code_execution_tool.LocalInteractiveSession") as MockShell:
+                with patch("plugins._code_execution.tools.code_execution_tool.files.normalize_a0_path", return_value=str(tmp_path)):
+                    with patch("plugins._code_execution.tools.code_execution_tool.runtime.call_development_function", new_callable=AsyncMock):
+                        with patch("plugins._code_execution.tools.code_execution_tool.LocalInteractiveSession") as MockShell:
                             new_shell = MagicMock()
                             new_shell.connect = AsyncMock()
                             MockShell.return_value = new_shell
@@ -303,7 +303,7 @@ class TestCodeExecutionGetTerminalOutput:
     @pytest.mark.asyncio
     @pytest.mark.skip(reason="get_terminal_output has complex async loop; mock setup causes StopAsyncIteration")
     async def test_get_terminal_output_returns_on_prompt_detection(self, tool):
-        from plugins.code_execution.tools.code_execution_tool import State, ShellWrap
+        from plugins._code_execution.tools.code_execution_tool import State, ShellWrap
         mock_shell = MagicMock()
         mock_shell.read_output = AsyncMock(
             side_effect=[
@@ -314,7 +314,7 @@ class TestCodeExecutionGetTerminalOutput:
         with patch.object(tool, "prepare_state", new_callable=AsyncMock, return_value=tool.state):
             with patch.object(tool, "set_progress", MagicMock()):
                 with patch.object(tool, "mark_session_idle", MagicMock()):
-                    with patch("plugins.code_execution.tools.code_execution_tool.PrintStyle") as mock_ps:
+                    with patch("plugins._code_execution.tools.code_execution_tool.PrintStyle") as mock_ps:
                         mock_ps.return_value.stream = MagicMock()
                         mock_ps.return_value.info = MagicMock()
                         result = await tool.get_terminal_output(
@@ -329,12 +329,12 @@ class TestCodeExecutionGetTerminalOutput:
 
     @pytest.mark.asyncio
     async def test_get_terminal_output_returns_on_first_output_timeout(self, tool):
-        from plugins.code_execution.tools.code_execution_tool import State, ShellWrap
+        from plugins._code_execution.tools.code_execution_tool import State, ShellWrap
         mock_shell = MagicMock()
         mock_shell.read_output = AsyncMock(return_value=("", ""))
         tool.state = State(shells={0: ShellWrap(0, mock_shell, False)}, ssh_enabled=False)
         with patch.object(tool, "prepare_state", new_callable=AsyncMock, return_value=tool.state):
-            with patch("plugins.code_execution.tools.code_execution_tool.time.time", side_effect=itertools.chain([0, 0], itertools.repeat(35))):
+            with patch("plugins._code_execution.tools.code_execution_tool.time.time", side_effect=itertools.chain([0, 0], itertools.repeat(35))):
                 result = await tool.get_terminal_output(
                     session=0,
                     first_output_timeout=30,
@@ -347,7 +347,7 @@ class TestCodeExecutionGetTerminalOutput:
 class TestCodeExecutionHandleRunningSession:
     @pytest.mark.asyncio
     async def test_handle_running_session_returns_none_when_not_running(self, tool):
-        from plugins.code_execution.tools.code_execution_tool import State, ShellWrap
+        from plugins._code_execution.tools.code_execution_tool import State, ShellWrap
         mock_shell = MagicMock()
         tool.state = State(shells={0: ShellWrap(0, mock_shell, False)}, ssh_enabled=False)
         result = await tool.handle_running_session(session=0)
@@ -361,12 +361,12 @@ class TestCodeExecutionHandleRunningSession:
 
     @pytest.mark.asyncio
     async def test_handle_running_session_returns_message_when_running_no_prompt(self, tool):
-        from plugins.code_execution.tools.code_execution_tool import State, ShellWrap
+        from plugins._code_execution.tools.code_execution_tool import State, ShellWrap
         mock_shell = MagicMock()
         mock_shell.read_output = AsyncMock(return_value=("running output...", ""))
         tool.state = State(shells={0: ShellWrap(0, mock_shell, True)}, ssh_enabled=False)
         with patch.object(tool, "set_progress", MagicMock()):
-            with patch("plugins.code_execution.tools.code_execution_tool.PrintStyle") as mock_ps:
+            with patch("plugins._code_execution.tools.code_execution_tool.PrintStyle") as mock_ps:
                 mock_ps.return_value.print = MagicMock()
                 result = await tool.handle_running_session(session=0)
         assert result is not None

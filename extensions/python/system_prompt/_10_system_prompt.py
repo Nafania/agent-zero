@@ -40,7 +40,7 @@ def get_main_prompt(agent: Agent):
 
 def get_tools_prompt(agent: Agent):
     prompt = agent.read_prompt("agent.system.tools.md")
-    from plugins.model_config.helpers.model_config import get_chat_model_config
+    from plugins._model_config.helpers.model_config import get_chat_model_config
     if get_chat_model_config(agent).get("vision", False):
         prompt += "\n\n" + agent.read_prompt("agent.system.tools_vision.md")
     return prompt
