@@ -3,6 +3,11 @@ from typing import Any
 from helpers.extension import Extension, extensible
 from agent import Agent, LoopData
 
+# Both _13_secrets_prompt.py and _13_skills_prompt.py share the _13_ prefix,
+# matching upstream. Alphabetical sorting produces secrets-before-skills ordering,
+# which differs from the old monolithic code (skills-before-secrets). This is
+# intentional to stay aligned with upstream file naming.
+
 
 class SecretsPrompt(Extension):
 

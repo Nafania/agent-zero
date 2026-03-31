@@ -21,7 +21,8 @@ class ToolsPrompt(Extension):
         if not self.agent:
             return
         prompt = await build_prompt(self.agent)
-        system_prompt.append(prompt)
+        if prompt:
+            system_prompt.append(prompt)
 
 
 @extensible
