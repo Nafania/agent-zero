@@ -1,6 +1,5 @@
 """Tests for helpers/subagents.py."""
 
-import json
 import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -124,8 +123,9 @@ class TestLoadAgentData:
 
 
 class TestSaveAgentData:
-    def test_save_agent_data_writes_agent_json(self, tmp_path):
+    def test_save_agent_data_writes_agent_yaml(self, tmp_path):
         from helpers.subagents import SubAgent, save_agent_data
+        from helpers import yaml as yaml_helper
 
         agent = SubAgent(
             name="saved",
@@ -144,7 +144,8 @@ class TestSaveAgentData:
             save_agent_data("saved", agent)
             assert mock_files.write_file.called
             call_args = mock_files.write_file.call_args_list[0]
-            written = json.loads(call_args[0][1])
+            assert call_args[0][0].endswith("agent.yaml")
+            written = yaml_helper.loads(call_args[0][1])
             assert written["title"] == "Saved Agent"
             assert written["description"] == "Desc"
 

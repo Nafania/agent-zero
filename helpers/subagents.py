@@ -2,7 +2,6 @@ from helpers import files
 from helpers import yaml as yaml_helper
 from typing import TypedDict, TYPE_CHECKING
 from pydantic import BaseModel, model_validator
-import json
 from typing import Literal
 import os
 
@@ -146,15 +145,14 @@ def load_agent_data(name: str, project_name: str | None = None) -> SubAgent:
 
 
 def save_agent_data(name: str, subagent: SubAgent) -> None:
-    # write agent.json in custom directory
     agent_dir = f"{USER_AGENTS_DIR}/{name}"
-    agent_json = {
+    agent_data = {
         "title": subagent.title,
         "description": subagent.description,
         "context": subagent.context,
         "enabled": subagent.enabled,
     }
-    files.write_file(f"{agent_dir}/agent.json", json.dumps(agent_json, indent=2))
+    files.write_file(f"{agent_dir}/agent.yaml", yaml_helper.dumps(agent_data))
 
     # replace prompts in custom directory
     prompts_dir = f"{agent_dir}/prompts"
@@ -176,12 +174,26 @@ def delete_agent_data(name: str) -> None:
 def _load_agent_data_from_dir(dir: str, name: str, origin: Origin) -> SubAgent | None:
     try:
         agent_yaml_path = files.get_abs_path(dir, name, "agent.yaml")
+        agent_json_path = files.get_abs_path(dir, name, "agent.json")
         if files.exists(agent_yaml_path):
             agent_yaml = files.read_file(agent_yaml_path)
             subagent = SubAgent.model_validate(yaml_helper.loads(agent_yaml) or {})
         else:
-            subagent_json = files.read_file(files.get_abs_path(dir, name, "agent.json"))
+            subagent_json = files.read_file(agent_json_path)
             subagent = SubAgent.model_validate_json(subagent_json)
+            # auto-migrate: write YAML and remove legacy JSON
+            try:
+                data = {
+                    "title": subagent.title,
+                    "description": subagent.description,
+                    "context": subagent.context,
+                }
+                if subagent.enabled is not None:
+                    data["enabled"] = subagent.enabled
+                files.write_file(agent_yaml_path, yaml_helper.dumps(data))
+                os.remove(agent_json_path)
+            except Exception:
+                pass
     except Exception:
         try:
             context_file = files.read_file(files.get_abs_path(dir, name, "_context.md"))
