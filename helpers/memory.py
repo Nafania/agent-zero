@@ -1,4 +1,4 @@
-# Backward-compatibility shim — real module lives in plugins/memory/helpers/
+# Backward-compatibility shim — real module lives in plugins/_memory/helpers/
 from plugins._memory.helpers.memory import *  # noqa: F401,F403
 from plugins._memory.helpers.memory import (  # noqa: F401 — underscore names skipped by *
     _get_cognee,

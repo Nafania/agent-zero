@@ -93,6 +93,7 @@ def refresh_plugin_modules(plugin_names: list[str] | None = None):
         clear_plugins = any(name.startswith("_") for name in plugin_names)
         clear_usr_plugins = any(not name.startswith("_") for name in plugin_names)
         if clear_plugins:
+            # TODO(a3): purge only the specific plugin namespace, not all built-in plugins
             modules.purge_namespace("plugins")
         if clear_usr_plugins:
             modules.purge_namespace("usr.plugins")
