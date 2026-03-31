@@ -12,6 +12,7 @@ def mock_agent():
     agent = MagicMock()
     agent.config = MagicMock()
     agent.config.profile = ""
+    agent.config.max_agent_depth = 5
     agent.context = MagicMock()
     agent.context.id = "test-ctx-001"
     agent.context.log = MagicMock()
