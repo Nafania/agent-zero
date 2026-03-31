@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import shlex
 import time
 from helpers.tool import Tool, Response
-from helpers import files, rfc_exchange, projects, runtime, settings
+from helpers import files, rfc_exchange, projects, runtime, secrets, settings
 from helpers.print_style import PrintStyle
 from plugins._code_execution.helpers.shell_local import LocalInteractiveSession
 from plugins._code_execution.helpers.shell_ssh import SSHInteractiveSession
@@ -234,13 +234,9 @@ class CodeExecution(Tool):
                     raise e
 
     def format_command_for_output(self, command: str):
-        # truncate long commands
-        short_cmd = command[:200]
-        # normalize whitespace for cleaner output
+        short_cmd = command[:250]
         short_cmd = " ".join(short_cmd.split())
-        # replace any sequence of ', ", or ` with a single '
-        # short_cmd = re.sub(r"['\"`]+", "'", short_cmd) # no need anymore
-        # final length
+        short_cmd = secrets.get_secrets_manager(self.agent.context).mask_values(short_cmd)
         short_cmd = truncate_text_string(short_cmd, 100)
         return f"{short_cmd}"
 
