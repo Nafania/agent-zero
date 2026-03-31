@@ -1,6 +1,6 @@
 from helpers.extension import Extension
 from agent import LoopData
-from helpers import memory
+from plugins._memory.helpers import memory
 import asyncio
 
 

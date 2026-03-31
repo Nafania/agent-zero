@@ -5,8 +5,6 @@ import threading
 from dataclasses import dataclass
 from pathlib import PurePosixPath
 from typing import Any, Callable, Iterable, Literal, cast
-
-from helpers.print_style import PrintStyle
 from watchdog.observers import Observer as _WatchdogObserver
 
 
@@ -21,7 +19,7 @@ class _DispatchHandler:
 
 WatchEvent = Literal["create", "modify", "delete", "move"]
 WatchEvents = Literal["all"] | list[WatchEvent | str] | set[WatchEvent | str]
-WatchItem = tuple[str, str]
+WatchItem = list[str]
 WatchHandler = Callable[[list[WatchItem]], None]
 PatternMatcher = Callable[[str], bool]
 
@@ -83,6 +81,7 @@ class _WatchRegistry:
         debounce: float,
         handler: WatchHandler,
     ) -> None:
+        self._ensure_watchdog_available()
         normalized_roots = _normalize_roots(roots)
         normalized_patterns = _normalize_patterns(patterns)
         normalized_ignore_patterns = _normalize_patterns(
@@ -184,8 +183,11 @@ class _WatchRegistry:
                     continue
                 self._queue_event(watch, path, event_type)
 
+    def _ensure_watchdog_available(self) -> None:
+        return None
+
     def _queue_event(self, watch: _Watch, path: str, event_type: WatchEvent) -> None:
-        item: WatchItem = (path, event_type)
+        item: WatchItem = [path, event_type]
         if watch.debounce <= 0:
             watch.handler([item])
             return
@@ -254,8 +256,8 @@ class _WatchRegistry:
 def _normalize_root(root: str) -> str:
     normalized = os.path.abspath(os.path.normpath(root))
     if not os.path.exists(normalized):
-        PrintStyle.warning(f"Watchdog root does not exist (yet): {normalized}")
-    elif not os.path.isdir(normalized):
+        os.makedirs(normalized, exist_ok=True)
+    if not os.path.isdir(normalized):
         raise NotADirectoryError(normalized)
     return normalized
 
@@ -365,6 +367,7 @@ def _compile_single_matcher(root: str, patterns: list[str]) -> PatternMatcher:
 
 
 _registry = _WatchRegistry()
+_registry.start()
 
 
 def add_watchdog(
@@ -416,3 +419,4 @@ __all__ = [
     "start_watchdog_daemon",
     "stop_watchdog_daemon",
 ]
+

@@ -14,7 +14,7 @@ from langchain_core.documents import Document
 
 # Ensure _get_cognee is available through the helpers.memory shim
 # (underscore-prefixed names are skipped by `from ... import *`)
-import helpers.memory as _mem_shim
+import plugins._memory.helpers.memory as _mem_shim
 import plugins._memory.helpers.memory as _mem_real
 if not hasattr(_mem_shim, '_get_cognee'):
     _mem_shim._get_cognee = _mem_real._get_cognee

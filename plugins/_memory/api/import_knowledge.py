@@ -1,5 +1,6 @@
 from helpers.api import ApiHandler, Request, Response
-from helpers import files, memory
+from helpers import files
+from plugins._memory.helpers import memory
 import os
 from helpers.security import safe_filename
 

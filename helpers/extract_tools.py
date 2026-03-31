@@ -1,12 +1,10 @@
-import re, os
-from typing import Any, TypeVar
+
 from .dirty_json import DirtyJson
-from .files import get_abs_path
-import regex
+import regex, re
+from helpers.modules import load_classes_from_file, load_classes_from_folder # keep here for backwards compatibility
+from typing import Any
 
-from helpers import modules as _modules
-
-def json_parse_dirty(json:str) -> dict[str,Any] | None:
+def json_parse_dirty(json: str) -> dict[str, Any] | None:
     if not json or not isinstance(json, str):
         return None
 
@@ -14,42 +12,52 @@ def json_parse_dirty(json:str) -> dict[str,Any] | None:
     if ext_json:
         try:
             data = DirtyJson.parse_string(ext_json)
-            if isinstance(data,dict): return data
+            if isinstance(data, dict):
+                return data
         except Exception:
+            # If parsing fails, return None instead of crashing
             return None
     return None
 
+
 def extract_json_object_string(content):
-    start = content.find('{')
+    start = content.find("{")
     if start == -1:
         return ""
 
-    end = content.rfind('}')
+    # Find the first '{'
+    end = content.rfind("}")
     if end == -1:
+        # If there's no closing '}', return from start to the end
         return content[start:]
     else:
-        return content[start:end+1]
+        # If there's a closing '}', return the substring from start to end
+        return content[start : end + 1]
+
 
 def extract_json_string(content):
+    # Regular expression pattern to match a JSON object
     pattern = r'\{(?:[^{}]|(?R))*\}|\[(?:[^\[\]]|(?R))*\]|"(?:\\.|[^"\\])*"|true|false|null|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?'
 
+    # Search for the pattern in the content
     match = regex.search(pattern, content)
 
     if match:
+        # Return the matched JSON string
         return match.group(0)
     else:
         return ""
 
-def fix_json_string(json_string):
-    def replace_unescaped_newlines(match):
-        return match.group(0).replace('\n', '\\n')
 
-    fixed_string = re.sub(r'(?<=: ")(.*?)(?=")', replace_unescaped_newlines, json_string, flags=re.DOTALL)
+def fix_json_string(json_string):
+    # Function to replace unescaped line breaks within JSON string values
+    def replace_unescaped_newlines(match):
+        return match.group(0).replace("\n", "\\n")
+
+    # Use regex to find string values and apply the replacement function
+    fixed_string = re.sub(
+        r'(?<=: ")(.*?)(?=")', replace_unescaped_newlines, json_string, flags=re.DOTALL
+    )
     return fixed_string
 
 
-T = TypeVar('T')
-
-import_module = _modules.import_module
-load_classes_from_folder = _modules.load_classes_from_folder
-load_classes_from_file = _modules.load_classes_from_file

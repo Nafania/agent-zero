@@ -7,7 +7,7 @@ import subprocess
 from typing import Any, Literal, TypedDict, cast, TypeVar
 
 import models
-from helpers import runtime, whisper, defer, git
+from helpers import runtime, whisper, defer, git, subagents
 from . import files, dotenv
 from helpers.print_style import PrintStyle
 from helpers.providers import get_providers, FieldOption as ProvidersFO
@@ -53,49 +53,8 @@ def get_default_value(name: str, value: T) -> T:
 class Settings(TypedDict):
     version: str
 
-    chat_model_provider: str
-    chat_model_name: str
-    chat_model_api_base: str
-    chat_model_kwargs: dict[str, Any]
-    chat_model_ctx_length: int
-    chat_model_ctx_history: float
-    chat_model_vision: bool
-    chat_model_rl_requests: int
-    chat_model_rl_input: int
-    chat_model_rl_output: int
-    chat_model_rl_concurrent: int
-
-    util_model_provider: str
-    util_model_name: str
-    util_model_api_base: str
-    util_model_kwargs: dict[str, Any]
-    util_model_ctx_length: int
-    util_model_ctx_input: float
-    util_model_rl_requests: int
-    util_model_rl_input: int
-    util_model_rl_output: int
-    util_model_rl_concurrent: int
-
-    embed_model_provider: str
-    embed_model_name: str
-    embed_model_api_base: str
-    embed_model_kwargs: dict[str, Any]
-    embed_model_rl_requests: int
-    embed_model_rl_input: int
-    embed_model_rl_concurrent: int
-
-    browser_model_provider: str
-    browser_model_name: str
-    browser_model_api_base: str
-    browser_model_vision: bool
-    browser_model_rl_requests: int
-    browser_model_rl_input: int
-    browser_model_rl_output: int
-    browser_model_rl_concurrent: int
-    browser_model_kwargs: dict[str, Any]
-    browser_http_headers: dict[str, Any]
-
     agent_profile: str
+    agent_knowledge_subdir: str
 
     workdir_path: str
     workdir_show: bool
@@ -105,27 +64,7 @@ class Settings(TypedDict):
     workdir_max_lines: int
     workdir_gitignore: str
 
-    memory_recall_enabled: bool
-    memory_recall_delayed: bool
-    memory_recall_interval: int
-    memory_recall_history_len: int
-    memory_recall_memories_max_search: int
-    memory_recall_solutions_max_search: int
-    memory_recall_memories_max_result: int
-    memory_recall_solutions_max_result: int
-    memory_memorize_enabled: bool
-
-    cognee_search_type: str
-    cognee_cognify_interval: int
-    cognee_cognify_after_n_inserts: int
-    cognee_temporal_enabled: bool
-    cognee_memify_enabled: bool
-    cognee_feedback_enabled: bool
-    cognee_session_cache: str
-    cognee_data_dir: str
-
     api_keys: dict[str, str]
-    oauth_client_credentials: dict[str, dict[str, str]]
 
     auth_login: str
     auth_password: str
@@ -135,9 +74,7 @@ class Settings(TypedDict):
     rfc_url: str
     rfc_password: str
     rfc_port_http: int
-    rfc_port_ssh: int
 
-    shell_interface: Literal['local','ssh']
     websocket_server_restart_enabled: bool
     uvicorn_access_logs_enabled: bool
 
@@ -162,6 +99,9 @@ class Settings(TypedDict):
 
     # LiteLLM global kwargs applied to all model calls
     litellm_global_kwargs: dict[str, Any]
+
+    update_check_enabled: bool
+    chat_inherit_project: bool
 
 
 class PartialSettings(Settings, total=False):
@@ -209,8 +149,8 @@ class ModelProvider(ProvidersFO):
 class SettingsOutputAdditional(TypedDict):
     chat_providers: list[ModelProvider]
     embedding_providers: list[ModelProvider]
-    shell_interfaces: list[FieldOption]
     agent_subdirs: list[FieldOption]
+    knowledge_subdirs: list[FieldOption]
     stt_models: list[FieldOption]
     is_dockerized: bool
     runtime_settings: dict[str, Any]
@@ -245,23 +185,17 @@ def _ensure_option_present(options: list[OptionT] | None, current_value: str | N
     return opts
 
 def convert_out(settings: Settings) -> SettingsOutput:
-    default = get_default_settings()
-    allowed_keys = default.keys()
-    out_settings: dict[str, Any] = {k: settings[k] for k in allowed_keys if k in settings}
-    for k in allowed_keys:
-        if k not in out_settings:
-            out_settings[k] = default[k]
-
     out = SettingsOutput(
-        settings = out_settings,
+        settings = settings.copy(),
         additional = SettingsOutputAdditional(
             chat_providers=get_providers("chat"),
             embedding_providers=get_providers("embedding"),
-            shell_interfaces=[{"value": "local", "label": "Local Python TTY"}, {"value": "ssh", "label": "SSH"}],
             is_dockerized=runtime.is_dockerized(),
-            agent_subdirs=[{"value": subdir, "label": subdir}
-                for subdir in files.get_subdirectories("agents")
-                if subdir != "_example"],
+            agent_subdirs=[{"value": item["key"], "label": item["label"]}
+                for item in subagents.get_all_agents_list()
+                if item["key"] != "_example"],
+            knowledge_subdirs=[{"value": subdir, "label": subdir}
+                for subdir in files.get_subdirectories("knowledge", exclude="default")],
             stt_models=[
                 {"value": "tiny", "label": "Tiny (39M, English)"},
                 {"value": "base", "label": "Base (74M, English)"},
@@ -278,30 +212,27 @@ def convert_out(settings: Settings) -> SettingsOutput:
     additional = out["additional"]
     current = out["settings"]
 
+    default_settings = get_default_settings()
     runtime_settings = _runtime_settings_snapshot or settings
     additional["runtime_settings"] = {
         "uvicorn_access_logs_enabled": bool(
             runtime_settings.get(
                 "uvicorn_access_logs_enabled",
-                default["uvicorn_access_logs_enabled"],
+                default_settings["uvicorn_access_logs_enabled"],
             )
         ),
     }
 
-    additional["chat_providers"] = _ensure_option_present(additional.get("chat_providers"), current.get("chat_model_provider"))
-    additional["chat_providers"] = _ensure_option_present(additional.get("chat_providers"), current.get("util_model_provider"))
-    additional["chat_providers"] = _ensure_option_present(additional.get("chat_providers"), current.get("browser_model_provider"))
-    additional["embedding_providers"] = _ensure_option_present(additional.get("embedding_providers"), current.get("embed_model_provider"))
-    additional["shell_interfaces"] = _ensure_option_present(additional.get("shell_interfaces"), current.get("shell_interface"))
     additional["agent_subdirs"] = _ensure_option_present(additional.get("agent_subdirs"), current.get("agent_profile"))
+    additional["knowledge_subdirs"] = _ensure_option_present(additional.get("knowledge_subdirs"), current.get("agent_knowledge_subdir"))
     additional["stt_models"] = _ensure_option_present(additional.get("stt_models"), current.get("stt_model_size"))
 
     # masked api keys
     providers = get_providers("chat") + get_providers("embedding")
     for provider in providers:
         provider_name = provider["value"]
-        api_key = out_settings["api_keys"].get(provider_name, models.get_api_key(provider_name))
-        out_settings["api_keys"][provider_name] = API_KEY_PLACEHOLDER if api_key and api_key != "None" else ""
+        api_key = settings["api_keys"].get(provider_name, models.get_api_key(provider_name))
+        settings["api_keys"][provider_name] = API_KEY_PLACEHOLDER if api_key and api_key != "None" else ""
 
     # load auth from dotenv
     out["settings"]["auth_login"] = dotenv.get_dotenv_value(dotenv.KEY_AUTH_LOGIN) or ""
@@ -331,7 +262,7 @@ def convert_out(settings: Settings) -> SettingsOutput:
     # normalize certain fields
     for key, value in list(out["settings"].items()):
         # convert kwargs dicts to .env format
-        if (key.endswith("_kwargs") or key=="browser_http_headers") and isinstance(value, dict):
+        if (key.endswith("_kwargs")) and isinstance(value, dict):
             out["settings"][key] = _dict_to_env(value)
     return out
 
@@ -348,13 +279,10 @@ def _get_api_key_field(settings: Settings, provider: str, title: str) -> Setting
 
 def convert_in(settings: Settings) -> Settings:
     current = get_settings()
-    allowed = get_default_settings().keys()
 
     for key, value in settings.items():
-        if key not in allowed:
-            continue
-        # Special handling for browser_http_headers and *_kwargs (stored as .env text)
-        if (key == "browser_http_headers" or key.endswith("_kwargs")) and isinstance(value, str):
+        # Special handling for *_kwargs (stored as .env text)
+        if (key.endswith("_kwargs")) and isinstance(value, str):
             current[key] = _env_to_dict(value)
             continue
 
@@ -469,8 +397,6 @@ def _load_sensitive_settings(settings: Settings):
     except Exception:
         settings["secrets"] = ""
 
-    _load_oauth_client_credentials(settings)
-
 
 def _read_settings_file() -> Settings | None:
     if os.path.exists(SETTINGS_FILE):
@@ -491,7 +417,6 @@ def _write_settings_file(settings: Settings):
 
 def _remove_sensitive_settings(settings: Settings):
     settings["api_keys"] = {}
-    settings["oauth_client_credentials"] = {}
     settings["auth_login"] = ""
     settings["auth_password"] = ""
     settings["rfc_password"] = ""
@@ -519,96 +444,19 @@ def _write_sensitive_settings(settings: Settings):
     secrets_manager = get_default_secrets_manager()
     submitted_content = settings["secrets"]
     secrets_manager.save_secrets_with_merge(submitted_content)
-    _write_oauth_client_credentials(settings)
 
-
-def _load_oauth_client_credentials(settings: Settings):
-    from helpers.providers import get_oauth_providers
-    creds = {}
-    for p in get_oauth_providers():
-        pid = p["provider_id"]
-        cid = dotenv.get_dotenv_value(f"OAUTH_CLIENT_ID_{pid.upper()}") or ""
-        cs = dotenv.get_dotenv_value(f"OAUTH_CLIENT_SECRET_{pid.upper()}") or ""
-        if cid or cs:
-            creds[pid] = {"client_id": cid, "client_secret": cs}
-    settings["oauth_client_credentials"] = creds
-
-
-def _write_oauth_client_credentials(settings: Settings):
-    for pid, creds in settings.get("oauth_client_credentials", {}).items():
-        cid = creds.get("client_id", "")
-        cs = creds.get("client_secret", "")
-        if cid:
-            dotenv.save_dotenv_value(f"OAUTH_CLIENT_ID_{pid.upper()}", cid)
-        if cs and cs != API_KEY_PLACEHOLDER:
-            dotenv.save_dotenv_value(f"OAUTH_CLIENT_SECRET_{pid.upper()}", cs)
 
 
 def get_default_settings() -> Settings:
     gitignore = files.read_file(files.get_abs_path("conf/workdir.gitignore"))
     return Settings(
         version=_get_version(),
-        chat_model_provider=get_default_value("chat_model_provider", "openrouter"),
-        chat_model_name=get_default_value("chat_model_name", "anthropic/claude-sonnet-4.6"),
-        chat_model_api_base=get_default_value("chat_model_api_base", ""),
-        chat_model_kwargs=get_default_value("chat_model_kwargs", {}),
-        chat_model_ctx_length=get_default_value("chat_model_ctx_length", 100000),
-        chat_model_ctx_history=get_default_value("chat_model_ctx_history", 0.7),
-        chat_model_vision=get_default_value("chat_model_vision", True),
-        chat_model_rl_requests=get_default_value("chat_model_rl_requests", 0),
-        chat_model_rl_input=get_default_value("chat_model_rl_input", 0),
-        chat_model_rl_output=get_default_value("chat_model_rl_output", 0),
-        chat_model_rl_concurrent=get_default_value("chat_model_rl_concurrent", 0),
-        util_model_provider=get_default_value("util_model_provider", "openrouter"),
-        util_model_name=get_default_value("util_model_name", "google/gemini-3-flash-preview"),
-        util_model_api_base=get_default_value("util_model_api_base", ""),
-        util_model_ctx_length=get_default_value("util_model_ctx_length", 100000),
-        util_model_ctx_input=get_default_value("util_model_ctx_input", 0.7),
-        util_model_kwargs=get_default_value("util_model_kwargs", {}),
-        util_model_rl_requests=get_default_value("util_model_rl_requests", 0),
-        util_model_rl_input=get_default_value("util_model_rl_input", 0),
-        util_model_rl_output=get_default_value("util_model_rl_output", 0),
-        util_model_rl_concurrent=get_default_value("util_model_rl_concurrent", 0),
-        embed_model_provider=get_default_value("embed_model_provider", "huggingface"),
-        embed_model_name=get_default_value("embed_model_name", "sentence-transformers/all-MiniLM-L6-v2"),
-        embed_model_api_base=get_default_value("embed_model_api_base", ""),
-        embed_model_kwargs=get_default_value("embed_model_kwargs", {}),
-        embed_model_rl_requests=get_default_value("embed_model_rl_requests", 0),
-        embed_model_rl_input=get_default_value("embed_model_rl_input", 0),
-        embed_model_rl_concurrent=get_default_value("embed_model_rl_concurrent", 0),
-        browser_model_provider=get_default_value("browser_model_provider", "openrouter"),
-        browser_model_name=get_default_value("browser_model_name", "anthropic/claude-sonnet-4.6"),
-        browser_model_api_base=get_default_value("browser_model_api_base", ""),
-        browser_model_vision=get_default_value("browser_model_vision", True),
-        browser_model_rl_requests=get_default_value("browser_model_rl_requests", 0),
-        browser_model_rl_input=get_default_value("browser_model_rl_input", 0),
-        browser_model_rl_output=get_default_value("browser_model_rl_output", 0),
-        browser_model_rl_concurrent=get_default_value("browser_model_rl_concurrent", 0),
-        browser_model_kwargs=get_default_value("browser_model_kwargs", {}),
-        browser_http_headers=get_default_value("browser_http_headers", {}),
-        memory_recall_enabled=get_default_value("memory_recall_enabled", True),
-        memory_recall_delayed=get_default_value("memory_recall_delayed", False),
-        memory_recall_interval=get_default_value("memory_recall_interval", 3),
-        memory_recall_history_len=get_default_value("memory_recall_history_len", 10000),
-        memory_recall_memories_max_search=get_default_value("memory_recall_memories_max_search", 12),
-        memory_recall_solutions_max_search=get_default_value("memory_recall_solutions_max_search", 8),
-        memory_recall_memories_max_result=get_default_value("memory_recall_memories_max_result", 5),
-        memory_recall_solutions_max_result=get_default_value("memory_recall_solutions_max_result", 3),
-        memory_memorize_enabled=get_default_value("memory_memorize_enabled", True),
-        cognee_search_type=get_default_value("cognee_search_type", "GRAPH_COMPLETION"),
-        cognee_cognify_interval=get_default_value("cognee_cognify_interval", 5),
-        cognee_cognify_after_n_inserts=get_default_value("cognee_cognify_after_n_inserts", 10),
-        cognee_temporal_enabled=get_default_value("cognee_temporal_enabled", True),
-        cognee_memify_enabled=get_default_value("cognee_memify_enabled", True),
-        cognee_feedback_enabled=get_default_value("cognee_feedback_enabled", True),
-        cognee_session_cache=get_default_value("cognee_session_cache", "filesystem"),
-        cognee_data_dir=get_default_value("cognee_data_dir", "usr/cognee"),
         api_keys={},
-        oauth_client_credentials={},
         auth_login="",
         auth_password="",
         root_password="",
         agent_profile=get_default_value("agent_profile", "agent0"),
+        agent_knowledge_subdir=get_default_value("agent_knowledge_subdir", "custom"),
         workdir_path=get_default_value("workdir_path", files.get_abs_path_dockerized("usr/workdir")),
         workdir_show=get_default_value("workdir_show", True),
         workdir_max_depth=get_default_value("workdir_max_depth", 5),
@@ -620,8 +468,6 @@ def get_default_settings() -> Settings:
         rfc_url=get_default_value("rfc_url", "localhost"),
         rfc_password="",
         rfc_port_http=get_default_value("rfc_port_http", 55080),
-        rfc_port_ssh=get_default_value("rfc_port_ssh", 55022),
-        shell_interface=get_default_value("shell_interface", "local" if runtime.is_dockerized() else "ssh"),
         websocket_server_restart_enabled=get_default_value("websocket_server_restart_enabled", True),
         uvicorn_access_logs_enabled=get_default_value("uvicorn_access_logs_enabled", False),
         stt_model_size=get_default_value("stt_model_size", "base"),
@@ -639,6 +485,8 @@ def get_default_settings() -> Settings:
         variables="",
         secrets="",
         litellm_global_kwargs=get_default_value("litellm_global_kwargs", {}),
+        update_check_enabled=get_default_value("update_check_enabled", True),
+        chat_inherit_project=get_default_value("chat_inherit_project", True),
     )
 
 
@@ -662,20 +510,6 @@ def _apply_settings(previous: Settings | None):
             task = defer.DeferredTask().start_task(
                 whisper.preload, _settings["stt_model_size"]
             )  # TODO overkill, replace with background task
-
-        # force memory/cognee reload on embedding or LLM model/key change
-        if not previous or (
-            _settings["embed_model_name"] != previous["embed_model_name"]
-            or _settings["embed_model_provider"] != previous["embed_model_provider"]
-            or _settings["embed_model_kwargs"] != previous["embed_model_kwargs"]
-            or _settings["util_model_provider"] != previous["util_model_provider"]
-            or _settings["util_model_name"] != previous["util_model_name"]
-            or _settings.get("util_model_api_base") != previous.get("util_model_api_base")
-            or _settings.get("api_keys") != previous.get("api_keys")
-        ):
-            from helpers.memory import reload as memory_reload
-
-            memory_reload()
 
         # update mcp settings if necessary
         if not previous or _settings["mcp_servers"] != previous["mcp_servers"]:
@@ -821,27 +655,9 @@ def set_root_password(password: str):
 
 
 def get_runtime_config(set: Settings):
-    if runtime.is_dockerized():
-        return {
-            "code_exec_ssh_enabled": set["shell_interface"] == "ssh",
-            "code_exec_ssh_addr": "localhost",
-            "code_exec_ssh_port": 22,
-            "code_exec_ssh_user": "root",
-        }
-    else:
-        host = set["rfc_url"]
-        if "//" in host:
-            host = host.split("//")[1]
-        if ":" in host:
-            host, port = host.split(":")
-        if host.endswith("/"):
-            host = host[:-1]
-        return {
-            "code_exec_ssh_enabled": set["shell_interface"] == "ssh",
-            "code_exec_ssh_addr": host,
-            "code_exec_ssh_port": set["rfc_port_ssh"],
-            "code_exec_ssh_user": "root",
-        }
+    # SSH config is now managed by the code_execution plugin.
+    # This function is kept for backward compatibility but returns an empty dict.
+    return {}
 
 
 def create_auth_token() -> str:
@@ -857,4 +673,3 @@ def create_auth_token() -> str:
 
 def _get_version():
     return git.get_version()
-

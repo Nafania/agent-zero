@@ -9,8 +9,8 @@ from enum import Enum
 from os.path import exists
 from typing import Any, Callable, Dict, Literal, Optional, Type, TypeVar, Union, cast, ClassVar
 
-import nest_asyncio2
-nest_asyncio2.apply()
+import nest_asyncio
+nest_asyncio.apply()
 
 from crontab import CronTab
 from pydantic import BaseModel, Field, PrivateAttr
@@ -23,15 +23,10 @@ from helpers.defer import DeferredTask
 from helpers.files import get_abs_path, make_dirs, read_file, write_file
 from helpers.localization import Localization
 from helpers import projects, guids
-from helpers.settings import get_default_value
 import pytz
 from typing import Annotated
 
 SCHEDULER_FOLDER = "usr/scheduler"
-
-
-def _stuck_timeout() -> int:
-    return get_default_value("scheduler_stuck_timeout", 1800)
 
 # ----------------------
 # Task Models
@@ -591,7 +586,7 @@ class SchedulerTaskList(BaseModel):
             await self.reload()
             return [
                 task for task in self.tasks
-                if task.check_schedule() and task.state in (TaskState.IDLE, TaskState.ERROR)
+                if task.check_schedule() and task.state == TaskState.IDLE
             ]
 
     def get_task_by_uuid(self, task_uuid: str) -> Union[ScheduledTask, AdHocTask, PlannedTask] | None:
@@ -708,38 +703,8 @@ class TaskScheduler:
         return self._tasks.find_task_by_name(name)
 
     async def tick(self):
-        await self._recover_stuck_tasks()
         for task in await self._tasks.get_due_tasks():
             await self._run_task(task)
-
-    async def _recover_stuck_tasks(self):
-        """Detect and recover tasks stuck in RUNNING state."""
-        await self._tasks.reload()
-        for task in self._tasks.get_tasks():
-            if task.state != TaskState.RUNNING:
-                continue
-
-            with self._running_tasks_lock:
-                deferred = self._running_deferred_tasks.get(task.uuid)
-
-            orphaned = deferred is None or not deferred.is_alive()
-
-            timed_out = False
-            if not orphaned and task.updated_at:
-                elapsed = (datetime.now(timezone.utc) - task.updated_at).total_seconds()
-                if elapsed > _stuck_timeout():
-                    timed_out = True
-
-            if orphaned or timed_out:
-                reason = "orphaned (no running thread)" if orphaned else f"timed out ({int((datetime.now(timezone.utc) - task.updated_at).total_seconds())}s)"
-                PrintStyle.warning(
-                    f"Recovering stuck task '{task.name}' ({task.uuid}): {reason} — resetting RUNNING → IDLE"
-                )
-                if timed_out and deferred:
-                    deferred.kill(terminate_thread=True)
-                    self._unregister_running_task(task.uuid)
-                await self.update_task(task.uuid, state=TaskState.IDLE)
-                await self.save()
 
     async def run_task_by_uuid(self, task_uuid: str, task_context: str | None = None):
         # First reload tasks to ensure we have the latest state
@@ -858,12 +823,6 @@ class TaskScheduler:
                 self._unregister_running_task(task_uuid)
                 return
 
-            # Auto-recover from ERROR state on scheduled retry
-            if task_snapshot.state == TaskState.ERROR:
-                PrintStyle.info(f"Scheduler Task '{task_snapshot.name}' auto-recovering from ERROR state")
-                await self.update_task(task_uuid, state=TaskState.IDLE)
-                await self._tasks.reload()
-
             # Atomically fetch and check the task's current state
             current_task = await self.update_task_checked(task_uuid, lambda task: task.state != TaskState.RUNNING, state=TaskState.RUNNING)
             if not current_task:
@@ -923,19 +882,21 @@ class TaskScheduler:
                     task_prompt = f"## Task:\n{current_task.prompt}"
 
                 # Log the message with message_id and attachments
+                msg_id = str(uuid.uuid4())
                 context.log.log(
                     type="user",
                     heading="",
                     content=task_prompt,
                     kvps={"attachments": attachment_filenames},
-                    id=str(uuid.uuid4()),
+                    id=msg_id,
                 )
 
                 agent.hist_add_user_message(
                     UserMessage(
                         message=task_prompt,
                         system_message=[current_task.system_prompt],
-                        attachments=attachment_filenames))
+                        attachments=attachment_filenames,
+                        id=msg_id))
 
                 # Persist after setting up the context but before running the agent
                 # This ensures the task context is saved and can be found by polling
@@ -974,8 +935,8 @@ class TaskScheduler:
                     PrintStyle.warning(f"Fixing task state consistency: '{current_task.name}' state is not ERROR after failure")
                     await self.update_task(task_uuid, state=TaskState.ERROR)
 
-                if agent:
-                    agent.handle_critical_exception(e)
+                # if agent:
+                #     await agent.handle_exception("scheduler", e)
             finally:
                 # Call on_finish for task-specific cleanup
                 try:

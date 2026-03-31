@@ -1,5 +1,6 @@
 from agent import AgentConfig
 from helpers import runtime, settings, defer, extension
+from helpers.print_style import PrintStyle
 
 
 @extension.extensible
@@ -7,14 +8,15 @@ def initialize_agent(override_settings: dict | None = None):
     current_settings = settings.get_settings()
     if override_settings:
         current_settings = settings.merge_settings(current_settings, override_settings)
-    current_settings = settings.normalize_settings(current_settings)
 
+    # agent configuration - models are now resolved at call time via _model_config plugin
     config = AgentConfig(
         profile=current_settings["agent_profile"],
-        knowledge_subdirs=["default"],
+        knowledge_subdirs=[current_settings["agent_knowledge_subdir"], "default"],
         mcp_servers=current_settings["mcp_servers"],
     )
 
+    # update config with runtime args
     _args_override(config)
 
     # initialize MCP in deferred task to prevent blocking the main thread
@@ -70,30 +72,10 @@ def initialize_preload():
     return defer.DeferredTask().start_task(preload.preload)
 
 @extension.extensible
-def initialize_cognee():
-    from helpers.cognee_init import configure_cognee
-    configure_cognee()
-
-    async def _cognee_startup():
-        from helpers.print_style import PrintStyle
-        try:
-            from scripts.migrate_faiss_to_cognee import run_migration
-            success = await run_migration()
-            if not success:
-                PrintStyle.error("FAISS->Cognee migration incomplete. Will retry on next restart.")
-        except Exception as e:
-            PrintStyle.error(f"FAISS->Cognee migration error (non-fatal): {e}")
-
-        from helpers.cognee_background import CogneeBackgroundWorker
-        CogneeBackgroundWorker.get_instance().start()
-
-    return defer.DeferredTask().start_task(_cognee_startup)
-
-@extension.extensible
 def initialize_migration():
     from helpers import migration, dotenv
     # run migration
-    migration.migrate_user_data()
+    migration.startup_migration()
     # reload .env as it might have been moved
     dotenv.load_dotenv()
     # reload settings to ensure new paths are picked up
@@ -118,5 +100,6 @@ def _args_override(config):
                 )
 
             setattr(config, key, value)
+
 
 

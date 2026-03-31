@@ -1,14 +1,24 @@
 import os
+import json
 from helpers import files
+from helpers import subagents, extension
+from helpers import yaml as yaml_helper
 from helpers.print_style import PrintStyle
+
+
+def startup_migration() -> None:
+    migrate_user_data()
+    convert_agents_json_yaml()
+
+    extension.call_extensions_sync("startup_migration", None)
+
+
 
 def migrate_user_data() -> None:
     """
     Migrate user data from /tmp and other locations to /usr.
     """
-    
-    PrintStyle().print("Checking for data migration...")
-    
+
     # --- Migrate Directories -------------------------------------------------------
     # Move directories from tmp/ or other source locations to usr/
     
@@ -42,7 +52,25 @@ def migrate_user_data() -> None:
     # Remove obsolete directories after migration
     _cleanup_obsolete()
 
-    PrintStyle().print("Migration check complete.")
+
+def convert_agents_json_yaml() -> None:
+    for root in subagents.get_agents_roots():
+        rel_root = files.deabsolute_path(root)
+        for subdir in files.get_subdirectories(rel_root):
+            agent_yaml = os.path.join(rel_root, subdir, "agent.yaml")
+            if files.exists(agent_yaml):
+                continue
+
+            agent_json = os.path.join(rel_root, subdir, "agent.json")
+            if not files.exists(agent_json):
+                continue
+
+            try:
+                agent_obj = json.loads(files.read_file(agent_json))
+                files.write_file(agent_yaml, yaml_helper.dumps(agent_obj))
+            except Exception as e:
+                PrintStyle.error(f"Failed to convert {agent_json} to YAML", e)
+                continue
 
 # --- Helper Functions ----------------------------------------------------------
 

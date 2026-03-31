@@ -1,5 +1,4 @@
 import asyncio
-import threading
 import time
 from typing import Callable, Awaitable
 
@@ -10,31 +9,6 @@ class RateLimiter:
         self.limits = {key: value if isinstance(value, (int, float)) else 0 for key, value in (limits or {}).items()}
         self.values = {key: [] for key in self.limits.keys()}
         self._lock = asyncio.Lock()
-        self._concurrent_limit = 0
-        self._semaphore = threading.Semaphore(0)
-
-    def set_concurrent_limit(self, limit: int):
-        if limit != self._concurrent_limit:
-            self._concurrent_limit = limit
-            self._semaphore = threading.Semaphore(self._concurrent_limit)
-
-    async def acquire(self, callback: Callable[[str, str, int, int], Awaitable[bool]] | None = None) -> threading.Semaphore | None:
-        if self._concurrent_limit <= 0:
-            return None
-        semaphore = self._semaphore
-        if semaphore._value == 0 and callback:
-            total = self._concurrent_limit - semaphore._value
-            msg = f"Concurrent request limit reached ({total}/{self._concurrent_limit}), waiting..."
-            await callback(msg, "concurrent", total, self._concurrent_limit)
-        await asyncio.to_thread(semaphore.acquire)
-        return semaphore
-
-    def release(self, semaphore: threading.Semaphore | None):
-        if semaphore:
-            try:
-                semaphore.release()
-            except ValueError:
-                pass
 
     def add(self, **kwargs: int):
         now = time.time()

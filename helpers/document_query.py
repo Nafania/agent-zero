@@ -4,7 +4,7 @@ import asyncio
 import aiohttp
 import json
 
-from helpers.vector_db import VectorDB
+from plugins._memory.helpers.vector_db import VectorDB
 
 os.environ["USER_AGENT"] = "@mixedbread-ai/unstructured"  # noqa E402
 from langchain_unstructured import UnstructuredLoader  # noqa E402
@@ -14,18 +14,19 @@ from typing import Callable, Sequence, List, Optional, Tuple
 from datetime import datetime
 
 from langchain_community.document_loaders import AsyncHtmlLoader
+from langchain_community.document_loaders.text import TextLoader
 from langchain_community.document_loaders.pdf import PyMuPDFLoader
 from langchain_community.document_transformers import MarkdownifyTransformer
 from langchain_community.document_loaders.parsers.images import TesseractBlobParser
 
 from langchain_core.documents import Document
-from langchain_core.messages import SystemMessage, HumanMessage
+from langchain.schema import SystemMessage, HumanMessage
 
 from helpers.print_style import PrintStyle
 from helpers import files, errors
 from agent import Agent
 
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 
 DEFAULT_SEARCH_THRESHOLD = 0.5

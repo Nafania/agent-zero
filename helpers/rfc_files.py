@@ -10,9 +10,9 @@ from helpers import runtime
 def get_abs_path(*relative_paths):
     """Convert relative paths to absolute paths based on the base directory."""
     if not relative_paths:
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        return os.path.abspath(os.path.dirname(__file__) + "/../..")
 
-    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    base_dir = os.path.abspath(os.path.dirname(__file__) + "/../..")
     return os.path.join(base_dir, *relative_paths)
 
 

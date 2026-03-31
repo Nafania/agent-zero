@@ -3,12 +3,9 @@ import sys
 from datetime import datetime
 from collections.abc import Mapping
 from . import files
-from .log_format import format_prefix as _format_prefix
+from .strings import sanitize_string
 
 _runtime_module = None
-
-_PREFIX_ANSI_FMT = "\033[90m{}\033[0m "
-_PREFIX_HTML_FMT = '<span style="color: #888;">{}</span> '
 
 
 def _get_runtime():
@@ -22,31 +19,24 @@ def _get_runtime():
 class PrintStyle:
     last_endline = True
     log_file_path = None
-    _log_file_handle = None
 
-    def __init__(self, bold=False, italic=False, underline=False, font_color="default", background_color="default", padding=False, log_only=False, level="INFO", component="a0"):
+    def __init__(self, bold=False, italic=False, underline=False, font_color="default", background_color="default", padding=False, log_only=False):
         self.bold = bold
         self.italic = italic
         self.underline = underline
         self.font_color = font_color
         self.background_color = background_color
         self.padding = padding
-        self.padding_added = False
+        self.padding_added = False  # Flag to track if padding was added
         self.log_only = log_only
-        self.level = level
-        self.component = component
 
         if PrintStyle.log_file_path is None:
             logs_dir = files.get_abs_path("logs")
             os.makedirs(logs_dir, exist_ok=True)
             log_filename = datetime.now().strftime("log_%Y%m%d_%H%M%S.html")
             PrintStyle.log_file_path = os.path.join(logs_dir, log_filename)
-            try:
-                PrintStyle._log_file_handle = open(PrintStyle.log_file_path, "w", encoding="utf-8")
-                PrintStyle._log_file_handle.write("<html><body style='background-color:black;font-family: Arial, Helvetica, sans-serif;'><pre>\n")
-                PrintStyle._log_file_handle.flush()
-            except OSError:
-                PrintStyle._log_file_handle = None
+            with open(PrintStyle.log_file_path, "w", encoding="utf-8", errors="replace") as f:
+                f.write("<html><body style='background-color:black;font-family: Arial, Helvetica, sans-serif;'><pre>\n")
 
     def _get_rgb_color_code(self, color, is_background=False):
         try:
@@ -104,25 +94,14 @@ class PrintStyle:
             self.padding_added = True
 
     def _log_html(self, html):
-        try:
-            fh = PrintStyle._log_file_handle
-            if fh and not fh.closed:
-                fh.write(html)
-                fh.flush()
-        except OSError:
-            pass
+        with open(PrintStyle.log_file_path, "a", encoding="utf-8", errors="replace") as f:  # type: ignore[arg-type]
+            f.write(sanitize_string(html))
 
     @staticmethod
     def _close_html_log():
-        fh = PrintStyle._log_file_handle
-        if fh and not fh.closed:
-            try:
-                fh.write("</pre></body></html>")
-                fh.flush()
-                fh.close()
-            except OSError:
-                pass
-        PrintStyle._log_file_handle = None
+        if PrintStyle.log_file_path:
+            with open(PrintStyle.log_file_path, "a", encoding="utf-8", errors="replace") as f:
+                f.write("</pre></body></html>")
 
     @staticmethod
     def _format_args(args, sep):
@@ -167,17 +146,9 @@ class PrintStyle:
             # If masking fails, proceed without masking to avoid breaking functionality
             pass
 
-        return text, self._get_styled_text(text), self._get_html_styled_text(text)
+        text = sanitize_string(text)
 
-    def _structured_prefix(self):
-        """Return (ansi_prefix, html_prefix) when starting a new line, else empty strings."""
-        if not PrintStyle.last_endline:
-            return "", ""
-        raw = _format_prefix(self.level, self.component)
-        return (
-            _PREFIX_ANSI_FMT.format(raw),
-            _PREFIX_HTML_FMT.format(html.escape(raw)),
-        )
+        return text, self._get_styled_text(text), self._get_html_styled_text(text)
 
     def print(self, *args, sep=' ', end='\n', flush=True):
         self._add_padding_if_needed()
@@ -185,23 +156,21 @@ class PrintStyle:
             if not self.log_only:
                 print()
             self._log_html("<br>")
-        pfx_ansi, pfx_html = self._structured_prefix()
         plain_text, styled_text, html_text = self.get(*args, sep=sep)
         if not self.log_only:
-            print(pfx_ansi + styled_text, end=end, flush=flush)
+            print(styled_text, end=end, flush=flush)
         if end.endswith('\n'):
-            self._log_html(pfx_html + html_text + "<br>\n")
+            self._log_html(html_text + "<br>\n")
         else:
-            self._log_html(pfx_html + html_text)
+            self._log_html(html_text)
         PrintStyle.last_endline = end.endswith('\n')
 
     def stream(self, *args, sep=' ', flush=True):
         self._add_padding_if_needed()
-        pfx_ansi, pfx_html = self._structured_prefix()
         plain_text, styled_text, html_text = self.get(*args, sep=sep)
         if not self.log_only:
-            print(pfx_ansi + styled_text, end='', flush=flush)
-        self._log_html(pfx_html + html_text)
+            print(styled_text, end='', flush=flush)
+        self._log_html(html_text)
         PrintStyle.last_endline = False
 
     def is_last_line_empty(self):
@@ -210,43 +179,45 @@ class PrintStyle:
 
     @staticmethod
     def standard(*args, sep=' ', end='\n', flush=True):
-        PrintStyle(level="INFO").print(*args, sep=sep, end=end, flush=flush)
+        PrintStyle().print(*args, sep=sep, end=end, flush=flush)
 
     @staticmethod
     def hint(*args, sep=' ', end='\n', flush=True):
         prefixed = PrintStyle._prefixed_args("Hint", args)
-        PrintStyle(font_color="#6C3483", padding=True, level="INFO").print(*prefixed, sep=sep, end=end, flush=flush)
+        PrintStyle(font_color="#6C3483", padding=True).print(*prefixed, sep=sep, end=end, flush=flush)
 
     @staticmethod
     def info(*args, sep=' ', end='\n', flush=True):
         prefixed = PrintStyle._prefixed_args("Info", args)
-        PrintStyle(font_color="#0000FF", padding=True, level="INFO").print(*prefixed, sep=sep, end=end, flush=flush)
+        PrintStyle(font_color="#0000FF", padding=True).print(*prefixed, sep=sep, end=end, flush=flush)
 
     @staticmethod
     def success(*args, sep=' ', end='\n', flush=True):
         prefixed = PrintStyle._prefixed_args("Success", args)
-        PrintStyle(font_color="#008000", padding=True, level="INFO").print(*prefixed, sep=sep, end=end, flush=flush)
+        PrintStyle(font_color="#008000", padding=True).print(*prefixed, sep=sep, end=end, flush=flush)
 
     @staticmethod
     def warning(*args, sep=' ', end='\n', flush=True):
         prefixed = PrintStyle._prefixed_args("Warning", args)
-        PrintStyle(font_color="#FFA500", padding=True, level="WARNING").print(*prefixed, sep=sep, end=end, flush=flush)
+        PrintStyle(font_color="#FFA500", padding=True).print(*prefixed, sep=sep, end=end, flush=flush)
 
     @staticmethod
     def debug(*args, sep=' ', end='\n', flush=True):
+        # Only emit debug output when running in development mode
         try:
             runtime_module = _get_runtime()
             if not runtime_module.is_development():
                 return
         except Exception:
+            # If runtime detection fails, default to emitting to avoid hiding logs during development setup
             pass
         prefixed = PrintStyle._prefixed_args("Debug", args)
-        PrintStyle(font_color="#808080", padding=True, level="DEBUG").print(*prefixed, sep=sep, end=end, flush=flush)
+        PrintStyle(font_color="#808080", padding=True).print(*prefixed, sep=sep, end=end, flush=flush)
 
     @staticmethod
     def error(*args, sep=' ', end='\n', flush=True):
         prefixed = PrintStyle._prefixed_args("Error", args)
-        PrintStyle(font_color="red", padding=True, level="ERROR").print(*prefixed, sep=sep, end=end, flush=flush)
+        PrintStyle(font_color="red", padding=True).print(*prefixed, sep=sep, end=end, flush=flush)
 
 # Ensure HTML file is closed properly when the program exits
 import atexit

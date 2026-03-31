@@ -1,7 +1,8 @@
 from datetime import datetime
 from helpers.extension import Extension
 from agent import Agent, LoopData
-from helpers import files, memory
+from helpers import files
+from plugins._memory.helpers import memory
 
 
 class BehaviourPrompt(Extension):
