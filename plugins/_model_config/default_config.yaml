@@ -32,6 +32,8 @@ embedding_model:
   rl_concurrent: 0
   kwargs: {}
 
+allow_chat_override: true
+
 browser_model:
   provider: "openrouter"
   name: "anthropic/claude-sonnet-4.6"

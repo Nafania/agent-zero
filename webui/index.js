@@ -1,5 +1,6 @@
 import * as msgs from "/js/messages.js";
 import * as api from "/js/api.js";
+import { callJsExtensions } from "/js/extensions.js";
 import * as css from "/js/css.js";
 import { sleep } from "/js/sleep.js";
 import { store as attachmentsStore } from "/components/chat/attachments/attachmentsStore.js";
@@ -73,6 +74,11 @@ export async function sendMessage() {
     }
 
     if (message || hasAttachments) {
+      const sendCtx = { message, attachments: attachmentsWithUrls, context, cancel: false };
+      await callJsExtensions("send_message_before", sendCtx);
+      if (sendCtx.cancel) return;
+      message = sendCtx.message;
+
       // Check if agent is busy - queue instead of sending
       if (chatsStore.selectedContext.running || messageQueueStore.hasQueue) {
         const success = messageQueueStore.addToQueue(message, attachmentsWithUrls);
@@ -428,6 +434,14 @@ export async function applySnapshot(snapshot, options = {}) {
     console.error("Invalid snapshot payload");
     return { updated: false };
   }
+
+  const snapCtx = {
+    snapshot,
+    options,
+    skip: false,
+  };
+  await callJsExtensions("apply_snapshot_before", snapCtx);
+  if (snapCtx.skip) return { updated: false };
 
   // deselect chat if it is requested by the backend
   if (snapshot.deselect_chat) {

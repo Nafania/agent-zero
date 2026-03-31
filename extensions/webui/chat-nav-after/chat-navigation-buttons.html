@@ -1,0 +1,19 @@
+<div id="chat-nav-buttons" aria-label="Chat navigation" x-data>
+  <button class="btn-icon-action" title="Scroll to top" x-on:click="$store.chatNavigation.scrollToTop()">
+    <span class="material-symbols-outlined">vertical_align_top</span>
+  </button>
+  <button class="btn-icon-action" title="Previous user message" x-on:click="$store.chatNavigation.scrollToPrevUserMessage()">
+    <span class="material-symbols-outlined">keyboard_arrow_up</span>
+  </button>
+  <button class="btn-icon-action" title="Next user message" x-on:click="$store.chatNavigation.scrollToNextUserMessage()">
+    <span class="material-symbols-outlined">keyboard_arrow_down</span>
+  </button>
+  <button class="btn-icon-action" title="Scroll to bottom" x-on:click="$store.chatNavigation.scrollToBottom()">
+    <span class="material-symbols-outlined">vertical_align_bottom</span>
+  </button>
+</div>
+
+<style>
+  #chat-nav-buttons { display: flex; align-items: center; gap: 2px; opacity: 0.85; }
+  #chat-nav-buttons .btn-icon-action { padding: var(--spacing-xs); border: none !important; }
+</style>
