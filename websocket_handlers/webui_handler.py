@@ -28,6 +28,14 @@ class WebuiHandler(WebSocketHandler):
             response_data=response_data,
         )
 
+        error_code = response_data.pop("code", None)
+        if error_code:
+            return self.result_error(
+                code=error_code,
+                message=response_data.pop("message", ""),
+                correlation_id=data.get("correlationId"),
+            )
+
         return self.result_ok(
             response_data,
             correlation_id=data.get("correlationId"),

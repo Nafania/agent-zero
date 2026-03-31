@@ -109,8 +109,8 @@ async def test_state_request_invalid_payload_returns_invalid_request_error():
     assert response["correlationId"] == "client-2"
     assert response["results"]
     first = response["results"][0]
-    assert first["ok"] is True
-    assert first["data"]["code"] == "INVALID_REQUEST"
+    assert first["ok"] is False
+    assert first["error"]["code"] == "INVALID_REQUEST"
 
 
 @pytest.mark.asyncio

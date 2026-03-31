@@ -46,7 +46,6 @@ async def send_data(
     connection_id: str | None = None,
 ) -> None:
     manager = get_shared_websocket_manager()
-    print(f"Sending data to {endpoint_name}/{event_name} with data {data}")
     await manager.send_data(endpoint_name, event_name, data, connection_id)
 
 
@@ -358,9 +357,6 @@ class WebSocketManager:
                 self._debug(
                     f"Registered handler {handler.identifier} namespace={namespace}"
                 )
-
-    def iter_event_types(self, namespace: str) -> Iterable[str]:
-        return []
 
     def iter_namespaces(self) -> list[str]:
         return list(self.handlers.keys())

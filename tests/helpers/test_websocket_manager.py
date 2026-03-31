@@ -801,12 +801,6 @@ async def test_lifecycle_events_broadcast(monkeypatch):
     assert LIFECYCLE_DISCONNECT_EVENT in events
 
 
-def test_iter_event_types_returns_empty_list():
-    socketio = FakeSocketIOServer()
-    manager = WebSocketManager(socketio, threading.RLock())
-    assert manager.iter_event_types(NAMESPACE) == []
-
-
 def test_set_and_get_shared_websocket_manager():
     from helpers.websocket_manager import (
         set_shared_websocket_manager,

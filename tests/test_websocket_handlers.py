@@ -90,3 +90,38 @@ async def test_webui_handler_routes_state_request():
     assert response["correlationId"] == "smoke-1"
     assert response["results"] and response["results"][0]["ok"] is True
     await manager.handle_disconnect(namespace, "sid-1")
+
+
+@pytest.mark.asyncio
+async def test_webui_handler_returns_error_for_invalid_state_request():
+    from helpers.websocket_manager import WebSocketManager
+    from websocket_handlers.webui_handler import WebuiHandler
+    from helpers.state_monitor import _reset_state_monitor_for_testing
+
+    _reset_state_monitor_for_testing()
+    WebuiHandler._reset_instance_for_testing()
+
+    socketio = _FakeSocketIO()
+    lock = threading.RLock()
+    manager = WebSocketManager(socketio, lock)
+    handler = WebuiHandler.get_instance(socketio, lock)
+    namespace = "/webui"
+    manager.register_handlers({namespace: [handler]})
+    await manager.handle_connect(namespace, "sid-1")
+
+    response = await manager.route_event(
+        namespace,
+        "state_request",
+        {
+            "correlationId": "bad-1",
+            "ts": "2025-12-28T00:00:00.000Z",
+            "data": "not-a-dict",
+        },
+        "sid-1",
+    )
+
+    assert response["correlationId"] == "bad-1"
+    result = response["results"][0]
+    assert result["ok"] is False
+    assert result["error"]["code"] == "INVALID_REQUEST"
+    await manager.handle_disconnect(namespace, "sid-1")
