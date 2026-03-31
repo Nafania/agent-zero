@@ -313,7 +313,7 @@ class TestBrowserModelProvider:
     """Tests for browser plugin _10_browser_agent.py stub."""
 
     def test_noop_stub(self, mock_agent):
-        from plugins.browser.extensions.python._functions.agent.Agent.get_browser_model.start._10_browser_agent import (
+        from plugins._browser_agent.extensions.python._functions.agent.Agent.get_browser_model.start._10_browser_agent import (
             BrowserModelProvider,
         )
 
