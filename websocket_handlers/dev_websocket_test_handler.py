@@ -5,7 +5,7 @@ from typing import Any, Dict
 
 from helpers.print_style import PrintStyle
 from helpers import runtime
-from helpers.websocket import WebSocketHandler, WebSocketResult
+from helpers.ws import WebSocketHandler, WebSocketResult
 
 
 class DevWebsocketTestHandler(WebSocketHandler):

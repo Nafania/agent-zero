@@ -12,8 +12,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from helpers.websocket import ConnectionNotFoundError, WebSocketHandler, WebSocketResult
-from helpers.websocket_manager import (
+from helpers.ws import ConnectionNotFoundError, WebSocketHandler, WebSocketResult
+from helpers.ws_manager import (
     WebSocketManager,
     BUFFER_TTL,
     DIAGNOSTIC_EVENT,
@@ -331,7 +331,7 @@ async def test_buffer_overflow_drops_oldest(monkeypatch):
     await manager.handle_connect(NAMESPACE, "offline")
     await manager.handle_disconnect(NAMESPACE, "offline")
 
-    monkeypatch.setattr("helpers.websocket_manager.BUFFER_MAX_SIZE", 2)
+    monkeypatch.setattr("helpers.ws_manager.BUFFER_MAX_SIZE", 2)
 
     await manager.emit_to(NAMESPACE, "offline", "event", {"idx": 0})
     await manager.emit_to(NAMESPACE, "offline", "event", {"idx": 1})
@@ -362,7 +362,7 @@ async def test_expired_buffer_entries_are_discarded(monkeypatch):
     socketio.emit.reset_mock()
 
     monkeypatch.setattr(
-        "helpers.websocket_manager._utcnow",
+        "helpers.ws_manager._utcnow",
         lambda: future,
     )
     await manager.handle_connect(NAMESPACE, "sid-expired")
@@ -456,7 +456,7 @@ async def test_timestamps_are_timezone_aware():
     assert info.connected_at.tzinfo is not None
     assert info.last_activity.tzinfo is not None
 
-    with patch("helpers.websocket_manager._utcnow") as mocked_now:
+    with patch("helpers.ws_manager._utcnow") as mocked_now:
         mocked_now.return_value = info.last_activity
         await manager.route_event(NAMESPACE, "unknown", {}, "sid-utc")
         assert info.last_activity.tzinfo is not None
@@ -802,7 +802,7 @@ async def test_lifecycle_events_broadcast(monkeypatch):
 
 
 def test_set_and_get_shared_websocket_manager():
-    from helpers.websocket_manager import (
+    from helpers.ws_manager import (
         set_shared_websocket_manager,
         get_shared_websocket_manager,
     )
@@ -814,7 +814,7 @@ def test_set_and_get_shared_websocket_manager():
 
 
 def test_get_shared_websocket_manager_raises_when_unset(monkeypatch):
-    from helpers import websocket_manager as wsm
+    from helpers import ws_manager as wsm
 
     monkeypatch.setattr(wsm, "_shared_websocket_manager", None)
     with pytest.raises(RuntimeError, match="not been initialized"):

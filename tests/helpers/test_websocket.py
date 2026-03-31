@@ -16,21 +16,21 @@ if str(PROJECT_ROOT) not in sys.path:
 
 class TestNormalizeOrigin:
     def test_normalize_origin_valid_url(self):
-        from helpers.websocket import normalize_origin
+        from helpers.ws import normalize_origin
 
         assert normalize_origin("https://example.com") == "https://example.com"
         assert normalize_origin("http://localhost:3000") == "http://localhost:3000"
         assert normalize_origin("  https://app.example.com:8080  ") == "https://app.example.com:8080"
 
     def test_normalize_origin_returns_none_for_empty(self):
-        from helpers.websocket import normalize_origin
+        from helpers.ws import normalize_origin
 
         assert normalize_origin("") is None
         assert normalize_origin("   ") is None
         assert normalize_origin(None) is None
 
     def test_normalize_origin_returns_none_for_invalid(self):
-        from helpers.websocket import normalize_origin
+        from helpers.ws import normalize_origin
 
         assert normalize_origin("not-a-url") is None
         assert normalize_origin(123) is None
@@ -41,14 +41,14 @@ class TestNormalizeOrigin:
 
 class TestValidateWsOrigin:
     def test_validate_ws_origin_missing_origin(self):
-        from helpers.websocket import validate_ws_origin
+        from helpers.ws import validate_ws_origin
 
         ok, err = validate_ws_origin({"HTTP_HOST": "localhost:5000"})
         assert not ok
         assert err == "missing_origin"
 
     def test_validate_ws_origin_matching_origin_and_host(self):
-        from helpers.websocket import validate_ws_origin
+        from helpers.ws import validate_ws_origin
 
         environ = {
             "HTTP_ORIGIN": "http://localhost:5000",
@@ -59,7 +59,7 @@ class TestValidateWsOrigin:
         assert err is None
 
     def test_validate_ws_origin_host_mismatch(self):
-        from helpers.websocket import validate_ws_origin
+        from helpers.ws import validate_ws_origin
 
         environ = {
             "HTTP_ORIGIN": "http://evil.com",
@@ -70,7 +70,7 @@ class TestValidateWsOrigin:
         assert err in ("origin_host_mismatch", "origin_port_mismatch")
 
     def test_validate_ws_origin_uses_referer_when_origin_missing(self):
-        from helpers.websocket import validate_ws_origin
+        from helpers.ws import validate_ws_origin
 
         environ = {
             "HTTP_REFERER": "http://localhost:5000",
@@ -81,7 +81,7 @@ class TestValidateWsOrigin:
         assert err is None
 
     def test_validate_ws_origin_forwarded_headers(self):
-        from helpers.websocket import validate_ws_origin
+        from helpers.ws import validate_ws_origin
 
         environ = {
             "HTTP_ORIGIN": "https://app.example.com",
@@ -98,7 +98,7 @@ class TestValidateWsOrigin:
 
 class TestWebSocketResult:
     def test_ok_creates_success_result(self):
-        from helpers.websocket import WebSocketResult
+        from helpers.ws import WebSocketResult
 
         r = WebSocketResult.ok(data={"foo": "bar"})
         assert r._ok is True
@@ -106,7 +106,7 @@ class TestWebSocketResult:
         assert r._error is None
 
     def test_ok_with_correlation_id_and_duration(self):
-        from helpers.websocket import WebSocketResult
+        from helpers.ws import WebSocketResult
 
         r = WebSocketResult.ok(
             data={"x": 1},
@@ -117,14 +117,14 @@ class TestWebSocketResult:
         assert r._duration_ms == 42.5
 
     def test_error_creates_error_result(self):
-        from helpers.websocket import WebSocketResult
+        from helpers.ws import WebSocketResult
 
         r = WebSocketResult.error(code="NOT_FOUND", message="Resource not found")
         assert r._ok is False
         assert r._error == {"code": "NOT_FOUND", "error": "Resource not found"}
 
     def test_error_with_details(self):
-        from helpers.websocket import WebSocketResult
+        from helpers.ws import WebSocketResult
 
         r = WebSocketResult.error(
             code="VALIDATION",
@@ -134,31 +134,31 @@ class TestWebSocketResult:
         assert r._error["details"] == {"field": "email"}
 
     def test_error_rejects_empty_code(self):
-        from helpers.websocket import WebSocketResult
+        from helpers.ws import WebSocketResult
 
         with pytest.raises(ValueError, match="Error code"):
             WebSocketResult.error(code="", message="msg")
 
     def test_error_rejects_empty_message(self):
-        from helpers.websocket import WebSocketResult
+        from helpers.ws import WebSocketResult
 
         with pytest.raises(ValueError, match="Error message"):
             WebSocketResult.error(code="ERR", message="")
 
     def test_init_rejects_ok_with_error(self):
-        from helpers.websocket import WebSocketResult
+        from helpers.ws import WebSocketResult
 
         with pytest.raises(ValueError, match="both ok and have an error"):
             WebSocketResult(ok=True, error={"code": "x", "error": "y"})
 
     def test_init_rejects_not_ok_without_error(self):
-        from helpers.websocket import WebSocketResult
+        from helpers.ws import WebSocketResult
 
         with pytest.raises(ValueError, match="either be ok or have an error"):
             WebSocketResult(ok=False)
 
     def test_as_result_produces_canonical_shape(self):
-        from helpers.websocket import WebSocketResult
+        from helpers.ws import WebSocketResult
 
         r = WebSocketResult.ok(data={"result": 42}, correlation_id="c1")
         out = r.as_result(handler_id="handler1", fallback_correlation_id="fallback")
@@ -168,14 +168,14 @@ class TestWebSocketResult:
         assert out["correlationId"] == "c1"
 
     def test_as_result_uses_fallback_correlation_id(self):
-        from helpers.websocket import WebSocketResult
+        from helpers.ws import WebSocketResult
 
         r = WebSocketResult.ok(data={})
         out = r.as_result(handler_id="h", fallback_correlation_id="fb")
         assert out["correlationId"] == "fb"
 
     def test_as_result_includes_duration_ms(self):
-        from helpers.websocket import WebSocketResult
+        from helpers.ws import WebSocketResult
 
         r = WebSocketResult.ok(data={}, duration_ms=12.3456)
         out = r.as_result(handler_id="h", fallback_correlation_id=None)
@@ -188,31 +188,31 @@ class TestWebSocketResult:
 
 class TestWebSocketHandler:
     def test_validate_event_type_accepts_valid(self):
-        from helpers.websocket import WebSocketHandler
+        from helpers.ws import WebSocketHandler
 
         assert WebSocketHandler.validate_event_type("my_event") == "my_event"
         assert WebSocketHandler.validate_event_type("another_event") == "another_event"
 
     def test_validate_event_type_rejects_non_string(self):
-        from helpers.websocket import WebSocketHandler
+        from helpers.ws import WebSocketHandler
 
         with pytest.raises(TypeError, match="must be a string"):
             WebSocketHandler.validate_event_type(123)
 
     def test_validate_event_type_rejects_invalid_format(self):
-        from helpers.websocket import WebSocketHandler
+        from helpers.ws import WebSocketHandler
 
         with pytest.raises(ValueError, match="lowercase_snake_case"):
             WebSocketHandler.validate_event_type("InvalidEvent")
 
     def test_validate_event_type_rejects_reserved(self):
-        from helpers.websocket import WebSocketHandler
+        from helpers.ws import WebSocketHandler
 
         with pytest.raises(ValueError, match="reserved"):
             WebSocketHandler.validate_event_type("connect")
 
     def test_requires_auth_default_true(self):
-        from helpers.websocket import WebSocketHandler
+        from helpers.ws import WebSocketHandler
 
         class DummyHandler(WebSocketHandler):
             async def process_event(self, event_type, data, sid):
@@ -221,7 +221,7 @@ class TestWebSocketHandler:
         assert DummyHandler.requires_auth() is True
 
     def test_requires_csrf_mirrors_requires_auth(self):
-        from helpers.websocket import WebSocketHandler
+        from helpers.ws import WebSocketHandler
 
         class DummyHandler(WebSocketHandler):
             async def process_event(self, event_type, data, sid):
@@ -235,7 +235,7 @@ class TestWebSocketHandler:
 
 class TestConnectionNotFoundError:
     def test_connection_not_found_error_with_namespace(self):
-        from helpers.websocket import ConnectionNotFoundError
+        from helpers.ws import ConnectionNotFoundError
 
         e = ConnectionNotFoundError("sid-1", namespace="/ns")
         assert e.sid == "sid-1"
@@ -244,7 +244,7 @@ class TestConnectionNotFoundError:
         assert "sid-1" in str(e)
 
     def test_connection_not_found_error_without_namespace(self):
-        from helpers.websocket import ConnectionNotFoundError
+        from helpers.ws import ConnectionNotFoundError
 
         e = ConnectionNotFoundError("sid-2")
         assert e.sid == "sid-2"
@@ -257,7 +257,7 @@ class TestConnectionNotFoundError:
 
 class TestSingletonInstantiationError:
     def test_singleton_instantiation_error(self):
-        from helpers.websocket import SingletonInstantiationError
+        from helpers.ws import SingletonInstantiationError
 
         e = SingletonInstantiationError("Custom message")
         assert "Custom message" in str(e)

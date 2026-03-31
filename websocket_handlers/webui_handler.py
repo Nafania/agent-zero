@@ -1,4 +1,4 @@
-from helpers.websocket import WebSocketHandler, WebSocketResult
+from helpers.ws import WebSocketHandler, WebSocketResult
 from helpers import extension
 
 

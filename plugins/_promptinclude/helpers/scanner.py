@@ -9,6 +9,10 @@ from pathspec import PathSpec
 from helpers import tokens
 
 
+# ------------------------------------------------------------------
+# Types
+# ------------------------------------------------------------------
+
 class FileEntry(TypedDict):
     path: str
     content: str
@@ -20,6 +24,10 @@ class ScanResult(TypedDict):
     files: list[FileEntry]
     skipped_count: int
 
+
+# ------------------------------------------------------------------
+# Public API
+# ------------------------------------------------------------------
 
 def scan_promptinclude_files(
     root: str,
@@ -57,15 +65,18 @@ def scan_promptinclude_files(
 
         file_tokens = tokens.count_tokens(raw)
 
-        path_tokens = tokens.count_tokens(path) + 5
+        # check if adding path line alone exceeds budget
+        path_tokens = tokens.count_tokens(path) + 5  # overhead for formatting
         if total_tokens_used + path_tokens > max_total_tokens:
             skipped_count += 1
             budget_exhausted = True
             continue
 
+        # per-file token cap
         capped = min(file_tokens, max_file_tokens)
 
         if total_tokens_used + path_tokens + capped > max_total_tokens:
+            # try to fit partial
             remaining = max_total_tokens - total_tokens_used - path_tokens
             if remaining > 50:
                 trimmed = tokens.trim_to_tokens(raw, remaining, direction="start")
@@ -98,12 +109,17 @@ def scan_promptinclude_files(
                 token_count=file_tokens, status="ok",
             ))
 
+    # remaining unprocessed files from matched list
     remaining_unprocessed = len(matched) - len(result_files) - skipped_count
     if remaining_unprocessed > 0:
         skipped_count += remaining_unprocessed
 
     return ScanResult(files=result_files, skipped_count=skipped_count)
 
+
+# ------------------------------------------------------------------
+# Internal helpers
+# ------------------------------------------------------------------
 
 def _build_ignore_spec(gitignore: str) -> PathSpec | None:
     if not gitignore or not gitignore.strip():
@@ -136,6 +152,7 @@ def _find_matching_files(
             dirnames.clear()
             continue
 
+        # filter ignored dirs in-place
         if ignore_spec:
             filtered_dirs = []
             for d in dirnames:

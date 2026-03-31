@@ -14,10 +14,10 @@ from helpers.state_snapshot import (
     advance_state_request_after_snapshot,
     build_snapshot_from_request,
 )
-from helpers.websocket import ConnectionNotFoundError
+from helpers.ws import ConnectionNotFoundError
 
 if TYPE_CHECKING:  # pragma: no cover - hints only
-    from helpers.websocket_manager import WebSocketManager
+    from helpers.ws_manager import WebSocketManager
 
 
 ConnectionIdentity = tuple[str, str]  # (namespace, sid)

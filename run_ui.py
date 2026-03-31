@@ -14,7 +14,7 @@ import initialize
 from helpers import files, git, mcp_server, fasta2a_server, settings as settings_helper, extension
 from helpers.files import get_abs_path
 from helpers import runtime, dotenv, process
-from helpers.websocket import WebSocketHandler, validate_ws_origin
+from helpers.ws import WebSocketHandler, validate_ws_origin
 from helpers.api import (
     register_api_route,
     register_watchdogs,
@@ -31,8 +31,8 @@ from socketio import ASGIApp, packet
 from starlette.applications import Starlette
 from starlette.routing import Mount
 from uvicorn.middleware.wsgi import WSGIMiddleware
-from helpers.websocket_manager import WebSocketManager, set_shared_websocket_manager
-from helpers.websocket_namespace_discovery import discover_websocket_namespaces
+from helpers.ws_manager import WebSocketManager, set_shared_websocket_manager
+from helpers.ws_manager import discover_websocket_namespaces
 
 import logging
 from helpers.log_format import configure_logging

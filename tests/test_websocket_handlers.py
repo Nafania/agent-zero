@@ -8,7 +8,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from helpers.websocket import (
+from helpers.ws import (
     WebSocketHandler,
     WebSocketResult,
     SingletonInstantiationError,
@@ -56,7 +56,7 @@ def test_get_instance_returns_singleton():
 
 @pytest.mark.asyncio
 async def test_webui_handler_routes_state_request():
-    from helpers.websocket_manager import WebSocketManager
+    from helpers.ws_manager import WebSocketManager
     from websocket_handlers.webui_handler import WebuiHandler
     from helpers.state_monitor import _reset_state_monitor_for_testing
 
@@ -94,7 +94,7 @@ async def test_webui_handler_routes_state_request():
 
 @pytest.mark.asyncio
 async def test_webui_handler_returns_error_for_invalid_state_request():
-    from helpers.websocket_manager import WebSocketManager
+    from helpers.ws_manager import WebSocketManager
     from websocket_handlers.webui_handler import WebuiHandler
     from helpers.state_monitor import _reset_state_monitor_for_testing
 
