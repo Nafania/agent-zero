@@ -45,7 +45,7 @@ def mock_agent():
 
 @pytest.fixture
 def tool(mock_agent):
-    from plugins.browser.tools.browser_agent import BrowserAgent
+    from plugins._browser_agent.tools.browser_agent import BrowserAgent
     t = BrowserAgent(
         agent=mock_agent,
         name="browser_agent",
@@ -76,7 +76,7 @@ class TestBrowserAgentGetLogObject:
 class TestBrowserAgentPrepareState:
     @pytest.mark.asyncio
     async def test_creates_state_when_none(self, tool):
-        with patch("plugins.browser.tools.browser_agent.State.create", new_callable=AsyncMock) as mock_create:
+        with patch("plugins._browser_agent.tools.browser_agent.State.create", new_callable=AsyncMock) as mock_create:
             mock_state = MagicMock()
             mock_create.return_value = mock_state
             await tool.prepare_state(reset=False)
@@ -88,7 +88,7 @@ class TestBrowserAgentUpdateProgress:
     def test_updates_log_and_context(self, tool):
         tool.log = MagicMock(update=MagicMock())
         tool.agent.context.log.set_progress = MagicMock()
-        with patch("plugins.browser.tools.browser_agent.get_secrets_manager") as mock_sm:
+        with patch("plugins._browser_agent.tools.browser_agent.get_secrets_manager") as mock_sm:
             mock_sm.return_value.mask_values = lambda x: x
             tool.update_progress("Loading page...")
         tool.log.update.assert_called()
@@ -97,13 +97,13 @@ class TestBrowserAgentUpdateProgress:
 
 class TestBrowserAgentMask:
     def test_masks_secrets(self, tool):
-        with patch("plugins.browser.tools.browser_agent.get_secrets_manager") as mock_sm:
+        with patch("plugins._browser_agent.tools.browser_agent.get_secrets_manager") as mock_sm:
             mock_sm.return_value.mask_values = lambda t: t.replace("secret", "***")
             result = tool._mask("password is secret")
         assert "***" in result
 
     def test_returns_empty_for_none(self, tool):
-        with patch("plugins.browser.tools.browser_agent.get_secrets_manager") as mock_sm:
+        with patch("plugins._browser_agent.tools.browser_agent.get_secrets_manager") as mock_sm:
             mock_sm.return_value.mask_values = lambda t: t or ""
             result = tool._mask(None)
         assert result == ""
@@ -123,9 +123,9 @@ class TestBrowserAgentExecute:
             tool.state = mock_state
 
         with patch.object(tool, "prepare_state", new_callable=AsyncMock, side_effect=mock_prepare_state):
-            with patch("plugins.browser.tools.browser_agent.get_secrets_manager") as mock_sm:
+            with patch("plugins._browser_agent.tools.browser_agent.get_secrets_manager") as mock_sm:
                 mock_sm.return_value.mask_values = lambda x, **kw: x
-                with patch("plugins.browser.tools.browser_agent.time.time", side_effect=[0, 400]):
+                with patch("plugins._browser_agent.tools.browser_agent.time.time", side_effect=[0, 400]):
                     resp = await tool.execute(message="test", reset="false")
         from helpers.tool import Response
         assert isinstance(resp, Response)
@@ -134,12 +134,12 @@ class TestBrowserAgentExecute:
 
 class TestGetUseAgentLog:
     def test_returns_starting_when_no_agent(self):
-        from plugins.browser.tools.browser_agent import get_use_agent_log
+        from plugins._browser_agent.tools.browser_agent import get_use_agent_log
         result = get_use_agent_log(None)
         assert "Starting" in result[0] or "🚦" in str(result)
 
     def test_includes_action_results_when_agent(self):
-        from plugins.browser.tools.browser_agent import get_use_agent_log
+        from plugins._browser_agent.tools.browser_agent import get_use_agent_log
         mock_agent = MagicMock()
         mock_result = MagicMock()
         mock_result.is_done = True
@@ -152,7 +152,7 @@ class TestGetUseAgentLog:
         assert len(result) >= 1
 
     def test_includes_error_when_done_but_not_success(self):
-        from plugins.browser.tools.browser_agent import get_use_agent_log
+        from plugins._browser_agent.tools.browser_agent import get_use_agent_log
         mock_agent = MagicMock()
         mock_result = MagicMock()
         mock_result.is_done = True
@@ -165,7 +165,7 @@ class TestGetUseAgentLog:
         assert any("Error" in str(r) or "❌" in str(r) for r in result)
 
     def test_includes_progress_when_not_done(self):
-        from plugins.browser.tools.browser_agent import get_use_agent_log
+        from plugins._browser_agent.tools.browser_agent import get_use_agent_log
         mock_agent = MagicMock()
         mock_result = MagicMock()
         mock_result.is_done = False
@@ -178,7 +178,7 @@ class TestGetUseAgentLog:
 
 class TestBrowserAgentState:
     def test_get_user_data_dir(self, mock_agent):
-        from plugins.browser.tools.browser_agent import State
+        from plugins._browser_agent.tools.browser_agent import State
         state = State(mock_agent)
         path = state.get_user_data_dir()
         assert "browseruse" in path
@@ -191,7 +191,7 @@ class TestBrowserAgentPrepareStateReset:
     async def test_prepare_state_kills_task_on_reset(self, tool):
         mock_state = MagicMock()
         tool.agent.get_data.return_value = mock_state
-        with patch("plugins.browser.tools.browser_agent.State.create", new_callable=AsyncMock) as mock_create:
+        with patch("plugins._browser_agent.tools.browser_agent.State.create", new_callable=AsyncMock) as mock_create:
             new_state = MagicMock()
             mock_create.return_value = new_state
             await tool.prepare_state(reset=True)
@@ -217,7 +217,7 @@ class TestBrowserAgentExecuteSuccess:
             tool.state = mock_state
 
         with patch.object(tool, "prepare_state", new_callable=AsyncMock, side_effect=mock_prepare_state):
-            with patch("plugins.browser.tools.browser_agent.get_secrets_manager") as mock_sm:
+            with patch("plugins._browser_agent.tools.browser_agent.get_secrets_manager") as mock_sm:
                 mock_sm.return_value.mask_values = lambda x, **kw: x
                 with patch.object(tool, "get_update", new_callable=AsyncMock, return_value={"log": []}):
                     resp = await tool.execute(message="test", reset="false")
@@ -241,7 +241,7 @@ class TestBrowserAgentExecuteSuccess:
         mock_state.kill_task = MagicMock()
 
         with patch.object(tool, "prepare_state", new_callable=AsyncMock, side_effect=mock_prepare_state):
-            with patch("plugins.browser.tools.browser_agent.get_secrets_manager") as mock_sm:
+            with patch("plugins._browser_agent.tools.browser_agent.get_secrets_manager") as mock_sm:
                 mock_sm.return_value.mask_values = lambda x, **kw: x
                 with patch.object(tool, "get_update", new_callable=AsyncMock, return_value={}):
                     resp = await tool.execute(message="test", reset="false")
@@ -284,9 +284,9 @@ class TestBrowserAgentGetUpdate:
             tool.state = mock_state
 
         with patch.object(tool, "prepare_state", new_callable=AsyncMock, side_effect=mock_prepare_state):
-            with patch("plugins.browser.tools.browser_agent.files.get_abs_path", return_value="/tmp/screenshot.png"):
-                with patch("plugins.browser.tools.browser_agent.files.make_dirs", MagicMock()):
-                    with patch("plugins.browser.tools.browser_agent.persist_chat.get_chat_folder_path", return_value="chats"):
+            with patch("plugins._browser_agent.tools.browser_agent.files.get_abs_path", return_value="/tmp/screenshot.png"):
+                with patch("plugins._browser_agent.tools.browser_agent.files.make_dirs", MagicMock()):
+                    with patch("plugins._browser_agent.tools.browser_agent.persist_chat.get_chat_folder_path", return_value="chats"):
                         with patch("builtins.open", mock_open()) as m_open:
                             result = await tool.get_update()
 
@@ -300,7 +300,7 @@ class TestStateInitialize:
     @pytest.mark.asyncio
     async def test_initialize_creates_session_without_playwright(self, mock_agent):
         """Verify _initialize no longer calls ensure_playwright_binary."""
-        from plugins.browser.tools.browser_agent import State
+        from plugins._browser_agent.tools.browser_agent import State
 
         state = State(mock_agent)
 
@@ -308,10 +308,10 @@ class TestStateInitialize:
         mock_session.start = AsyncMock()
         mock_session.get_current_page = AsyncMock(return_value=None)
 
-        with patch("plugins.browser.tools.browser_agent.browser_use") as mock_bu:
+        with patch("plugins._browser_agent.tools.browser_agent.browser_use") as mock_bu:
             mock_bu.BrowserSession.return_value = mock_session
             mock_bu.BrowserProfile.return_value = MagicMock()
-            with patch("plugins.browser.tools.browser_agent.files.get_abs_path", return_value="/fake/path"):
+            with patch("plugins._browser_agent.tools.browser_agent.files.get_abs_path", return_value="/fake/path"):
                 await state._initialize()
 
         mock_bu.BrowserSession.assert_called_once()
@@ -320,7 +320,7 @@ class TestStateInitialize:
     @pytest.mark.asyncio
     async def test_initialize_injects_init_script_via_cdp(self, mock_agent):
         """Verify init script is injected via CDP addScriptToEvaluateOnNewDocument."""
-        from plugins.browser.tools.browser_agent import State
+        from plugins._browser_agent.tools.browser_agent import State
 
         state = State(mock_agent)
 
@@ -340,10 +340,10 @@ class TestStateInitialize:
 
         js_content = "// shadow DOM override"
 
-        with patch("plugins.browser.tools.browser_agent.browser_use") as mock_bu:
+        with patch("plugins._browser_agent.tools.browser_agent.browser_use") as mock_bu:
             mock_bu.BrowserSession.return_value = mock_session
             mock_bu.BrowserProfile.return_value = MagicMock()
-            with patch("plugins.browser.tools.browser_agent.files.get_abs_path", return_value="/fake/init_override.js"):
+            with patch("plugins._browser_agent.tools.browser_agent.files.get_abs_path", return_value="/fake/init_override.js"):
                 with patch("builtins.open", mock_open(read_data=js_content)):
                     await state._initialize()
 
@@ -354,7 +354,7 @@ class TestStateInitialize:
     @pytest.mark.asyncio
     async def test_initialize_sets_viewport_via_kwargs(self, mock_agent):
         """Verify viewport is set with keyword args (CDP) not dict (Playwright)."""
-        from plugins.browser.tools.browser_agent import State
+        from plugins._browser_agent.tools.browser_agent import State
 
         state = State(mock_agent)
 
@@ -368,10 +368,10 @@ class TestStateInitialize:
         mock_session.start = AsyncMock()
         mock_session.get_current_page = AsyncMock(return_value=mock_page)
 
-        with patch("plugins.browser.tools.browser_agent.browser_use") as mock_bu:
+        with patch("plugins._browser_agent.tools.browser_agent.browser_use") as mock_bu:
             mock_bu.BrowserSession.return_value = mock_session
             mock_bu.BrowserProfile.return_value = MagicMock()
-            with patch("plugins.browser.tools.browser_agent.files.get_abs_path", return_value="/fake/path"):
+            with patch("plugins._browser_agent.tools.browser_agent.files.get_abs_path", return_value="/fake/path"):
                 with patch("builtins.open", mock_open(read_data="")):
                     await state._initialize()
 
@@ -382,7 +382,7 @@ class TestBrowserAgentNoPlaywrightImport:
     def test_no_playwright_import_in_browser_agent(self):
         """Ensure browser_agent.py no longer imports from playwright helper."""
         import inspect
-        from plugins.browser.tools import browser_agent
+        from plugins._browser_agent.tools import browser_agent
         source = inspect.getsource(browser_agent)
         assert "ensure_playwright_binary" not in source
         assert "from helpers.playwright" not in source

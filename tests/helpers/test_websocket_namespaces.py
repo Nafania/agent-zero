@@ -121,10 +121,6 @@ async def test_namespace_isolation_state_sync_vs_dev_websocket_test() -> None:
         def requires_csrf(cls) -> bool:
             return False
 
-        @classmethod
-        def get_event_types(cls) -> list[str]:
-            return ["state_request"]
-
         async def process_event(self, event_type: str, data: dict[str, Any], sid: str):
             await self.emit_to(sid, "state_push", {"source": "state_sync"})
             return {"ok": True}
@@ -137,10 +133,6 @@ async def test_namespace_isolation_state_sync_vs_dev_websocket_test() -> None:
         @classmethod
         def requires_csrf(cls) -> bool:
             return False
-
-        @classmethod
-        def get_event_types(cls) -> list[str]:
-            return ["ws_tester_emit"]
 
         async def process_event(self, event_type: str, data: dict[str, Any], sid: str):
             await self.broadcast("ws_tester_broadcast", {"source": "dev_websocket_test"})
@@ -224,10 +216,6 @@ async def test_diagnostics_include_source_namespace_and_deliver_on_dev_namespace
     from helpers.websocket_manager import DIAGNOSTIC_EVENT, WebSocketManager
 
     class DummyHandler(WebSocketHandler):
-        @classmethod
-        def get_event_types(cls) -> list[str]:
-            return ["dummy_event"]
-
         async def process_event(self, event_type: str, data: dict[str, Any], sid: str):
             return {"ok": True}
 
@@ -275,13 +263,13 @@ def test_namespace_discovery_maps_core_handlers_to_expected_namespaces() -> None
     )
     by_namespace = {entry.namespace: entry for entry in discoveries}
 
-    assert "/state_sync" in by_namespace
+    assert "/webui" in by_namespace
     assert "/dev_websocket_test" in by_namespace
 
-    state_cls_names = [cls.__name__ for cls in by_namespace["/state_sync"].handler_classes]
+    state_cls_names = [cls.__name__ for cls in by_namespace["/webui"].handler_classes]
     dev_cls_names = [cls.__name__ for cls in by_namespace["/dev_websocket_test"].handler_classes]
 
-    assert state_cls_names == ["StateSyncHandler"]
+    assert state_cls_names == ["WebuiHandler"]
     assert dev_cls_names == ["DevWebsocketTestHandler"]
 
 
@@ -290,15 +278,15 @@ def test_run_ui_builds_namespace_handler_map_without_cross_registration() -> Non
 
     handlers_by_namespace = _build_websocket_handlers_by_namespace(object(), threading.RLock())
 
-    assert "/state_sync" in handlers_by_namespace
+    assert "/webui" in handlers_by_namespace
     assert "/dev_websocket_test" in handlers_by_namespace
 
     assert all(
         handler.__class__.__name__ != "DevWebsocketTestHandler"
-        for handler in handlers_by_namespace["/state_sync"]
+        for handler in handlers_by_namespace["/webui"]
     )
     assert all(
-        handler.__class__.__name__ != "StateSyncHandler"
+        handler.__class__.__name__ != "WebuiHandler"
         for handler in handlers_by_namespace["/dev_websocket_test"]
     )
 
@@ -321,19 +309,11 @@ async def test_route_event_dispatches_only_within_connected_namespace_and_result
     calls: list[str] = []
 
     class StatePingHandler(WebSocketHandler):
-        @classmethod
-        def get_event_types(cls) -> list[str]:
-            return ["route_test"]
-
         async def process_event(self, event_type: str, data: dict[str, Any], sid: str):
             calls.append(f"state:{sid}")
             return {"ns": "state"}
 
     class DevPingHandler(WebSocketHandler):
-        @classmethod
-        def get_event_types(cls) -> list[str]:
-            return ["route_test"]
-
         async def process_event(self, event_type: str, data: dict[str, Any], sid: str):
             calls.append(f"dev:{sid}")
             return {"ns": "dev"}
@@ -432,10 +412,6 @@ async def test_request_semantics_no_handlers_and_timeouts_are_namespace_scoped_a
     ns_dev = "/dev_websocket_test"
 
     class Alpha(WebSocketHandler):
-        @classmethod
-        def get_event_types(cls) -> list[str]:
-            return ["multi", "slow"]
-
         async def process_event(self, event_type: str, data: dict[str, Any], sid: str):
             if event_type == "slow":
                 await asyncio.sleep(0.2)
@@ -443,10 +419,6 @@ async def test_request_semantics_no_handlers_and_timeouts_are_namespace_scoped_a
             return {"alpha": True}
 
     class Beta(WebSocketHandler):
-        @classmethod
-        def get_event_types(cls) -> list[str]:
-            return ["multi"]
-
         async def process_event(self, event_type: str, data: dict[str, Any], sid: str):
             return {"beta": True}
 
@@ -460,25 +432,24 @@ async def test_request_semantics_no_handlers_and_timeouts_are_namespace_scoped_a
     await manager.handle_connect(ns_state, "sid-b")
     await manager.handle_connect(ns_dev, "sid-dev")
 
-    # Unknown event name -> NO_HANDLERS (no hang), scoped to the namespace.
+    # No handlers registered for ns_dev -> NO_HANDLERS.
     no_handler = await manager.route_event(ns_dev, "missing_event", {"x": 1}, "sid-dev")
     assert no_handler["results"][0]["ok"] is False
     assert no_handler["results"][0]["error"]["code"] == "NO_HANDLERS"
     assert ns_dev in no_handler["results"][0]["error"]["error"]
 
-    # Unknown event name in a namespace that *does* have other handlers -> NO_HANDLERS.
-    unhandled_in_state = await manager.route_event(ns_state, "unknown_event", {"x": 1}, "sid-a")
-    assert unhandled_in_state["results"][0]["ok"] is False
-    assert unhandled_in_state["results"][0]["error"]["code"] == "NO_HANDLERS"
-    assert ns_state in unhandled_in_state["results"][0]["error"]["error"]
+    # Events in a namespace with handlers route to all handlers (per-namespace routing).
+    routed_in_state = await manager.route_event(ns_state, "unknown_event", {"x": 1}, "sid-a")
+    handler_ids_any = {item["handlerId"] for item in routed_in_state["results"]}
+    assert handler_ids_any == {alpha.identifier, beta.identifier}
 
-    # Known event name in the wrong namespace -> NO_HANDLERS (no cross-namespace fallback).
+    # No handlers registered for ns_dev -> NO_HANDLERS (no cross-namespace fallback).
     wrong_namespace = await manager.route_event(ns_dev, "multi", {"x": 1}, "sid-dev")
     assert wrong_namespace["results"][0]["ok"] is False
     assert wrong_namespace["results"][0]["error"]["code"] == "NO_HANDLERS"
     assert ns_dev in wrong_namespace["results"][0]["error"]["error"]
 
-    # Order-insensitive results[]: both handlers must be present regardless of ordering.
+    # Both handlers present regardless of ordering.
     multi = await manager.route_event(ns_state, "multi", {"x": 1}, "sid-a")
     handler_ids = {item["handlerId"] for item in multi["results"]}
     assert handler_ids == {alpha.identifier, beta.identifier}

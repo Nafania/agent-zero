@@ -1,0 +1,5 @@
+name: _plugin_scan
+title: Plugin Scanner
+description: Scan and index available plugins.
+version: 1.0.0
+always_enabled: true

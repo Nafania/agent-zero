@@ -29,7 +29,7 @@ def mock_agent():
 
 @pytest.fixture
 def tool(mock_agent):
-    from plugins.memory.tools.memory_forget import MemoryForget
+    from plugins._memory.tools.memory_forget import MemoryForget
     return MemoryForget(
         agent=mock_agent,
         name="memory_forget",
@@ -45,7 +45,7 @@ class TestMemoryForgetExecute:
     async def test_forget_returns_count(self, tool):
         mock_db = MagicMock()
         mock_db.delete_documents_by_query = AsyncMock(return_value=["doc1"])
-        with patch("plugins.memory.tools.memory_forget.Memory.get", new_callable=AsyncMock, return_value=mock_db):
+        with patch("plugins._memory.tools.memory_forget.Memory.get", new_callable=AsyncMock, return_value=mock_db):
             resp = await tool.execute(query="forget this", threshold=0.7)
         assert "1" in resp.message or "Deleted" in resp.message
         assert resp.break_loop is False

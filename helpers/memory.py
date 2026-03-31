@@ -1,6 +1,6 @@
-# Backward-compatibility shim — real module lives in plugins/memory/helpers/
-from plugins.memory.helpers.memory import *  # noqa: F401,F403
-from plugins.memory.helpers.memory import (  # noqa: F401 — underscore names skipped by *
+# Backward-compatibility shim — real module lives in plugins/_memory/helpers/
+from plugins._memory.helpers.memory import *  # noqa: F401,F403
+from plugins._memory.helpers.memory import (  # noqa: F401 — underscore names skipped by *
     _get_cognee,
     _extract_metadata_from_text,
     _subdir_to_dataset,

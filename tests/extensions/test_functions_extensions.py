@@ -31,8 +31,8 @@ class TestFunctionsDirectoryStructure:
     @pytest.mark.parametrize(
         "rel_path",
         [
-            "plugins/error_retry/extensions/python/_functions/agent/Agent/handle_exception/end/_80_retry_critical_exception.py",
-            "plugins/error_retry/extensions/python/_functions/agent/Agent/monologue/start/_10_reset_critical_exception_counter.py",
+            "plugins/_error_retry/extensions/python/_functions/agent/Agent/handle_exception/end/_80_retry_critical_exception.py",
+            "plugins/_error_retry/extensions/python/_functions/agent/Agent/monologue/start/_10_reset_critical_exception_counter.py",
             "plugins/browser/extensions/python/_functions/agent/Agent/get_browser_model/start/_10_browser_agent.py",
         ],
     )
@@ -224,8 +224,8 @@ class TestResetCriticalExceptionCounter:
 
     @pytest.mark.asyncio
     async def test_resets_counter(self, mock_agent):
-        from plugins.error_retry.constants import DATA_NAME_COUNTER
-        from plugins.error_retry.extensions.python._functions.agent.Agent.monologue.start._10_reset_critical_exception_counter import (
+        from plugins._error_retry.constants import DATA_NAME_COUNTER
+        from plugins._error_retry.extensions.python._functions.agent.Agent.monologue.start._10_reset_critical_exception_counter import (
             ResetCriticalExceptionCounter,
         )
 
@@ -235,7 +235,7 @@ class TestResetCriticalExceptionCounter:
 
     @pytest.mark.asyncio
     async def test_noop_without_agent(self):
-        from plugins.error_retry.extensions.python._functions.agent.Agent.monologue.start._10_reset_critical_exception_counter import (
+        from plugins._error_retry.extensions.python._functions.agent.Agent.monologue.start._10_reset_critical_exception_counter import (
             ResetCriticalExceptionCounter,
         )
 
@@ -248,8 +248,8 @@ class TestRetryCriticalException:
 
     @pytest.mark.asyncio
     async def test_resets_counter_when_no_exception(self, mock_agent):
-        from plugins.error_retry.constants import DATA_NAME_COUNTER
-        from plugins.error_retry.extensions.python._functions.agent.Agent.handle_exception.end._80_retry_critical_exception import (
+        from plugins._error_retry.constants import DATA_NAME_COUNTER
+        from plugins._error_retry.extensions.python._functions.agent.Agent.handle_exception.end._80_retry_critical_exception import (
             RetryCriticalException,
         )
 
@@ -261,8 +261,8 @@ class TestRetryCriticalException:
     @pytest.mark.asyncio
     async def test_resets_counter_on_handled_exception(self, mock_agent):
         from agent import HandledException
-        from plugins.error_retry.constants import DATA_NAME_COUNTER
-        from plugins.error_retry.extensions.python._functions.agent.Agent.handle_exception.end._80_retry_critical_exception import (
+        from plugins._error_retry.constants import DATA_NAME_COUNTER
+        from plugins._error_retry.extensions.python._functions.agent.Agent.handle_exception.end._80_retry_critical_exception import (
             RetryCriticalException,
         )
 
@@ -272,7 +272,7 @@ class TestRetryCriticalException:
         mock_agent.set_data.assert_called_with(DATA_NAME_COUNTER, 0)
 
     @pytest.mark.asyncio
-    @patch("plugins.error_retry.extensions.python._functions.agent.Agent.handle_exception.end._80_retry_critical_exception.plugins")
+    @patch("plugins._error_retry.extensions.python._functions.agent.Agent.handle_exception.end._80_retry_critical_exception.plugins")
     async def test_retries_on_first_critical_exception(self, mock_plugins, mock_agent):
         mock_plugins.get_plugin_config.return_value = {"max_retries": 3, "retry_delay": 0}
         mock_agent.get_data = MagicMock(return_value=0)
@@ -280,7 +280,7 @@ class TestRetryCriticalException:
         mock_agent.read_prompt = MagicMock(return_value="Error occurred")
         mock_agent.hist_add_warning = MagicMock()
 
-        from plugins.error_retry.extensions.python._functions.agent.Agent.handle_exception.end._80_retry_critical_exception import (
+        from plugins._error_retry.extensions.python._functions.agent.Agent.handle_exception.end._80_retry_critical_exception import (
             RetryCriticalException,
         )
 
@@ -293,12 +293,12 @@ class TestRetryCriticalException:
         assert data["exception"] is None
 
     @pytest.mark.asyncio
-    @patch("plugins.error_retry.extensions.python._functions.agent.Agent.handle_exception.end._80_retry_critical_exception.plugins")
+    @patch("plugins._error_retry.extensions.python._functions.agent.Agent.handle_exception.end._80_retry_critical_exception.plugins")
     async def test_does_not_retry_when_max_reached(self, mock_plugins, mock_agent):
         mock_plugins.get_plugin_config.return_value = {"max_retries": 3}
         mock_agent.get_data = MagicMock(return_value=3)
 
-        from plugins.error_retry.extensions.python._functions.agent.Agent.handle_exception.end._80_retry_critical_exception import (
+        from plugins._error_retry.extensions.python._functions.agent.Agent.handle_exception.end._80_retry_critical_exception import (
             RetryCriticalException,
         )
 

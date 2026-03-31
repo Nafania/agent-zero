@@ -5,7 +5,7 @@ import { applySnapshot, buildStateRequestPayload } from "/index.js";
 import { store as chatTopStore } from "/components/chat/top-section/chat-top-store.js";
 import { store as notificationStore } from "/components/notifications/notification-store.js";
 
-const stateSocket = getNamespacedClient("/state_sync");
+const stateSocket = getNamespacedClient("/webui");
 
 const SYNC_MODES = {
   DISCONNECTED: "DISCONNECTED",

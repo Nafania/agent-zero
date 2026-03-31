@@ -16,8 +16,8 @@ if str(PROJECT_ROOT) not in sys.path:
 @pytest.fixture(autouse=True)
 def _reset_module_state():
     """Reset module-level state before each test."""
-    import plugins.memory.helpers.memory as mem
-    import plugins.memory.helpers.cognee_init as ci
+    import plugins._memory.helpers.memory as mem
+    import plugins._memory.helpers.cognee_init as ci
     ci._cognee_module = None
     ci._search_type_class = None
     ci._configured = False
@@ -35,23 +35,23 @@ def _reset_module_state():
 
 class TestSubdirToDataset:
     def test_simple_name(self):
-        from plugins.memory.helpers.memory import _subdir_to_dataset
+        from plugins._memory.helpers.memory import _subdir_to_dataset
         assert _subdir_to_dataset("default") == "default"
 
     def test_slash_replaced(self):
-        from plugins.memory.helpers.memory import _subdir_to_dataset
+        from plugins._memory.helpers.memory import _subdir_to_dataset
         assert _subdir_to_dataset("projects/personal") == "projects_personal"
 
     def test_spaces_replaced(self):
-        from plugins.memory.helpers.memory import _subdir_to_dataset
+        from plugins._memory.helpers.memory import _subdir_to_dataset
         assert _subdir_to_dataset("my project") == "my_project"
 
     def test_mixed(self):
-        from plugins.memory.helpers.memory import _subdir_to_dataset
+        from plugins._memory.helpers.memory import _subdir_to_dataset
         assert _subdir_to_dataset("projects/my project") == "projects_my_project"
 
     def test_lowercased(self):
-        from plugins.memory.helpers.memory import _subdir_to_dataset
+        from plugins._memory.helpers.memory import _subdir_to_dataset
         assert _subdir_to_dataset("Projects/MyApp") == "projects_myapp"
 
 
@@ -59,7 +59,7 @@ class TestSubdirToDataset:
 
 class TestExtractMetadataFromText:
     def test_text_with_meta_header(self):
-        from plugins.memory.helpers.memory import _extract_metadata_from_text
+        from plugins._memory.helpers.memory import _extract_metadata_from_text
         meta = {"id": "abc123", "area": "main", "timestamp": "2026-01-01"}
         text = f'[META:{json.dumps(meta)}]\nHello world content'
         content, extracted = _extract_metadata_from_text(text)
@@ -68,20 +68,20 @@ class TestExtractMetadataFromText:
         assert extracted["area"] == "main"
 
     def test_text_without_meta_header(self):
-        from plugins.memory.helpers.memory import _extract_metadata_from_text
+        from plugins._memory.helpers.memory import _extract_metadata_from_text
         content, meta = _extract_metadata_from_text("Just plain text")
         assert content == "Just plain text"
         assert meta["area"] == "main"
 
     def test_malformed_meta_returns_full_text(self):
-        from plugins.memory.helpers.memory import _extract_metadata_from_text
+        from plugins._memory.helpers.memory import _extract_metadata_from_text
         text = "[META:not valid json]\nContent here"
         content, meta = _extract_metadata_from_text(text)
         assert content == text
         assert meta["area"] == "main"
 
     def test_meta_without_closing_bracket(self):
-        from plugins.memory.helpers.memory import _extract_metadata_from_text
+        from plugins._memory.helpers.memory import _extract_metadata_from_text
         text = '[META:{"id": "test"} some more text'
         content, meta = _extract_metadata_from_text(text)
         assert content == text
@@ -91,7 +91,7 @@ class TestExtractMetadataFromText:
 
 class TestDeduplicateDocuments:
     def test_removes_duplicates_by_id(self):
-        from plugins.memory.helpers.memory import _deduplicate_documents
+        from plugins._memory.helpers.memory import _deduplicate_documents
         from langchain_core.documents import Document
 
         docs = [
@@ -105,7 +105,7 @@ class TestDeduplicateDocuments:
         assert result[1].page_content == "Second"
 
     def test_deduplicates_by_content_when_no_id(self):
-        from plugins.memory.helpers.memory import _deduplicate_documents
+        from plugins._memory.helpers.memory import _deduplicate_documents
         from langchain_core.documents import Document
 
         docs = [
@@ -117,7 +117,7 @@ class TestDeduplicateDocuments:
         assert len(result) == 2
 
     def test_preserves_order(self):
-        from plugins.memory.helpers.memory import _deduplicate_documents
+        from plugins._memory.helpers.memory import _deduplicate_documents
         from langchain_core.documents import Document
 
         docs = [
@@ -133,21 +133,21 @@ class TestDeduplicateDocuments:
 
 class TestParseFilterToNodeNames:
     def test_empty_filter(self):
-        from plugins.memory.helpers.memory import _parse_filter_to_node_names
+        from plugins._memory.helpers.memory import _parse_filter_to_node_names
         assert _parse_filter_to_node_names("") == []
 
     def test_main_filter(self):
-        from plugins.memory.helpers.memory import _parse_filter_to_node_names
+        from plugins._memory.helpers.memory import _parse_filter_to_node_names
         result = _parse_filter_to_node_names("area == 'main'")
         assert "main" in result
 
     def test_solutions_filter(self):
-        from plugins.memory.helpers.memory import _parse_filter_to_node_names
+        from plugins._memory.helpers.memory import _parse_filter_to_node_names
         result = _parse_filter_to_node_names("area == 'solutions'")
         assert "solutions" in result
 
     def test_combined_filter(self):
-        from plugins.memory.helpers.memory import _parse_filter_to_node_names
+        from plugins._memory.helpers.memory import _parse_filter_to_node_names
         result = _parse_filter_to_node_names("area == 'main' or area == 'fragments'")
         assert "main" in result
         assert "fragments" in result
@@ -157,19 +157,19 @@ class TestParseFilterToNodeNames:
 
 class TestResultsToDocuments:
     def test_empty_results(self):
-        from plugins.memory.helpers.memory import _results_to_documents
+        from plugins._memory.helpers.memory import _results_to_documents
         assert _results_to_documents(None, 10) == []
         assert _results_to_documents([], 10) == []
 
     def test_string_results(self):
-        from plugins.memory.helpers.memory import _results_to_documents
+        from plugins._memory.helpers.memory import _results_to_documents
         results = ["Hello world", "Test content"]
         docs = _results_to_documents(results, 10)
         assert len(docs) == 2
         assert docs[0].page_content == "Hello world"
 
     def test_result_with_search_result_attr(self):
-        from plugins.memory.helpers.memory import _results_to_documents
+        from plugins._memory.helpers.memory import _results_to_documents
         mock_result = MagicMock()
         mock_result.search_result = "inner content"
         mock_result.dataset_name = "test_ds"
@@ -179,13 +179,13 @@ class TestResultsToDocuments:
         assert docs[0].metadata["dataset"] == "test_ds"
 
     def test_respects_limit(self):
-        from plugins.memory.helpers.memory import _results_to_documents
+        from plugins._memory.helpers.memory import _results_to_documents
         results = [f"item_{i}" for i in range(20)]
         docs = _results_to_documents(results, 5)
         assert len(docs) == 5
 
     def test_meta_header_extraction(self):
-        from plugins.memory.helpers.memory import _results_to_documents
+        from plugins._memory.helpers.memory import _results_to_documents
         meta = {"id": "test_id", "area": "solutions"}
         text = f'[META:{json.dumps(meta)}]\nActual content'
         docs = _results_to_documents([text], 10)
@@ -194,13 +194,13 @@ class TestResultsToDocuments:
         assert docs[0].metadata["area"] == "solutions"
 
     def test_dict_results(self):
-        from plugins.memory.helpers.memory import _results_to_documents
+        from plugins._memory.helpers.memory import _results_to_documents
         results = [{"text": "from dict", "other": "data"}]
         docs = _results_to_documents(results, 10)
         assert docs[0].page_content == "from dict"
 
     def test_cognee_05_dict_format(self):
-        from plugins.memory.helpers.memory import _results_to_documents
+        from plugins._memory.helpers.memory import _results_to_documents
         result = {"dataset_name": "test_ds", "search_result": ["actual content"]}
         docs = _results_to_documents([result], 10)
         assert len(docs) == 1
@@ -208,19 +208,19 @@ class TestResultsToDocuments:
         assert docs[0].metadata["dataset"] == "test_ds"
 
     def test_cognee_05_multi_element_list(self):
-        from plugins.memory.helpers.memory import _results_to_documents
+        from plugins._memory.helpers.memory import _results_to_documents
         result = {"search_result": ["line1", "line2"]}
         docs = _results_to_documents([result], 10)
         assert docs[0].page_content == "line1\nline2"
 
     def test_cognee_05_empty_search_result(self):
-        from plugins.memory.helpers.memory import _results_to_documents
+        from plugins._memory.helpers.memory import _results_to_documents
         result = {"search_result": []}
         docs = _results_to_documents([result], 10)
         assert len(docs) == 0
 
     def test_skips_empty_content(self):
-        from plugins.memory.helpers.memory import _results_to_documents
+        from plugins._memory.helpers.memory import _results_to_documents
         docs = _results_to_documents(["", "  ", "valid content"], 10)
         assert len(docs) == 1
         assert docs[0].page_content == "valid content"
@@ -230,10 +230,10 @@ class TestResultsToDocuments:
 
 class TestGetKnowledgeSubdirsByMemorySubdir:
     def test_does_not_mutate_input_list(self):
-        from plugins.memory.helpers.memory import get_knowledge_subdirs_by_memory_subdir
+        from plugins._memory.helpers.memory import get_knowledge_subdirs_by_memory_subdir
         original = ["default", "custom"]
         original_copy = list(original)
-        with patch("plugins.memory.helpers.memory.get_project_meta_folder",
+        with patch("plugins._memory.helpers.memory.get_project_meta_folder",
                     create=True, return_value="usr/projects/test/.a0proj"):
             with patch.dict("sys.modules", {"helpers.projects": MagicMock(
                 get_project_meta_folder=MagicMock(return_value="usr/projects/test/.a0proj/knowledge")
@@ -243,7 +243,7 @@ class TestGetKnowledgeSubdirsByMemorySubdir:
         assert len(result) > len(original)
 
     def test_non_project_returns_copy(self):
-        from plugins.memory.helpers.memory import get_knowledge_subdirs_by_memory_subdir
+        from plugins._memory.helpers.memory import get_knowledge_subdirs_by_memory_subdir
         original = ["default"]
         result = get_knowledge_subdirs_by_memory_subdir("default", original)
         assert result == original
@@ -254,8 +254,8 @@ class TestGetKnowledgeSubdirsByMemorySubdir:
 
 class TestGetCognee:
     def test_returns_same_instance(self):
-        from plugins.memory.helpers.memory import _get_cognee
-        import plugins.memory.helpers.cognee_init as ci
+        from plugins._memory.helpers.memory import _get_cognee
+        import plugins._memory.helpers.cognee_init as ci
         mock_cognee = MagicMock()
         mock_search_type = MagicMock()
         ci._cognee_module = mock_cognee
@@ -267,7 +267,7 @@ class TestGetCognee:
         assert st1 is mock_search_type
 
     def test_raises_when_not_initialized(self):
-        from plugins.memory.helpers.memory import _get_cognee
+        from plugins._memory.helpers.memory import _get_cognee
         with pytest.raises(RuntimeError, match="not initialized"):
             _get_cognee()
 
@@ -276,8 +276,8 @@ class TestGetCognee:
 
 class TestReload:
     def test_reload_reconfigures_cognee(self):
-        import plugins.memory.helpers.memory as mem
-        import plugins.memory.helpers.cognee_init as ci
+        import plugins._memory.helpers.memory as mem
+        import plugins._memory.helpers.cognee_init as ci
         ci._configured = True
         ci._cognee_module = MagicMock()
         ci._search_type_class = MagicMock()
@@ -294,8 +294,8 @@ class TestReload:
 
 @pytest.mark.asyncio
 async def test_delete_data_by_id_uses_raw_data_location():
-    from plugins.memory.helpers.memory import _delete_data_by_id
-    import plugins.memory.helpers.cognee_init as ci
+    from plugins._memory.helpers.memory import _delete_data_by_id
+    import plugins._memory.helpers.cognee_init as ci
 
     mock_cognee = MagicMock()
     mock_ds = MagicMock()
@@ -323,8 +323,8 @@ async def test_delete_data_by_id_uses_raw_data_location():
 
 @pytest.mark.asyncio
 async def test_delete_data_by_id_returns_false_when_not_found():
-    from plugins.memory.helpers.memory import _delete_data_by_id
-    import plugins.memory.helpers.cognee_init as ci
+    from plugins._memory.helpers.memory import _delete_data_by_id
+    import plugins._memory.helpers.cognee_init as ci
 
     mock_cognee = MagicMock()
     mock_ds = MagicMock()
@@ -342,8 +342,8 @@ async def test_delete_data_by_id_returns_false_when_not_found():
 
 @pytest.mark.asyncio
 async def test_delete_data_by_id_returns_false_for_missing_dataset():
-    from plugins.memory.helpers.memory import _delete_data_by_id
-    import plugins.memory.helpers.cognee_init as ci
+    from plugins._memory.helpers.memory import _delete_data_by_id
+    import plugins._memory.helpers.cognee_init as ci
 
     mock_cognee = MagicMock()
     mock_cognee.datasets.list_datasets = AsyncMock(return_value=[])
@@ -362,9 +362,9 @@ class TestMemoryCallsConfigureCognee:
 
     @pytest.mark.asyncio
     async def test_insert_documents_uses_initialized_cognee(self):
-        from plugins.memory.helpers.memory import Memory
+        from plugins._memory.helpers.memory import Memory
         from langchain_core.documents import Document
-        import plugins.memory.helpers.cognee_init as ci
+        import plugins._memory.helpers.cognee_init as ci
 
         mock_cognee = MagicMock()
         mock_cognee.add = AsyncMock()
@@ -373,7 +373,7 @@ class TestMemoryCallsConfigureCognee:
 
         memory = await Memory.get_by_subdir("default", preload_knowledge=False)
         doc = Document(page_content="test", metadata={"area": "main"})
-        with patch("plugins.memory.helpers.cognee_background.CogneeBackgroundWorker") as MockBg:
+        with patch("plugins._memory.helpers.cognee_background.CogneeBackgroundWorker") as MockBg:
             MockBg.get_instance.return_value = MagicMock()
             await memory.insert_documents([doc])
 
@@ -381,23 +381,23 @@ class TestMemoryCallsConfigureCognee:
 
     @pytest.mark.asyncio
     async def test_get_returns_valid_memory(self):
-        from plugins.memory.helpers.memory import Memory
+        from plugins._memory.helpers.memory import Memory
 
         mock_agent = MagicMock()
         mock_agent.context = MagicMock()
         mock_agent.context.config = MagicMock()
         mock_agent.context.config.knowledge_subdirs = []
 
-        with patch("plugins.memory.helpers.memory.get_agent_memory_subdir", return_value="default"), \
-             patch("plugins.memory.helpers.memory.get_knowledge_subdirs_by_memory_subdir", return_value=[]):
+        with patch("plugins._memory.helpers.memory.get_agent_memory_subdir", return_value="default"), \
+             patch("plugins._memory.helpers.memory.get_knowledge_subdirs_by_memory_subdir", return_value=[]):
             mem = await Memory.get(mock_agent)
 
         assert mem.dataset_name == "default"
 
     @pytest.mark.asyncio
     async def test_insert_documents_works_after_init(self):
-        from plugins.memory.helpers.memory import Memory
-        import plugins.memory.helpers.cognee_init as ci
+        from plugins._memory.helpers.memory import Memory
+        import plugins._memory.helpers.cognee_init as ci
 
         mock_cognee = MagicMock()
         mock_cognee.add = AsyncMock()
@@ -407,7 +407,7 @@ class TestMemoryCallsConfigureCognee:
         from langchain_core.documents import Document
         doc = Document(page_content="test content", metadata={"area": "main"})
 
-        with patch("plugins.memory.helpers.cognee_background.CogneeBackgroundWorker") as MockBg:
+        with patch("plugins._memory.helpers.cognee_background.CogneeBackgroundWorker") as MockBg:
             MockBg.get_instance.return_value = MagicMock()
             memory = await Memory.get_by_subdir("default", preload_knowledge=False)
             ids = await memory.insert_documents([doc])
@@ -417,8 +417,8 @@ class TestMemoryCallsConfigureCognee:
 
     @pytest.mark.asyncio
     async def test_insert_documents_does_not_return_id_on_failure(self):
-        from plugins.memory.helpers.memory import Memory
-        import plugins.memory.helpers.cognee_init as ci
+        from plugins._memory.helpers.memory import Memory
+        import plugins._memory.helpers.cognee_init as ci
 
         mock_cognee = MagicMock()
         mock_cognee.add = AsyncMock(side_effect=Exception("add failed"))
@@ -428,7 +428,7 @@ class TestMemoryCallsConfigureCognee:
         from langchain_core.documents import Document
         doc = Document(page_content="test content", metadata={"area": "main"})
 
-        with patch("plugins.memory.helpers.cognee_background.CogneeBackgroundWorker") as MockBg:
+        with patch("plugins._memory.helpers.cognee_background.CogneeBackgroundWorker") as MockBg:
             MockBg.get_instance.return_value = MagicMock()
             memory = await Memory.get_by_subdir("default", preload_knowledge=False)
             ids = await memory.insert_documents([doc])
@@ -438,8 +438,8 @@ class TestMemoryCallsConfigureCognee:
     @pytest.mark.asyncio
     async def test_search_similarity_threshold_handles_cognee_failure(self):
         """If cognee.search() fails, search_similarity_threshold should return []."""
-        from plugins.memory.helpers.memory import Memory
-        import plugins.memory.helpers.cognee_init as ci
+        from plugins._memory.helpers.memory import Memory
+        import plugins._memory.helpers.cognee_init as ci
 
         mock_cognee = MagicMock()
         mock_cognee.search = AsyncMock(side_effect=Exception("search failed"))
@@ -465,13 +465,13 @@ class TestMemoryCallsConfigureCognee:
 
 class TestMemoryAreaEnum:
     def test_area_values(self):
-        from plugins.memory.helpers.memory import Memory
+        from plugins._memory.helpers.memory import Memory
         assert Memory.Area.MAIN.value == "main"
         assert Memory.Area.FRAGMENTS.value == "fragments"
         assert Memory.Area.SOLUTIONS.value == "solutions"
 
     def test_area_iteration(self):
-        from plugins.memory.helpers.memory import Memory
+        from plugins._memory.helpers.memory import Memory
         areas = list(Memory.Area)
         assert len(areas) == 3
         assert Memory.Area.MAIN in areas
@@ -482,15 +482,15 @@ class TestMemoryAreaEnum:
 class TestMemoryInsertText:
     @pytest.mark.asyncio
     async def test_insert_text_returns_id(self):
-        from plugins.memory.helpers.memory import Memory
-        import plugins.memory.helpers.cognee_init as ci
+        from plugins._memory.helpers.memory import Memory
+        import plugins._memory.helpers.cognee_init as ci
 
         mock_cognee = MagicMock()
         mock_cognee.add = AsyncMock()
         ci._cognee_module = mock_cognee
         ci._search_type_class = MagicMock()
 
-        with patch("plugins.memory.helpers.cognee_background.CogneeBackgroundWorker") as MockBg:
+        with patch("plugins._memory.helpers.cognee_background.CogneeBackgroundWorker") as MockBg:
             MockBg.get_instance.return_value = MagicMock()
             memory = Memory(dataset_name="default", memory_subdir="default")
             doc_id = await memory.insert_text("hello world", {"area": "main"})
@@ -501,15 +501,15 @@ class TestMemoryInsertText:
 
     @pytest.mark.asyncio
     async def test_insert_text_with_metadata(self):
-        from plugins.memory.helpers.memory import Memory
-        import plugins.memory.helpers.cognee_init as ci
+        from plugins._memory.helpers.memory import Memory
+        import plugins._memory.helpers.cognee_init as ci
 
         mock_cognee = MagicMock()
         mock_cognee.add = AsyncMock()
         ci._cognee_module = mock_cognee
         ci._search_type_class = MagicMock()
 
-        with patch("plugins.memory.helpers.cognee_background.CogneeBackgroundWorker") as MockBg:
+        with patch("plugins._memory.helpers.cognee_background.CogneeBackgroundWorker") as MockBg:
             MockBg.get_instance.return_value = MagicMock()
             memory = Memory(dataset_name="default", memory_subdir="default")
             doc_id = await memory.insert_text("test", {"area": "solutions", "custom": "value"})
@@ -526,7 +526,7 @@ class TestMemoryDeleteDocumentsByQuery:
     @pytest.mark.asyncio
     async def test_delete_documents_by_query_returns_docs(self):
         """search_similarity_threshold is called then results deleted."""
-        from plugins.memory.helpers.memory import Memory
+        from plugins._memory.helpers.memory import Memory
         from langchain_core.documents import Document
 
         memory = Memory(dataset_name="default", memory_subdir="default")
@@ -534,9 +534,9 @@ class TestMemoryDeleteDocumentsByQuery:
 
         with patch.object(memory, "search_similarity_threshold", new_callable=AsyncMock,
                           return_value=mock_docs), \
-             patch("plugins.memory.helpers.memory._delete_data_by_id", new_callable=AsyncMock,
+             patch("plugins._memory.helpers.memory._delete_data_by_id", new_callable=AsyncMock,
                    return_value=True), \
-             patch("plugins.memory.helpers.memory._invalidate_dashboard_cache"):
+             patch("plugins._memory.helpers.memory._invalidate_dashboard_cache"):
             removed = await memory.delete_documents_by_query("test query", threshold=0.5)
 
         assert len(removed) == 1
@@ -548,8 +548,8 @@ class TestMemoryDeleteDocumentsByQuery:
 class TestMemoryDeleteDocumentsByIds:
     @pytest.mark.asyncio
     async def test_delete_documents_by_ids(self):
-        from plugins.memory.helpers.memory import Memory
-        import plugins.memory.helpers.cognee_init as ci
+        from plugins._memory.helpers.memory import Memory
+        import plugins._memory.helpers.cognee_init as ci
 
         mock_cognee = MagicMock()
         mock_ds = MagicMock()
@@ -565,7 +565,7 @@ class TestMemoryDeleteDocumentsByIds:
         ci._search_type_class = MagicMock()
 
         memory = Memory(dataset_name="default", memory_subdir="default")
-        with patch("plugins.memory.helpers.memory._invalidate_dashboard_cache"):
+        with patch("plugins._memory.helpers.memory._invalidate_dashboard_cache"):
             removed = await memory.delete_documents_by_ids(["abc123"])
 
         assert len(removed) >= 1
@@ -575,7 +575,7 @@ class TestMemoryDeleteDocumentsByIds:
 
 class TestMemoryFormatDocsPlain:
     def test_format_docs_plain(self):
-        from plugins.memory.helpers.memory import Memory
+        from plugins._memory.helpers.memory import Memory
         from langchain_core.documents import Document
 
         docs = [
@@ -593,7 +593,7 @@ class TestMemoryFormatDocsPlain:
 
 class TestMemoryGetTimestamp:
     def test_get_timestamp_format(self):
-        from plugins.memory.helpers.memory import Memory
+        from plugins._memory.helpers.memory import Memory
         ts = Memory.get_timestamp()
         assert "202" in ts or "203" in ts
         assert "-" in ts
@@ -604,7 +604,7 @@ class TestMemoryGetTimestamp:
 
 class TestMemoryGetDocumentById:
     def test_get_document_by_id_returns_none(self):
-        from plugins.memory.helpers.memory import Memory
+        from plugins._memory.helpers.memory import Memory
         memory = Memory(dataset_name="default", memory_subdir="default")
         result = memory.get_document_by_id("nonexistent")
         assert result is None
@@ -615,9 +615,9 @@ class TestMemoryGetDocumentById:
 class TestMemoryUpdateDocuments:
     @pytest.mark.asyncio
     async def test_update_documents_deletes_and_inserts(self):
-        from plugins.memory.helpers.memory import Memory
+        from plugins._memory.helpers.memory import Memory
         from langchain_core.documents import Document
-        import plugins.memory.helpers.cognee_init as ci
+        import plugins._memory.helpers.cognee_init as ci
 
         mock_cognee = MagicMock()
         mock_cognee.add = AsyncMock()
@@ -630,7 +630,7 @@ class TestMemoryUpdateDocuments:
         ci._search_type_class = MagicMock()
 
         doc = Document(page_content="updated", metadata={"id": "old_id", "area": "main"})
-        with patch("plugins.memory.helpers.cognee_background.CogneeBackgroundWorker") as MockBg:
+        with patch("plugins._memory.helpers.cognee_background.CogneeBackgroundWorker") as MockBg:
             MockBg.get_instance.return_value = MagicMock()
             memory = Memory(dataset_name="default", memory_subdir="default")
             ids = await memory.update_documents([doc])
@@ -643,23 +643,23 @@ class TestMemoryUpdateDocuments:
 
 class TestAbsKnowledgeDir:
     def test_default_subdir(self):
-        from plugins.memory.helpers.memory import abs_knowledge_dir
-        with patch("plugins.memory.helpers.memory.files") as mock_files:
+        from plugins._memory.helpers.memory import abs_knowledge_dir
+        with patch("plugins._memory.helpers.memory.files") as mock_files:
             mock_files.get_abs_path.side_effect = lambda *a: "/".join(str(x) for x in a)
             result = abs_knowledge_dir("default")
         assert "knowledge" in result
 
     def test_custom_subdir(self):
-        from plugins.memory.helpers.memory import abs_knowledge_dir
-        with patch("plugins.memory.helpers.memory.files") as mock_files:
+        from plugins._memory.helpers.memory import abs_knowledge_dir
+        with patch("plugins._memory.helpers.memory.files") as mock_files:
             mock_files.get_abs_path.side_effect = lambda *a: "/".join(str(x) for x in a)
             result = abs_knowledge_dir("custom")
         assert "usr" in result
         assert "knowledge" in result
 
     def test_named_subdir(self):
-        from plugins.memory.helpers.memory import abs_knowledge_dir
-        with patch("plugins.memory.helpers.memory.files") as mock_files:
+        from plugins._memory.helpers.memory import abs_knowledge_dir
+        with patch("plugins._memory.helpers.memory.files") as mock_files:
             mock_files.get_abs_path.side_effect = lambda *a: "/".join(str(x) for x in a)
             result = abs_knowledge_dir("my_knowledge", "sub")
         assert "my_knowledge" in result
@@ -670,17 +670,17 @@ class TestAbsKnowledgeDir:
 
 class TestGetExistingMemorySubdirs:
     def test_returns_default_when_exception(self):
-        from plugins.memory.helpers.memory import get_existing_memory_subdirs
+        from plugins._memory.helpers.memory import get_existing_memory_subdirs
         with patch("helpers.projects.get_projects_parent_folder") as mock_get:
             mock_get.side_effect = Exception("no projects")
             result = get_existing_memory_subdirs()
         assert result == ["default"]
 
     def test_includes_projects(self):
-        from plugins.memory.helpers.memory import get_existing_memory_subdirs
+        from plugins._memory.helpers.memory import get_existing_memory_subdirs
         with patch("helpers.projects.get_projects_parent_folder", return_value="/tmp/projects"), \
              patch("os.path.exists", return_value=True), \
-             patch("plugins.memory.helpers.memory.files") as mock_files:
+             patch("plugins._memory.helpers.memory.files") as mock_files:
             mock_files.get_subdirectories.return_value = ["proj1", "proj2"]
             result = get_existing_memory_subdirs()
         assert "default" in result
@@ -692,8 +692,8 @@ class TestGetExistingMemorySubdirs:
 
 class TestAbsDbDir:
     def test_abs_db_dir_delegates_to_state_dir(self):
-        from plugins.memory.helpers.memory import abs_db_dir
-        with patch("plugins.memory.helpers.memory._state_dir") as mock_state:
+        from plugins._memory.helpers.memory import abs_db_dir
+        with patch("plugins._memory.helpers.memory._state_dir") as mock_state:
             mock_state.return_value = "/tmp/state"
             result = abs_db_dir("default")
         assert result == "/tmp/state"
@@ -703,8 +703,8 @@ class TestAbsDbDir:
 
 class TestGetCustomKnowledgeSubdirAbs:
     def test_returns_custom_path(self):
-        from plugins.memory.helpers.memory import get_custom_knowledge_subdir_abs
-        with patch("plugins.memory.helpers.memory.files") as mock_files:
+        from plugins._memory.helpers.memory import get_custom_knowledge_subdir_abs
+        with patch("plugins._memory.helpers.memory.files") as mock_files:
             mock_files.get_abs_path.return_value = "/usr/knowledge"
             mock_agent = MagicMock()
             mock_agent.config.knowledge_subdirs = ["custom"]
@@ -712,7 +712,7 @@ class TestGetCustomKnowledgeSubdirAbs:
         assert result == "/usr/knowledge"
 
     def test_raises_when_no_custom(self):
-        from plugins.memory.helpers.memory import get_custom_knowledge_subdir_abs
+        from plugins._memory.helpers.memory import get_custom_knowledge_subdir_abs
         mock_agent = MagicMock()
         mock_agent.config.knowledge_subdirs = ["default"]
         with pytest.raises(Exception, match="No custom knowledge subdir"):
@@ -723,7 +723,7 @@ class TestGetCustomKnowledgeSubdirAbs:
 
 class TestDefaultSearchTypesGraphOnly:
     def test_default_search_types_is_graph_completion(self):
-        from plugins.memory.helpers.cognee_init import _COGNEE_DEFAULTS
+        from plugins._memory.helpers.cognee_init import _COGNEE_DEFAULTS
         val = _COGNEE_DEFAULTS["cognee_search_types"]
         assert val == "GRAPH_COMPLETION", f"Expected 'GRAPH_COMPLETION', got '{val}'"
 
@@ -732,8 +732,8 @@ class TestDefaultSearchTypesGraphOnly:
 
 class TestReloadInvalidatesDatasetsCache:
     def test_reload_invalidates_datasets_cache(self):
-        from plugins.memory.helpers.memory import Memory, reload
-        import plugins.memory.helpers.cognee_init as ci
+        from plugins._memory.helpers.memory import Memory, reload
+        import plugins._memory.helpers.cognee_init as ci
 
         Memory._existing_datasets_cache = {"old_ds"}
         Memory._existing_datasets_ts = 999.0
@@ -773,8 +773,8 @@ class TestDeleteOptimization:
 
     @pytest.mark.asyncio
     async def test_bulk_delete_single_scan(self):
-        from plugins.memory.helpers.memory import Memory
-        import plugins.memory.helpers.cognee_init as ci
+        from plugins._memory.helpers.memory import Memory
+        import plugins._memory.helpers.cognee_init as ci
 
         items = [
             self._make_item("doc_id1_file.txt", "item1"),
@@ -784,7 +784,7 @@ class TestDeleteOptimization:
         mock_cognee = self._setup_cognee(ci, items)
 
         memory = Memory(dataset_name="default", memory_subdir="default")
-        with patch("plugins.memory.helpers.memory._invalidate_dashboard_cache"):
+        with patch("plugins._memory.helpers.memory._invalidate_dashboard_cache"):
             removed = await memory.delete_documents_by_ids(["id1", "id2", "id3"])
 
         assert len(removed) == 3
@@ -792,8 +792,8 @@ class TestDeleteOptimization:
 
     @pytest.mark.asyncio
     async def test_bulk_delete_finds_matching_items(self):
-        from plugins.memory.helpers.memory import Memory
-        import plugins.memory.helpers.cognee_init as ci
+        from plugins._memory.helpers.memory import Memory
+        import plugins._memory.helpers.cognee_init as ci
 
         items = [
             self._make_item("alpha_file.txt", "item_a"),
@@ -803,7 +803,7 @@ class TestDeleteOptimization:
         mock_cognee = self._setup_cognee(ci, items)
 
         memory = Memory(dataset_name="default", memory_subdir="default")
-        with patch("plugins.memory.helpers.memory._invalidate_dashboard_cache"):
+        with patch("plugins._memory.helpers.memory._invalidate_dashboard_cache"):
             removed = await memory.delete_documents_by_ids(["alpha", "beta", "gamma"])
 
         deleted_ids = {doc.metadata["id"] for doc in removed}
@@ -812,14 +812,14 @@ class TestDeleteOptimization:
 
     @pytest.mark.asyncio
     async def test_bulk_delete_missing_ids_returns_partial(self):
-        from plugins.memory.helpers.memory import Memory
-        import plugins.memory.helpers.cognee_init as ci
+        from plugins._memory.helpers.memory import Memory
+        import plugins._memory.helpers.cognee_init as ci
 
         items = [self._make_item("found_one.txt", "item_f")]
         mock_cognee = self._setup_cognee(ci, items)
 
         memory = Memory(dataset_name="default", memory_subdir="default")
-        with patch("plugins.memory.helpers.memory._invalidate_dashboard_cache"):
+        with patch("plugins._memory.helpers.memory._invalidate_dashboard_cache"):
             removed = await memory.delete_documents_by_ids(["found_one", "missing_two"])
 
         assert len(removed) == 1
@@ -827,8 +827,8 @@ class TestDeleteOptimization:
 
     @pytest.mark.asyncio
     async def test_bulk_delete_empty_ids_returns_empty(self):
-        from plugins.memory.helpers.memory import Memory
-        import plugins.memory.helpers.cognee_init as ci
+        from plugins._memory.helpers.memory import Memory
+        import plugins._memory.helpers.cognee_init as ci
 
         mock_cognee = self._setup_cognee(ci, [])
 
@@ -843,7 +843,7 @@ class TestDeleteOptimization:
 
 class TestReadDataItemContent:
     def test_valid_file_returns_content(self, tmp_path):
-        from plugins.memory.helpers.memory import read_data_item_content
+        from plugins._memory.helpers.memory import read_data_item_content
 
         f = tmp_path / "mem.txt"
         f.write_text("hello world", encoding="utf-8")
@@ -855,7 +855,7 @@ class TestReadDataItemContent:
         assert read_data_item_content(item) == "hello world"
 
     def test_file_uri_scheme(self, tmp_path):
-        from plugins.memory.helpers.memory import read_data_item_content
+        from plugins._memory.helpers.memory import read_data_item_content
         from urllib.parse import quote
 
         f = tmp_path / "doc.txt"
@@ -868,7 +868,7 @@ class TestReadDataItemContent:
         assert read_data_item_content(item) == "uri content"
 
     def test_missing_file_falls_back_to_raw_location(self):
-        from plugins.memory.helpers.memory import read_data_item_content
+        from plugins._memory.helpers.memory import read_data_item_content
 
         item = MagicMock()
         item.raw_data_location = "/nonexistent/path/abc123.txt"
@@ -877,7 +877,7 @@ class TestReadDataItemContent:
         assert read_data_item_content(item) == "/nonexistent/path/abc123.txt"
 
     def test_none_raw_location_falls_back_to_name(self):
-        from plugins.memory.helpers.memory import read_data_item_content
+        from plugins._memory.helpers.memory import read_data_item_content
 
         item = MagicMock()
         item.raw_data_location = None
@@ -886,7 +886,7 @@ class TestReadDataItemContent:
         assert read_data_item_content(item) == "fallback_name"
 
     def test_unreadable_file_falls_back_gracefully(self, tmp_path):
-        from plugins.memory.helpers.memory import read_data_item_content
+        from plugins._memory.helpers.memory import read_data_item_content
 
         f = tmp_path / "locked.txt"
         f.write_text("secret", encoding="utf-8")

@@ -21,7 +21,7 @@ def mock_agent():
 class TestSkillsCatalogExtension:
     @pytest.mark.asyncio
     async def test_injects_catalog_when_skills_exist(self, mock_agent):
-        from plugins.skills.helpers.skills import Skill
+        from helpers.skills import Skill
         mock_skills = [
             Skill(
                 name="brainstorming",
@@ -30,8 +30,8 @@ class TestSkillsCatalogExtension:
                 skill_md_path=Path("/x/SKILL.md"),
             ),
         ]
-        with patch("plugins.skills.extensions.python.message_loop_prompts_after._60_skills_catalog.skills.list_skills", return_value=mock_skills):
-            from plugins.skills.extensions.python.message_loop_prompts_after._60_skills_catalog import SkillsCatalogPrompt
+        with patch("extensions.python.message_loop_prompts_after._60_skills_catalog.skills.list_skills", return_value=mock_skills):
+            from extensions.python.message_loop_prompts_after._60_skills_catalog import SkillsCatalogPrompt
             ext = SkillsCatalogPrompt.__new__(SkillsCatalogPrompt)
             ext.agent = mock_agent
             loop_data = MagicMock()
@@ -46,8 +46,8 @@ class TestSkillsCatalogExtension:
 
     @pytest.mark.asyncio
     async def test_skips_when_no_skills(self, mock_agent):
-        with patch("plugins.skills.extensions.python.message_loop_prompts_after._60_skills_catalog.skills.list_skills", return_value=[]):
-            from plugins.skills.extensions.python.message_loop_prompts_after._60_skills_catalog import SkillsCatalogPrompt
+        with patch("extensions.python.message_loop_prompts_after._60_skills_catalog.skills.list_skills", return_value=[]):
+            from extensions.python.message_loop_prompts_after._60_skills_catalog import SkillsCatalogPrompt
             ext = SkillsCatalogPrompt.__new__(SkillsCatalogPrompt)
             ext.agent = mock_agent
             loop_data = MagicMock()
@@ -58,7 +58,7 @@ class TestSkillsCatalogExtension:
 
     @pytest.mark.asyncio
     async def test_truncates_long_descriptions(self, mock_agent):
-        from plugins.skills.helpers.skills import Skill
+        from helpers.skills import Skill
         long_desc = "A" * 300
         mock_skills = [
             Skill(
@@ -68,8 +68,8 @@ class TestSkillsCatalogExtension:
                 skill_md_path=Path("/y/SKILL.md"),
             ),
         ]
-        with patch("plugins.skills.extensions.python.message_loop_prompts_after._60_skills_catalog.skills.list_skills", return_value=mock_skills):
-            from plugins.skills.extensions.python.message_loop_prompts_after._60_skills_catalog import SkillsCatalogPrompt
+        with patch("extensions.python.message_loop_prompts_after._60_skills_catalog.skills.list_skills", return_value=mock_skills):
+            from extensions.python.message_loop_prompts_after._60_skills_catalog import SkillsCatalogPrompt
             ext = SkillsCatalogPrompt.__new__(SkillsCatalogPrompt)
             ext.agent = mock_agent
             loop_data = MagicMock()
@@ -82,14 +82,14 @@ class TestSkillsCatalogExtension:
 
     @pytest.mark.asyncio
     async def test_sorts_skills_alphabetically(self, mock_agent):
-        from plugins.skills.helpers.skills import Skill
+        from helpers.skills import Skill
         mock_skills = [
             Skill(name="zeta", description="Last", path=Path("/z"), skill_md_path=Path("/z/SKILL.md")),
             Skill(name="alpha", description="First", path=Path("/a"), skill_md_path=Path("/a/SKILL.md")),
             Skill(name="middle", description="Mid", path=Path("/m"), skill_md_path=Path("/m/SKILL.md")),
         ]
-        with patch("plugins.skills.extensions.python.message_loop_prompts_after._60_skills_catalog.skills.list_skills", return_value=mock_skills):
-            from plugins.skills.extensions.python.message_loop_prompts_after._60_skills_catalog import SkillsCatalogPrompt
+        with patch("extensions.python.message_loop_prompts_after._60_skills_catalog.skills.list_skills", return_value=mock_skills):
+            from extensions.python.message_loop_prompts_after._60_skills_catalog import SkillsCatalogPrompt
             ext = SkillsCatalogPrompt.__new__(SkillsCatalogPrompt)
             ext.agent = mock_agent
             loop_data = MagicMock()

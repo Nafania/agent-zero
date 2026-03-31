@@ -17,8 +17,8 @@ def mock_browser_use_llm():
     mock_llm = MagicMock()
     mock_llm.ChatGoogle = MagicMock()
     with patch.dict("sys.modules", {"browser_use": MagicMock(), "browser_use.llm": mock_llm}):
-        if "plugins.browser.helpers.browser_use_monkeypatch" in sys.modules:
-            del sys.modules["plugins.browser.helpers.browser_use_monkeypatch"]
+        if "plugins._browser_agent.helpers.browser_use_monkeypatch" in sys.modules:
+            del sys.modules["plugins._browser_agent.helpers.browser_use_monkeypatch"]
         yield
 
 
@@ -27,26 +27,26 @@ class TestGeminiCleanAndConform:
 
     def test_returns_none_for_invalid_json(self):
         """Returns None when dirty_json.parse fails."""
-        with patch("plugins.browser.helpers.browser_use_monkeypatch.dirty_json") as mock_dj:
+        with patch("plugins._browser_agent.helpers.browser_use_monkeypatch.dirty_json") as mock_dj:
             mock_dj.parse.side_effect = ValueError("bad json")
-            from plugins.browser.helpers.browser_use_monkeypatch import gemini_clean_and_conform
+            from plugins._browser_agent.helpers.browser_use_monkeypatch import gemini_clean_and_conform
 
             assert gemini_clean_and_conform("not valid") is None
 
     def test_returns_none_for_non_dict(self):
         """Returns None when parsed result is not a dict."""
-        with patch("plugins.browser.helpers.browser_use_monkeypatch.dirty_json") as mock_dj:
+        with patch("plugins._browser_agent.helpers.browser_use_monkeypatch.dirty_json") as mock_dj:
             mock_dj.parse.return_value = ["list"]
-            from plugins.browser.helpers.browser_use_monkeypatch import gemini_clean_and_conform
+            from plugins._browser_agent.helpers.browser_use_monkeypatch import gemini_clean_and_conform
 
             assert gemini_clean_and_conform("[]") is None
 
     def test_complete_task_aliased_to_done(self):
         """complete_task action is normalized to done."""
-        with patch("plugins.browser.helpers.browser_use_monkeypatch.dirty_json") as mock_dj:
+        with patch("plugins._browser_agent.helpers.browser_use_monkeypatch.dirty_json") as mock_dj:
             mock_dj.parse.return_value = {"action": [{"complete_task": {"x": 1}}]}
             mock_dj.stringify.side_effect = lambda x: str(x)
-            from plugins.browser.helpers.browser_use_monkeypatch import gemini_clean_and_conform
+            from plugins._browser_agent.helpers.browser_use_monkeypatch import gemini_clean_and_conform
 
             result = gemini_clean_and_conform("{}")
             assert result is not None
@@ -55,10 +55,10 @@ class TestGeminiCleanAndConform:
 
     def test_scroll_down_normalized(self):
         """scroll_down action gets down=True and num_pages=1.0."""
-        with patch("plugins.browser.helpers.browser_use_monkeypatch.dirty_json") as mock_dj:
+        with patch("plugins._browser_agent.helpers.browser_use_monkeypatch.dirty_json") as mock_dj:
             mock_dj.parse.return_value = {"action": [{"scroll_down": {}}]}
             mock_dj.stringify.side_effect = lambda x: str(x)
-            from plugins.browser.helpers.browser_use_monkeypatch import gemini_clean_and_conform
+            from plugins._browser_agent.helpers.browser_use_monkeypatch import gemini_clean_and_conform
 
             gemini_clean_and_conform("{}")
             actions = mock_dj.stringify.call_args[0][0]["action"]
@@ -66,10 +66,10 @@ class TestGeminiCleanAndConform:
 
     def test_scroll_up_normalized(self):
         """scroll_up action gets down=False and num_pages=1.0."""
-        with patch("plugins.browser.helpers.browser_use_monkeypatch.dirty_json") as mock_dj:
+        with patch("plugins._browser_agent.helpers.browser_use_monkeypatch.dirty_json") as mock_dj:
             mock_dj.parse.return_value = {"action": [{"scroll_up": {}}]}
             mock_dj.stringify.side_effect = lambda x: str(x)
-            from plugins.browser.helpers.browser_use_monkeypatch import gemini_clean_and_conform
+            from plugins._browser_agent.helpers.browser_use_monkeypatch import gemini_clean_and_conform
 
             gemini_clean_and_conform("{}")
             actions = mock_dj.stringify.call_args[0][0]["action"]
@@ -77,10 +77,10 @@ class TestGeminiCleanAndConform:
 
     def test_go_to_url_gets_new_tab_default(self):
         """go_to_url action gets new_tab=False default."""
-        with patch("plugins.browser.helpers.browser_use_monkeypatch.dirty_json") as mock_dj:
+        with patch("plugins._browser_agent.helpers.browser_use_monkeypatch.dirty_json") as mock_dj:
             mock_dj.parse.return_value = {"action": [{"go_to_url": {"url": "https://x.com"}}]}
             mock_dj.stringify.side_effect = lambda x: str(x)
-            from plugins.browser.helpers.browser_use_monkeypatch import gemini_clean_and_conform
+            from plugins._browser_agent.helpers.browser_use_monkeypatch import gemini_clean_and_conform
 
             gemini_clean_and_conform("{}")
             actions = mock_dj.stringify.call_args[0][0]["action"]
@@ -88,7 +88,7 @@ class TestGeminiCleanAndConform:
 
     def test_done_constructs_data_from_response_summary_title(self):
         """done action constructs data from response, page_summary, title when missing."""
-        with patch("plugins.browser.helpers.browser_use_monkeypatch.dirty_json") as mock_dj:
+        with patch("plugins._browser_agent.helpers.browser_use_monkeypatch.dirty_json") as mock_dj:
             mock_dj.parse.return_value = {
                 "action": [
                     {
@@ -101,7 +101,7 @@ class TestGeminiCleanAndConform:
                 ]
             }
             mock_dj.stringify.side_effect = lambda x: str(x)
-            from plugins.browser.helpers.browser_use_monkeypatch import gemini_clean_and_conform
+            from plugins._browser_agent.helpers.browser_use_monkeypatch import gemini_clean_and_conform
 
             gemini_clean_and_conform("{}")
             actions = mock_dj.stringify.call_args[0][0]["action"]
@@ -113,10 +113,10 @@ class TestGeminiCleanAndConform:
 
     def test_skips_non_dict_action_items(self):
         """Non-dict items in action list are skipped."""
-        with patch("plugins.browser.helpers.browser_use_monkeypatch.dirty_json") as mock_dj:
+        with patch("plugins._browser_agent.helpers.browser_use_monkeypatch.dirty_json") as mock_dj:
             mock_dj.parse.return_value = {"action": ["string", 123, {"done": {"data": {}}}]}
             mock_dj.stringify.side_effect = lambda x: str(x)
-            from plugins.browser.helpers.browser_use_monkeypatch import gemini_clean_and_conform
+            from plugins._browser_agent.helpers.browser_use_monkeypatch import gemini_clean_and_conform
 
             gemini_clean_and_conform("{}")
             actions = mock_dj.stringify.call_args[0][0]["action"]
@@ -129,7 +129,7 @@ class TestPatchedFixGeminiSchema:
 
     def test_removes_title_from_required(self):
         """title is removed from required list."""
-        from plugins.browser.helpers.browser_use_monkeypatch import _patched_fix_gemini_schema
+        from plugins._browser_agent.helpers.browser_use_monkeypatch import _patched_fix_gemini_schema
 
         schema = {"properties": {"a": {"type": "string"}}, "required": ["a", "title"]}
         result = _patched_fix_gemini_schema(MagicMock(), schema)
@@ -139,7 +139,7 @@ class TestPatchedFixGeminiSchema:
 
     def test_resolves_refs_from_defs(self):
         """$ref references are resolved from $defs."""
-        from plugins.browser.helpers.browser_use_monkeypatch import _patched_fix_gemini_schema
+        from plugins._browser_agent.helpers.browser_use_monkeypatch import _patched_fix_gemini_schema
 
         schema = {
             "$defs": {"Foo": {"type": "string"}},
@@ -151,7 +151,7 @@ class TestPatchedFixGeminiSchema:
 
     def test_removes_additionalProperties_title_default(self):
         """Unsupported keys additionalProperties, title, default are removed."""
-        from plugins.browser.helpers.browser_use_monkeypatch import _patched_fix_gemini_schema
+        from plugins._browser_agent.helpers.browser_use_monkeypatch import _patched_fix_gemini_schema
 
         schema = {
             "properties": {"p": {"type": "string", "title": "P", "default": "x", "additionalProperties": True}},
@@ -165,7 +165,7 @@ class TestPatchedFixGeminiSchema:
 
     def test_empty_object_gets_placeholder_property(self):
         """Empty object type gets _placeholder property for Gemini compatibility."""
-        from plugins.browser.helpers.browser_use_monkeypatch import _patched_fix_gemini_schema
+        from plugins._browser_agent.helpers.browser_use_monkeypatch import _patched_fix_gemini_schema
 
         schema = {"type": "OBJECT", "properties": {}}
         result = _patched_fix_gemini_schema(MagicMock(), schema)
@@ -177,8 +177,8 @@ class TestApply:
 
     def test_apply_patches_chat_google(self):
         """apply() sets ChatGoogle._fix_gemini_schema to patched version."""
-        with patch("plugins.browser.helpers.browser_use_monkeypatch.ChatGoogle") as mock_cg:
-            from plugins.browser.helpers.browser_use_monkeypatch import apply, _patched_fix_gemini_schema
+        with patch("plugins._browser_agent.helpers.browser_use_monkeypatch.ChatGoogle") as mock_cg:
+            from plugins._browser_agent.helpers.browser_use_monkeypatch import apply, _patched_fix_gemini_schema
 
             apply()
             assert mock_cg._fix_gemini_schema is _patched_fix_gemini_schema

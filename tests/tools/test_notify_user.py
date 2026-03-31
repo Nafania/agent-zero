@@ -11,7 +11,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 try:
-    from plugins.notifications.tools.notify_user import NotifyUserTool
+    from tools.notify_user import NotifyUserTool
 except (ImportError, AttributeError):
     NotifyUserTool = None
 
@@ -27,7 +27,7 @@ def mock_agent():
 
 @pytest.fixture
 def tool(mock_agent):
-    from plugins.notifications.tools.notify_user import NotifyUserTool
+    from tools.notify_user import NotifyUserTool
     return NotifyUserTool(
         agent=mock_agent,
         name="notify_user",
@@ -41,7 +41,7 @@ def tool(mock_agent):
 class TestNotifyUserToolExecute:
     @pytest.mark.asyncio
     async def test_valid_notification_succeeds(self, tool):
-        with patch("plugins.notifications.tools.notify_user.AgentContext.get_notification_manager") as mock_mgr:
+        with patch("tools.notify_user.AgentContext.get_notification_manager") as mock_mgr:
             mock_manager = MagicMock()
             mock_manager.add_notification = MagicMock()
             mock_mgr.return_value = mock_manager

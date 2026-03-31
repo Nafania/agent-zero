@@ -18,18 +18,11 @@ Agent Zero is a **general-purpose personal AI assistant** that uses the computer
 
 | Tool | Plugin | Purpose |
 |------|--------|---------|
-| `code_execution_tool` | code_execution | Execute Python/bash code in sandboxed environment |
-| `browser_agent` | browser | Browser automation via browser-use (CDP) |
-| `search_engine` | search | Web search (DuckDuckGo, SearxNG, Perplexity) |
-| `memory_save/load/delete/forget` | memory | Persistent memory operations via Cognee |
-| `document_query` | document_query | Query PDFs, CSVs, HTML, text files |
-| `scheduler` | scheduler | Cron-based task scheduling |
-| `skills_tool` | skills | Discover and install Skills (SKILL.md standard) |
-| `notify_user` | notifications | Send notifications to the user |
-| `a2a_chat` | a2a | Agent-to-Agent protocol communication |
-| `vision_load` | vision | Image analysis |
-| `behaviour_adjustment` | memory | Runtime behaviour tuning |
-| `text_editor` | text_editor | Native file read/write/patch |
+| `code_execution_tool` | _code_execution | Execute Python/bash code in sandboxed environment |
+| `browser_agent` | _browser_agent | Browser automation via browser-use (CDP) |
+| `memory_save/load/delete/forget` | _memory | Persistent memory operations via Cognee |
+| `behaviour_adjustment` | _memory | Runtime behaviour tuning |
+| `text_editor` | _text_editor | Native file read/write/patch |
 
 ### Core Tools (not in plugins)
 
@@ -38,6 +31,13 @@ Agent Zero is a **general-purpose personal AI assistant** that uses the computer
 | `call_subordinate` | Create subordinate agent for subtasks |
 | `response` | Agent response handler |
 | `wait` | Pause execution |
+| `search_engine` | Web search (DuckDuckGo, SearxNG, Perplexity) |
+| `document_query` | Query PDFs, CSVs, HTML, text files |
+| `scheduler` | Cron-based task scheduling |
+| `skills_tool` | Discover and install Skills (SKILL.md standard) |
+| `notify_user` | Send notifications to the user |
+| `a2a_chat` | Agent-to-Agent protocol communication |
+| `vision_load` | Image analysis |
 
 ### Skills System
 
@@ -96,23 +96,17 @@ agent-zero/
 │   └── api.py            ← ApiHandler base class
 ├── tools/                ← Core tools (call_subordinate, response, unknown, wait)
 ├── api/                  ← Core API endpoints + backward-compat shims for plugin APIs
-├── plugins/              ← Plugin system (16 built-in plugins)
-│   ├── memory/           ← Memory tools, helpers (Cognee), extensions, API
-│   ├── code_execution/   ← Code execution tool, shell/SSH/Docker helpers
-│   ├── browser/          ← Browser automation (CDP monkeypatch preserved)
-│   ├── search/           ← Web search (SearXNG, DuckDuckGo, Perplexity)
-│   ├── scheduler/        ← Task scheduling, job loop, scheduler API
-│   ├── skills/           ← Skills marketplace, installation, catalog extensions
-│   ├── vision/           ← Vision/image tool
-│   ├── document_query/   ← Document analysis tool + helper
-│   ├── a2a/              ← Agent-to-Agent protocol (fasta2a client/server)
-│   ├── notifications/    ← Notification tool, helpers, API
-│   ├── error_retry/      ← Critical exception retry extension
-│   ├── infection_check/  ← Prompt injection safety check extension
-│   ├── text_editor/      ← Native file read/write/patch tool
-│   ├── chat_branching/   ← Chat branch-from-message API
-│   ├── plugin_installer/ ← ZIP/Git plugin installation
-│   └── plugin_scan/      ← Plugin scanning/indexing
+├── plugins/              ← Plugin system (10 built-in plugins)
+│   ├── _memory/          ← Memory tools, helpers (Cognee), extensions, API
+│   ├── _code_execution/  ← Code execution tool, shell/SSH/Docker helpers
+│   ├── _browser_agent/   ← Browser automation (CDP monkeypatch preserved)
+│   ├── _model_config/    ← Model configuration extension
+│   ├── _error_retry/     ← Critical exception retry extension
+│   ├── _infection_check/ ← Prompt injection safety check extension
+│   ├── _text_editor/     ← Native file read/write/patch tool
+│   ├── _chat_branching/  ← Chat branch-from-message API
+│   ├── _plugin_installer/← ZIP/Git plugin installation
+│   └── _plugin_scan/     ← Plugin scanning/indexing
 ├── extensions/
 │   └── python/           ← Core extension hooks (agent_init, banners, message_loop, etc.)
 ├── websocket_handlers/   ← WebSocket handlers
@@ -155,12 +149,12 @@ Cognee provides vector search, knowledge graphs, and document storage. Persisten
 
 | Component | Path | Purpose |
 |-----------|------|---------|
-| `cognee_init.py` | `plugins/memory/helpers/` | Config: env vars (BEFORE `import cognee`), LLM/embedding, storage dirs |
-| `memory.py` | `plugins/memory/helpers/` | Memory class: search, insert, delete, knowledge preload, auto re-import |
-| `cognee_background.py` | `plugins/memory/helpers/` | Background cognify/memify pipeline on dirty datasets |
-| `memory_dashboard.py` | `plugins/memory/api/` | Dashboard API for browsing/editing memories |
+| `cognee_init.py` | `plugins/_memory/helpers/` | Config: env vars (BEFORE `import cognee`), LLM/embedding, storage dirs |
+| `memory.py` | `plugins/_memory/helpers/` | Memory class: search, insert, delete, knowledge preload, auto re-import |
+| `cognee_background.py` | `plugins/_memory/helpers/` | Background cognify/memify pipeline on dirty datasets |
+| `memory_dashboard.py` | `plugins/_memory/api/` | Dashboard API for browsing/editing memories |
 
-Backward-compat shims in `helpers/` re-export from `plugins/memory/helpers/`.
+Backward-compat shims in `helpers/` re-export from `plugins/_memory/helpers/`.
 
 Memory areas: `MAIN`, `FRAGMENTS`, `SOLUTIONS`. Per-agent subdirs (`default`, `projects/<name>`).
 
@@ -190,7 +184,7 @@ Git-based projects with clone authentication for public/private repositories. Ea
 ## Fork Changes vs Upstream
 
 Key additions over [agent0ai/agent-zero](https://github.com/agent0ai/agent-zero):
-- **Plugin system** with 16 built-in plugins, `@extensible` decorator, dynamic API dispatch
+- **Plugin system** with 10 built-in plugins (8 moved back to core: a2a, document_query, notifications, scheduler, search, skills, vision), `@extensible` decorator, dynamic API dispatch
 - **A2 path restructure** — `python/` prefix removed, aligned with upstream v1.1
 - Cognee memory persistence on addon volume (env vars before import)
 - Auto re-import knowledge when Cognee DB is empty
