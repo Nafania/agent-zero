@@ -65,8 +65,10 @@ const model = {
   adjustTextareaHeight() {
     const chatInput = document.getElementById("chat-input");
     if (chatInput) {
+      if (!this.message) chatInput.value = "";
       chatInput.style.height = "auto";
       chatInput.style.height = chatInput.scrollHeight + "px";
+      chatInput.style.height = Math.max(chatInput.scrollHeight, parseInt(chatInput.style.height)) + "px";
     }
   },
 
@@ -190,13 +192,17 @@ const model = {
 
   async browseFiles(path) {
     if (!path) {
-      try {
-        const resp = await shortcuts.callJsonApi("/api/chat_files_path_get", {
-          ctxid: shortcuts.getCurrentContextId(),
-        });
-        if (resp.ok) path = resp.path;
-      } catch (_e) {
-        console.error("Error getting chat files path", _e);
+      const ctxid = shortcuts.getCurrentContextId();
+
+      if (ctxid) {
+        try {
+          const resp = await shortcuts.callJsonApi("/api/chat_files_path_get", {
+            ctxid,
+          });
+          if (resp.ok) path = resp.path;
+        } catch (_e) {
+          console.error("Error getting chat files path", _e);
+        }
       }
     }
     await fileBrowserStore.open(path);
