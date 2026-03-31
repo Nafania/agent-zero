@@ -1,5 +1,5 @@
 from helpers.tool import Tool, Response
-from extensions.python.system_prompt._10_system_prompt import (
+from extensions.python.system_prompt._11_tools_prompt import (
     get_tools_prompt,
 )
 

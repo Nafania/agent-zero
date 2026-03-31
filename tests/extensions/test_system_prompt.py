@@ -12,7 +12,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 
 class TestSystemPrompt:
-    """Tests for system_prompt/_10_system_prompt.py."""
+    """Tests for the split system_prompt extension files."""
 
     @pytest.mark.asyncio
     async def test_appends_main_and_tools(self, mock_agent, mock_loop_data):
@@ -25,22 +25,17 @@ class TestSystemPrompt:
         mock_agent.context.get_data = MagicMock(return_value=None)
 
         with patch(
-            "extensions.python.system_prompt._10_system_prompt.MCPConfig.get_instance",
-            return_value=MagicMock(servers=[]),
-        ), patch(
-            "extensions.python.system_prompt._10_system_prompt.skills.list_skills",
-            return_value=[],
-        ), patch(
-            "extensions.python.system_prompt._10_system_prompt.get_settings",
-            return_value={"variables": {}},
-        ), patch(
             "plugins.model_config.helpers.model_config.get_chat_model_config",
             return_value={"vision": False},
         ):
-            from extensions.python.system_prompt._10_system_prompt import SystemPrompt
+            from extensions.python.system_prompt._10_main_prompt import MainPrompt
+            from extensions.python.system_prompt._11_tools_prompt import ToolsPrompt
 
-            ext = SystemPrompt(agent=mock_agent)
-            await ext.execute(system_prompt=system_prompt, loop_data=mock_loop_data)
+            main_ext = MainPrompt(agent=mock_agent)
+            await main_ext.execute(system_prompt=system_prompt, loop_data=mock_loop_data)
+
+            tools_ext = ToolsPrompt(agent=mock_agent)
+            await tools_ext.execute(system_prompt=system_prompt, loop_data=mock_loop_data)
 
         assert len(system_prompt) >= 2
         assert any("main" in p for p in system_prompt)
