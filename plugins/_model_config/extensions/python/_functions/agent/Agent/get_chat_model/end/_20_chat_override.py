@@ -45,6 +45,7 @@ class ChatModelOverrideHook(Extension):
             limit_requests=int(cfg.get("rl_requests", 0)),
             limit_input=int(cfg.get("rl_input", 0)),
             limit_output=int(cfg.get("rl_output", 0)),
+            limit_concurrent=int(cfg.get("rl_concurrent", 0)),
             kwargs=cfg.get("kwargs", {}),
         )
         data["result"] = models.get_chat_model(

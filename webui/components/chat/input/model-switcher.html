@@ -1,0 +1,280 @@
+<html>
+<head>
+    <script type="module">
+        import { createStore } from "/js/AlpineStore.js";
+        import { callJsonApi } from "/js/api.js";
+        import { justToast } from "/index.js";
+
+        createStore("modelSwitcher", {
+            override: null,
+            providers: [],
+            models: {},
+            loading: false,
+            showDropdown: false,
+            loadingModels: false,
+            selectedProvider: null,
+
+            get chatId() {
+                return globalThis.Alpine?.store("chats")?.selected || "";
+            },
+
+            get currentLabel() {
+                if (!this.override) return "";
+                const p = this.override.provider || "";
+                const m = this.override.model || "";
+                return m ? `${p}/${m}`.replace(/\/.+\//, "/") : p;
+            },
+
+            async init() {
+                await this.loadProviders();
+            },
+
+            async loadProviders() {
+                try {
+                    const data = await callJsonApi("/api/connected_providers", {});
+                    this.providers = (data.providers || []).filter(p => p.is_active);
+                } catch (e) {
+                    console.error("Failed to load providers:", e);
+                }
+            },
+
+            async loadOverride() {
+                const id = this.chatId;
+                if (!id) { this.override = null; return; }
+                try {
+                    const data = await callJsonApi("/api/chat_model_override", { chat_id: id });
+                    this.override = data.override || null;
+                } catch (e) {
+                    this.override = null;
+                }
+            },
+
+            async loadModels(providerId) {
+                if (this.models[providerId]) return;
+                this.loadingModels = true;
+                try {
+                    const data = await callJsonApi("/api/provider_models", { provider_id: providerId });
+                    this.models[providerId] = data.models || [];
+                } catch (e) {
+                    this.models[providerId] = [];
+                    console.error("Failed to load models:", e);
+                } finally {
+                    this.loadingModels = false;
+                }
+            },
+
+            async selectProvider(providerId) {
+                this.selectedProvider = providerId;
+                await this.loadModels(providerId);
+            },
+
+            async selectModel(providerId, modelId) {
+                const id = this.chatId;
+                if (!id) return;
+                try {
+                    await callJsonApi("/api/chat_model_override", {
+                        chat_id: id,
+                        provider: providerId,
+                        model: modelId,
+                    });
+                    this.override = { provider: providerId, model: modelId };
+                    justToast(`Model: ${providerId}/${modelId}`, "success");
+                } catch (e) {
+                    justToast("Failed to set model override", "error");
+                }
+                this.showDropdown = false;
+                this.selectedProvider = null;
+            },
+
+            async clearOverride() {
+                const id = this.chatId;
+                if (!id) return;
+                try {
+                    await callJsonApi("/api/chat_model_override", { chat_id: id, reset: true });
+                    this.override = null;
+                    justToast("Reverted to default model", "info");
+                } catch (e) {
+                    justToast("Failed to clear override", "error");
+                }
+                this.showDropdown = false;
+                this.selectedProvider = null;
+            },
+
+            toggle() {
+                if (!this.showDropdown) {
+                    this.loadOverride();
+                    this.loadProviders();
+                }
+                this.showDropdown = !this.showDropdown;
+                this.selectedProvider = null;
+            },
+        });
+    </script>
+</head>
+<body>
+    <div x-data
+         x-effect="if ($store.chats.selected) $store.modelSwitcher.loadOverride()"
+         @click.outside="$store.modelSwitcher.showDropdown = false"
+         @keydown.escape.window="$store.modelSwitcher.showDropdown = false">
+
+        <button class="model-sw-btn"
+                :class="{ 'has-override': $store.modelSwitcher.override }"
+                @click.stop="$store.modelSwitcher.toggle()">
+            <span class="material-symbols-outlined" style="font-size: 14px;">swap_horiz</span>
+            <span x-text="$store.modelSwitcher.override ? $store.modelSwitcher.currentLabel : 'Model'" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;"></span>
+            <span class="material-symbols-outlined" style="font-size: 13px;"
+                  x-text="$store.modelSwitcher.showDropdown ? 'expand_less' : 'expand_more'"></span>
+        </button>
+
+        <div class="model-sw-dropdown" x-show="$store.modelSwitcher.showDropdown"
+             x-transition.opacity @click.stop>
+
+            <!-- Revert to default -->
+            <template x-if="$store.modelSwitcher.override">
+                <div class="model-sw-item revert" @click="$store.modelSwitcher.clearOverride()">
+                    <span class="material-symbols-outlined" style="font-size: 15px;">undo</span>
+                    <span>Use default</span>
+                </div>
+            </template>
+            <div class="model-sw-divider" x-show="$store.modelSwitcher.override"></div>
+
+            <!-- No providers -->
+            <template x-if="$store.modelSwitcher.providers.length === 0">
+                <div class="model-sw-item disabled">No connected providers</div>
+            </template>
+
+            <!-- Provider list (when no provider selected) -->
+            <template x-if="!$store.modelSwitcher.selectedProvider">
+                <template x-for="prov in $store.modelSwitcher.providers" :key="prov.provider_id">
+                    <div class="model-sw-item"
+                         :class="{ 'active': $store.modelSwitcher.override?.provider === prov.provider_id }"
+                         @click="$store.modelSwitcher.selectProvider(prov.provider_id)">
+                        <span class="model-sw-name" x-text="prov.provider_id"></span>
+                        <span class="material-symbols-outlined" style="font-size: 14px; margin-left: auto; opacity: 0.4;">chevron_right</span>
+                    </div>
+                </template>
+            </template>
+
+            <!-- Model list (when provider selected) -->
+            <template x-if="$store.modelSwitcher.selectedProvider">
+                <div>
+                    <div class="model-sw-item back" @click="$store.modelSwitcher.selectedProvider = null">
+                        <span class="material-symbols-outlined" style="font-size: 15px;">arrow_back</span>
+                        <span x-text="$store.modelSwitcher.selectedProvider"></span>
+                    </div>
+                    <div class="model-sw-divider"></div>
+                    <template x-if="$store.modelSwitcher.loadingModels">
+                        <div class="model-sw-item disabled">Loading models...</div>
+                    </template>
+                    <template x-for="mdl in ($store.modelSwitcher.models[$store.modelSwitcher.selectedProvider] || [])" :key="mdl.id">
+                        <div class="model-sw-item"
+                             :class="{ 'active': $store.modelSwitcher.override?.model === mdl.id }"
+                             @click="$store.modelSwitcher.selectModel($store.modelSwitcher.selectedProvider, mdl.id)">
+                            <div>
+                                <div class="model-sw-name" x-text="mdl.name || mdl.id"></div>
+                                <div class="model-sw-detail" x-show="mdl.context_length"
+                                     x-text="(mdl.context_length/1000) + 'k ctx'"></div>
+                            </div>
+                        </div>
+                    </template>
+                    <template x-if="!$store.modelSwitcher.loadingModels && ($store.modelSwitcher.models[$store.modelSwitcher.selectedProvider] || []).length === 0">
+                        <div class="model-sw-item disabled">No models available</div>
+                    </template>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <style>
+        .model-sw-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            padding: 2px 8px;
+            border: 1px solid var(--color-border);
+            border-radius: 14px;
+            background: var(--color-panel);
+            color: var(--color-text-muted, #999);
+            font-size: 0.72rem;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+            line-height: 1.4;
+        }
+        .model-sw-btn:hover {
+            border-color: var(--color-text-muted);
+            color: var(--color-text-secondary, #ccc);
+        }
+        .model-sw-btn.has-override {
+            border-color: #4248f1;
+            color: #7b82f6;
+        }
+        .model-sw-dropdown {
+            position: absolute;
+            bottom: calc(100% + 4px);
+            right: 0;
+            min-width: 240px;
+            max-height: 400px;
+            overflow-y: auto;
+            background-color: var(--color-panel);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 4px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            z-index: 200;
+        }
+        .model-sw-item {
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.78rem;
+            transition: background 0.1s ease;
+            color: var(--color-text);
+        }
+        .model-sw-item:hover {
+            background: rgba(255,255,255,0.06);
+        }
+        .model-sw-item.active {
+            background: rgba(66, 72, 241, 0.12);
+            color: #7b82f6;
+        }
+        .model-sw-item.revert {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            opacity: 0.75;
+        }
+        .model-sw-item.back {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            opacity: 0.6;
+            font-weight: 500;
+        }
+        .model-sw-item.disabled {
+            opacity: 0.35;
+            cursor: default;
+            font-style: italic;
+        }
+        .model-sw-item.disabled:hover {
+            background: transparent;
+        }
+        .model-sw-divider {
+            border-top: 1px solid var(--color-border);
+            margin: 3px 0;
+            opacity: 0.3;
+        }
+        .model-sw-name {
+            font-weight: 500;
+        }
+        .model-sw-detail {
+            font-size: 0.68rem;
+            opacity: 0.5;
+            margin-top: 1px;
+        }
+        .model-sw-dropdown::-webkit-scrollbar { width: 5px; }
+        .model-sw-dropdown::-webkit-scrollbar-track { background: transparent; }
+        .model-sw-dropdown::-webkit-scrollbar-thumb { background: rgba(155,155,155,0.3); border-radius: 3px; }
+    </style>
+</body>
+</html>
