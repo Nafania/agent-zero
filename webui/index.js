@@ -763,7 +763,7 @@ export async function loadEarlierLogs() {
       if (isNaN(before)) before = 0;
     }
 
-    const response = await fetch("/chat_logs", {
+    const response = await fetch("/api/chat_logs", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ context_id: context, before, limit: 50 }),

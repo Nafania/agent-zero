@@ -360,65 +360,6 @@ def register_api_route(app: Flask, lock: ThreadLockType) -> None:
         methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
     )
 
-    # Backward-compat: POST/PUT/PATCH/DELETE catch-all so existing POST-based
-    # API calls (frontend sendJsonData, etc.) work at bare /<path> URLs.
-    # GET is excluded to avoid shadowing Flask's static-file handler
-    # (static_url_path="/").
-    app.add_url_rule(
-        "/<path:path>",
-        "api_dispatch_compat",
-        _dispatch,
-        methods=["POST", "PUT", "PATCH", "DELETE"],
-    )
-
-    # Individual compat GET routes for API handlers that support GET.
-    # Flask's static-file route (/<path:filename>) would otherwise intercept
-    # these and return 404 if no matching static file exists.
-    api_dir = Path(files.get_abs_path("api"))
-    if api_dir.is_dir():
-        for handler_file in sorted(api_dir.glob("*.py")):
-            name = handler_file.stem
-            if name.startswith("_"):
-                continue
-
-            def _make_compat(path: str):
-                async def _compat_handler(**kwargs):
-                    return await _dispatch(path)
-                return _compat_handler
-
-            app.add_url_rule(
-                f"/{name}",
-                f"api_compat_{name}",
-                _make_compat(name),
-                methods=["GET"],
-            )
-
-    # Plugin compat GET routes
-    from helpers import plugins as _plugins
-    for plugin_name in _plugins.get_plugins_list():
-        plugin_dir_path = _plugins.find_plugin_dir(plugin_name)
-        if not plugin_dir_path:
-            continue
-        plugin_api = Path(plugin_dir_path) / "api"
-        if not plugin_api.is_dir():
-            continue
-        for handler_file in sorted(plugin_api.glob("*.py")):
-            hname = handler_file.stem
-            if hname.startswith("_"):
-                continue
-
-            def _make_plugin_compat(path: str):
-                async def _plugin_compat_handler(**kwargs):
-                    return await _dispatch(path)
-                return _plugin_compat_handler
-
-            app.add_url_rule(
-                f"/plugins/{plugin_name}/{hname}",
-                f"api_compat_plugin_{plugin_name}_{hname}",
-                _make_plugin_compat(f"plugins/{plugin_name}/{hname}"),
-                methods=["GET"],
-            )
-
 
 def register_watchdogs() -> None:
     from helpers import watchdog

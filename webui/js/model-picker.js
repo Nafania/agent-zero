@@ -31,7 +31,7 @@ const model = {
   async loadModels() {
     this.loading = true;
     try {
-      const resp = await fetch("/connected_providers", {
+      const resp = await fetch("/api/connected_providers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
@@ -41,7 +41,7 @@ const model = {
 
       const modelPromises = providers.map(async (p) => {
         try {
-          const mResp = await fetch("/provider_models", {
+          const mResp = await fetch("/api/provider_models", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ provider_id: p.provider_id }),
@@ -73,7 +73,7 @@ const model = {
   async loadOverride(chatId) {
     this.chatId = chatId;
     try {
-      const resp = await fetch("/chat_model_override", {
+      const resp = await fetch("/api/chat_model_override", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ chat_id: chatId }),
@@ -88,7 +88,7 @@ const model = {
   async selectModel(providerId, modelId) {
     if (!this.chatId) return;
     try {
-      await fetch("/chat_model_override", {
+      await fetch("/api/chat_model_override", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -107,7 +107,7 @@ const model = {
   async resetToDefault() {
     if (!this.chatId) return;
     try {
-      await fetch("/chat_model_override", {
+      await fetch("/api/chat_model_override", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ chat_id: this.chatId, reset: true }),

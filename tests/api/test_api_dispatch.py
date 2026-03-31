@@ -37,13 +37,6 @@ class TestRegisterApiRoute:
         rules = {rule.rule for rule in app.url_map.iter_rules()}
         assert "/api/<path:path>" in rules
 
-    def test_registers_compat_route(self):
-        app = _make_app()
-        lock = threading.Lock()
-        register_api_route(app, lock)
-        rules = {rule.rule for rule in app.url_map.iter_rules()}
-        assert "/<path:path>" in rules
-
     def test_canonical_route_accepts_all_methods(self):
         app = _make_app()
         lock = threading.Lock()
@@ -53,15 +46,6 @@ class TestRegisterApiRoute:
                 for method in ("GET", "POST", "PUT", "PATCH", "DELETE"):
                     assert method in rule.methods
 
-    def test_compat_catchall_excludes_get(self):
-        app = _make_app()
-        lock = threading.Lock()
-        register_api_route(app, lock)
-        for rule in app.url_map.iter_rules():
-            if rule.rule == "/<path:path>" and rule.endpoint == "api_dispatch_compat":
-                assert "GET" not in rule.methods
-                for method in ("POST", "PUT", "PATCH", "DELETE"):
-                    assert method in rule.methods
 
 
 class TestDispatchResolution:
@@ -89,24 +73,6 @@ class TestDispatchResolution:
             resp = client.post("/api/nonexistent")
             assert resp.status_code == 404
             assert b"API endpoint not found" in resp.data
-
-    def test_returns_404_for_compat_unknown_path(self):
-        app = _make_app()
-        lock = threading.Lock()
-        register_api_route(app, lock)
-        client = app.test_client()
-
-        with patch("helpers.api.files") as mock_files:
-            mock_files.get_abs_path = MagicMock(
-                side_effect=lambda *args: "/fake/" + "/".join(str(a) for a in args)
-            )
-            mock_files.is_in_dir = MagicMock(return_value=True)
-            mock_files.exists = MagicMock(return_value=False)
-            mock_files.PLUGINS_DIR = "plugins"
-            mock_files.USER_DIR = "usr"
-
-            resp = client.post("/nonexistent")
-            assert resp.status_code == 404
 
     def test_resolves_builtin_handler(self):
         app = _make_app()
@@ -143,42 +109,6 @@ class TestDispatchResolution:
             resp = client.post("/api/test_handler")
             assert resp.status_code == 200
             assert resp.json == {"status": "ok"}
-
-    def test_compat_route_resolves_same_handler(self):
-        app = _make_app()
-        lock = threading.Lock()
-        register_api_route(app, lock)
-        client = app.test_client()
-
-        class FakeHandler(ApiHandler):
-            @classmethod
-            def requires_auth(cls):
-                return False
-
-            @classmethod
-            def requires_csrf(cls):
-                return False
-
-            @classmethod
-            def get_methods(cls):
-                return ["POST"]
-
-            async def process(self, input, request):
-                return {"compat": True}
-
-        with patch("helpers.api.files") as mock_files, \
-             patch(LOAD_CLASSES_PATCH, return_value=[FakeHandler]):
-            mock_files.get_abs_path = MagicMock(
-                side_effect=lambda *args: "/fake/" + "/".join(str(a) for a in args)
-            )
-            mock_files.is_in_dir = MagicMock(return_value=True)
-            mock_files.exists = MagicMock(return_value=True)
-            mock_files.PLUGINS_DIR = "plugins"
-            mock_files.USER_DIR = "usr"
-
-            resp = client.post("/test_handler")
-            assert resp.status_code == 200
-            assert resp.json == {"compat": True}
 
     def test_returns_405_for_wrong_method(self):
         app = _make_app()
@@ -334,43 +264,6 @@ class TestDispatchResolution:
                 assert resp.status_code == 200
                 assert resp.json == {"plugin": "memory"}
 
-    def test_plugin_handler_via_compat_route(self):
-        app = _make_app()
-        lock = threading.Lock()
-        register_api_route(app, lock)
-        client = app.test_client()
-
-        class PluginHandler(ApiHandler):
-            @classmethod
-            def requires_auth(cls):
-                return False
-
-            @classmethod
-            def requires_csrf(cls):
-                return False
-
-            @classmethod
-            def get_methods(cls):
-                return ["POST"]
-
-            async def process(self, input, request):
-                return {"plugin_compat": True}
-
-        with patch("helpers.api.files") as mock_files, \
-             patch("helpers.plugins.find_plugin_dir", return_value="/fake/plugins/memory"), \
-             patch(LOAD_CLASSES_PATCH, return_value=[PluginHandler]):
-            mock_files.get_abs_path = MagicMock(
-                side_effect=lambda *args: "/fake/" + "/".join(str(a) for a in args)
-            )
-            mock_files.is_in_dir = MagicMock(return_value=True)
-            mock_files.exists = MagicMock(return_value=False)
-            mock_files.PLUGINS_DIR = "plugins"
-            mock_files.USER_DIR = "usr"
-
-            with patch.object(Path, "is_file", return_value=True):
-                resp = client.post("/plugins/memory/dashboard")
-                assert resp.status_code == 200
-                assert resp.json == {"plugin_compat": True}
 
 
 class TestSecurityDecorators:

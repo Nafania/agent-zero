@@ -10,7 +10,7 @@ const model = {
 
   async loadProviders() {
     try {
-      const resp = await fetch("/oauth_providers");
+      const resp = await fetch("/api/oauth_providers");
       const data = await resp.json();
       this.providers = data.providers.map((p) => ({
         ...p,
@@ -27,7 +27,7 @@ const model = {
   async connect(provider) {
     const redirectUri = window.location.origin + "/oauth_callback";
     try {
-      const resp = await fetch("/oauth_authorize", {
+      const resp = await fetch("/api/oauth_authorize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -66,7 +66,7 @@ const model = {
   async submitManualCode(provider) {
     if (!provider._manualCode || !this._pendingState) return;
     try {
-      const resp = await fetch("/oauth_exchange", {
+      const resp = await fetch("/api/oauth_exchange", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -88,7 +88,7 @@ const model = {
 
   async disconnect(providerId) {
     try {
-      await fetch("/oauth_disconnect", {
+      await fetch("/api/oauth_disconnect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ provider_id: providerId }),
