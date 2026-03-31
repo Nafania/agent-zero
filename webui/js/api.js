@@ -53,8 +53,10 @@ export async function fetchApi(url, request) {
       csrfToken = null;
       return await _wrap(false);
     } else if (response.redirected && response.url.endsWith("/login")) {
-      // redirect to login
-      window.location.href = response.url;
+      const _redirectUrl = new URL(response.url);
+      if (_redirectUrl.origin === window.location.origin) {
+        window.location.href = response.url;
+      }
       return;
     }
 
@@ -141,8 +143,10 @@ export async function getCsrfToken() {
     }
 
     if (response.redirected && response.url.endsWith("/login")) {
-      // redirect to login
-      window.location.href = response.url;
+      const _redirectUrl = new URL(response.url);
+      if (_redirectUrl.origin === window.location.origin) {
+        window.location.href = response.url;
+      }
       return;
     }
     const json = await response.json();
@@ -164,7 +168,9 @@ export async function getCsrfToken() {
           : null;
       const cookieRuntimeId = runtimeId || injectedRuntimeId;
       if (cookieRuntimeId) {
-        document.cookie = `csrf_token_${cookieRuntimeId}=${csrfToken}; SameSite=Strict; Path=/`;
+        const _secureFlag =
+          window.location.protocol === "https:" ? "; Secure" : "";
+        document.cookie = `csrf_token_${cookieRuntimeId}=${csrfToken}; SameSite=Lax; Path=/${_secureFlag}`;
       } else {
         console.warn("CSRF runtime id missing; skipping cookie name binding.");
       }
