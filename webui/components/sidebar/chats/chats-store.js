@@ -138,7 +138,7 @@ const model = {
       }
 
       // Delete the chat on the server
-      await sendJsonData("/chat_remove", { context: id });
+      await sendJsonData("/api/chat_remove", { context: id });
 
       // Update the UI - remove from contexts
       const updatedContexts = this.contexts.filter((ctx) => ctx.id !== id);
@@ -182,7 +182,7 @@ const model = {
   async resetChat(ctxid = null) {
     try {
       const context = ctxid || this.selected || getContext();
-      await sendJsonData("/chat_reset", {
+      await sendJsonData("/api/chat_reset", {
         context
       });
 
@@ -200,7 +200,7 @@ const model = {
     try {
 
       // first create a new chat on the backend
-      const response = await sendJsonData("/chat_create", {
+      const response = await sendJsonData("/api/chat_create", {
         current_context: this.selected
       });
 
@@ -229,7 +229,7 @@ const model = {
   async loadChats() {
     try {
       const fileContents = await this.readJsonFiles();
-      const response = await sendJsonData("/chat_load", { chats: fileContents });
+      const response = await sendJsonData("/api/chat_load", { chats: fileContents });
 
       if (!response) {
         toast("No response returned.", "error");
@@ -249,7 +249,7 @@ const model = {
   async saveChat() {
     try {
       const context = this.selected || getContext();
-      const response = await sendJsonData("/chat_export", { ctxid: context });
+      const response = await sendJsonData("/api/chat_export", { ctxid: context });
 
       if (!response) {
         toast("No response returned.", "error");
@@ -378,7 +378,7 @@ const model = {
     // The restart endpoint usually drops the connection as the process is replaced.
     // Do not wait on /health - recovery is driven by WebSocket CSRF preflight + reconnect.
     try {
-      await sendJsonData("/restart", {});
+      await sendJsonData("/api/restart", {});
     } catch (_e) {
       // ignore
     }
@@ -386,7 +386,7 @@ const model = {
 
   async logout() {
     try {
-      await callJsonApi("/logout", {});
+      await callJsonApi("/api/logout", {});
     } catch (_e) {
       // ignore
     }

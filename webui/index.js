@@ -117,7 +117,7 @@ export async function sendMessage() {
           formData.append("attachments", attachmentsWithUrls[i].file);
         }
 
-        response = await api.fetchApi("/message_async", {
+        response = await api.fetchApi("/api/message_async", {
           method: "POST",
           body: formData,
         });
@@ -128,7 +128,7 @@ export async function sendMessage() {
           context,
           message_id: messageId,
         };
-        response = await api.fetchApi("/message_async", {
+        response = await api.fetchApi("/api/message_async", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -166,7 +166,7 @@ async function handleSlashCommand(message) {
       console.log("[slash] /skill-install source:", args);
       toast("Installing skill...", "info", 30000);
       try {
-        const result = await api.callJsonApi("/skill_install", {
+        const result = await api.callJsonApi("/api/skill_install", {
           source: args,
           ctxid,
         });
@@ -193,7 +193,7 @@ async function handleSlashCommand(message) {
     case "/skill-list": {
       try {
         const projectName = chatsStore.selectedContext?.project?.name || "";
-        const result = await api.callJsonApi("/skills", {
+        const result = await api.callJsonApi("/api/skills", {
           action: "list",
           project_name: projectName,
         });
@@ -221,7 +221,7 @@ async function handleSlashCommand(message) {
         return true;
       }
       try {
-        const result = await api.callJsonApi("/skills", {
+        const result = await api.callJsonApi("/api/skills", {
           action: "delete",
           skill_path: args,
         });
@@ -539,7 +539,7 @@ export async function poll() {
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     const log_from = lastLogVersion;
-    const response = await sendJsonData("/poll", {
+    const response = await sendJsonData("/api/poll", {
       log_from: log_from,
       notifications_from: notificationStore.lastNotificationVersion || 0,
       context: context || null,
@@ -763,12 +763,11 @@ export async function loadEarlierLogs() {
       if (isNaN(before)) before = 0;
     }
 
-    const response = await fetch("/api/chat_logs", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ context_id: context, before, limit: 50 }),
+    const data = await api.callJsonApi("/api/chat_logs", {
+      context_id: context,
+      before,
+      limit: 50,
     });
-    const data = await response.json();
 
     if (data.logs && data.logs.length > 0) {
       const prevScrollHeight = chatHistory.scrollHeight;

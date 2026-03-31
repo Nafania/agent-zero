@@ -53,7 +53,7 @@ const model = {
 
     try {
       const resp = await fetchApi(
-        `/edit_work_dir_file?path=${encodeURIComponent(file.path)}`
+        `/api/edit_work_dir_file?path=${encodeURIComponent(file.path)}`
       );
       const data = await resp.json().catch(() => ({}));
 
@@ -150,7 +150,7 @@ const model = {
     this.isSaving = true;
 
     try {
-      const resp = await fetchApi("/edit_work_dir_file", {
+      const resp = await fetchApi("/api/edit_work_dir_file", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ path: targetPath, content }),

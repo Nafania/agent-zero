@@ -93,7 +93,7 @@ const model = {
           for (const att of attachments) {
             formData.append("file", att.file || att);
           }
-          const resp = await api.fetchApi("/upload", {
+          const resp = await api.fetchApi("/api/upload", {
             method: "POST",
             body: formData,
             signal: op.controller ? op.controller.signal : undefined,
@@ -104,7 +104,7 @@ const model = {
           }
         }
 
-        const resp = await api.fetchApi("/message_queue_add", {
+        const resp = await api.fetchApi("/api/message_queue_add", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -134,6 +134,7 @@ const model = {
       } finally {
         this._pendingAddOps = { ...this._pendingAddOps };
         delete this._pendingAddOps[tempId];
+        this.pendingItems = this.pendingItems.filter((p) => p.id !== tempId);
       }
     };
 
@@ -162,7 +163,7 @@ const model = {
     }
 
     try {
-      await api.callJsonApi("/message_queue_remove", {
+      await api.callJsonApi("/api/message_queue_remove", {
         context,
         item_id: itemId,
       });
@@ -175,7 +176,7 @@ const model = {
     const context = globalThis.getContext?.();
     if (!context) return;
     try {
-      await api.callJsonApi("/message_queue_remove", { context });
+      await api.callJsonApi("/api/message_queue_remove", { context });
     } catch (e) {
       console.error("Failed to clear queue:", e);
     }
@@ -185,7 +186,7 @@ const model = {
     const context = globalThis.getContext?.();
     if (!context) return;
     try {
-      await api.callJsonApi("/message_queue_send", {
+      await api.callJsonApi("/api/message_queue_send", {
         context,
         item_id: itemId,
       });
@@ -217,7 +218,7 @@ const model = {
     if (!this.hasQueue) return;
     try {
       navStore.scrollToBottom();
-      await api.callJsonApi("/message_queue_send", { context, send_all: true });
+      await api.callJsonApi("/api/message_queue_send", { context, send_all: true });
     } catch (e) {
       console.error("Failed to send all queued:", e);
     }

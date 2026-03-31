@@ -33,7 +33,7 @@ const model = {
       
       // Fetch data from backend
       const contextId = window.getContext();
-      const response = await window.sendJsonData('/history_get', {
+      const response = await window.sendJsonData('/api/history_get', {
         context: contextId,
       });
       

@@ -1,4 +1,5 @@
 import { createStore } from "/js/AlpineStore.js";
+import { callJsonApi } from "/js/api.js";
 
 const model = {
   providers: [],
@@ -10,8 +11,7 @@ const model = {
 
   async loadProviders() {
     try {
-      const resp = await fetch("/api/oauth_providers");
-      const data = await resp.json();
+      const data = await callJsonApi("/api/oauth_providers", {});
       this.providers = data.providers.map((p) => ({
         ...p,
         _client_id: "",
@@ -27,18 +27,13 @@ const model = {
   async connect(provider) {
     const redirectUri = window.location.origin + "/oauth_callback";
     try {
-      const resp = await fetch("/api/oauth_authorize", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          provider_id: provider.provider_id,
-          client_id: provider._client_id,
-          client_secret: provider._client_secret,
-          redirect_uri: redirectUri,
-          flow: "redirect",
-        }),
+      const data = await callJsonApi("/api/oauth_authorize", {
+        provider_id: provider.provider_id,
+        client_id: provider._client_id,
+        client_secret: provider._client_secret,
+        redirect_uri: redirectUri,
+        flow: "redirect",
       });
-      const data = await resp.json();
       if (data.authorization_url) {
         this._pendingState = data.state;
         provider._manualFlow = false;
@@ -66,16 +61,11 @@ const model = {
   async submitManualCode(provider) {
     if (!provider._manualCode || !this._pendingState) return;
     try {
-      const resp = await fetch("/api/oauth_exchange", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          provider_id: provider.provider_id,
-          code: provider._manualCode,
-          state: this._pendingState,
-        }),
+      const data = await callJsonApi("/api/oauth_exchange", {
+        provider_id: provider.provider_id,
+        code: provider._manualCode,
+        state: this._pendingState,
       });
-      const data = await resp.json();
       if (data.status === "connected") {
         this._pendingState = null;
         provider._manualFlow = false;
@@ -88,10 +78,8 @@ const model = {
 
   async disconnect(providerId) {
     try {
-      await fetch("/api/oauth_disconnect", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ provider_id: providerId }),
+      await callJsonApi("/api/oauth_disconnect", {
+        provider_id: providerId,
       });
       await this.loadProviders();
     } catch (e) {

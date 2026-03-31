@@ -34,7 +34,7 @@ async function _fetchInstalledSkills() {
   try {
     const fetchApi = globalThis.fetchApi;
     if (!fetchApi) return _skillsCache;
-    const resp = await fetchApi("/skills", {
+    const resp = await fetchApi("/api/skills", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "list" }),

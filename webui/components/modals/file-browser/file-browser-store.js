@@ -210,7 +210,7 @@ const model = {
     
     try {
       const response = await fetchApi(
-        `/get_work_dir_files?path=${encodeURIComponent(path)}`
+        `/api/get_work_dir_files?path=${encodeURIComponent(path)}`
       );
       const data = await response.json().catch(() => ({}));
 
@@ -332,7 +332,7 @@ const model = {
               newName: newName,
             };
 
-      const resp = await fetchApi("/rename_work_dir_file", {
+      const resp = await fetchApi("/api/rename_work_dir_file", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -377,7 +377,7 @@ const model = {
   // --- File actions --------------------------------------------------------
   async deleteFile(file) {
     try {
-      const resp = await fetchApi("/delete_work_dir_file", {
+      const resp = await fetchApi("/api/delete_work_dir_file", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -423,7 +423,7 @@ const model = {
         }
         formData.append("files[]", f);
       }
-      const resp = await fetchApi("/upload_work_dir_files", {
+      const resp = await fetchApi("/api/upload_work_dir_files", {
         method: "POST",
         body: formData,
       });
@@ -453,7 +453,7 @@ const model = {
 
   downloadFile(file) {
     const link = document.createElement("a");
-    link.href = `/download_work_dir_file?path=${encodeURIComponent(file.path)}`;
+    link.href = `/api/download_work_dir_file?path=${encodeURIComponent(file.path)}`;
     link.download = file.name;
     document.body.appendChild(link);
     link.click();
@@ -465,7 +465,7 @@ export const store = createStore("fileBrowser", model);
 
 window.openFileLink = async function (path) {
   try {
-    const resp = await window.sendJsonData("/file_info", { path });
+    const resp = await window.sendJsonData("/api/file_info", { path });
     if (!resp.exists) {
       window.toastFrontendError("File does not exist.", "File Error");
       return;

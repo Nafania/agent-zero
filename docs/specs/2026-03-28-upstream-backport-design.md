@@ -6,6 +6,24 @@
 
 ---
 
+## Golden Rule: Upstream 1:1, No Exceptions
+
+> **Port upstream IDENTICALLY. No backward compatibility. No "keep fork's simpler approach."**
+>
+> Every change MUST match upstream exactly (code, naming, structure, async/sync, patterns).
+> No deviations. Plugin naming uses upstream's `_` prefix convention (PR #36).
+>
+> **If the fork has a potentially better solution** — the implementor MUST:
+> 1. Stop implementation
+> 2. Report both approaches (upstream vs fork) to the project owner
+> 3. Wait for the owner's decision
+> 4. Only then implement the chosen approach
+>
+> **Never** add backward-compat routes, shims, or wrappers. We control the entire repo.
+> **Never** silently keep a fork-specific pattern when upstream has a different one.
+
+---
+
 ## Overview
 
 Backport all upstream changes from the 516-commit gap between our fork (v0.9.8) and upstream (v1.3). Our fork is the base; upstream changes are overlaid on top. Items are skipped only where we already have a **better** analog.

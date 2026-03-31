@@ -47,7 +47,7 @@ const metricsStore = {
   async fetchMetrics() {
     try {
       this.loading = true;
-      const r = await API.callJsonApi("/metrics_dashboard", { action: "snapshot" });
+      const r = await API.callJsonApi("/api/metrics_dashboard", { action: "snapshot" });
       if (!r.success) return;
 
       this.totalCalls = r.total_calls;
@@ -82,7 +82,7 @@ const metricsStore = {
 
   async clearMetrics() {
     try {
-      await API.callJsonApi("/metrics_dashboard", { action: "clear" });
+      await API.callJsonApi("/api/metrics_dashboard", { action: "clear" });
       await this.fetchMetrics();
     } catch (e) {
       this.error = e.message;
