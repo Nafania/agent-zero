@@ -20,7 +20,14 @@ Agent Zero is a **general-purpose personal AI assistant** that uses the computer
 |------|--------|---------|
 | `code_execution_tool` | _code_execution | Execute Python/bash code in sandboxed environment |
 | `browser_agent` | _browser_agent | Browser automation via browser-use (CDP) |
+| `search_engine` | (core) | Web search (DuckDuckGo, SearxNG, Perplexity) |
 | `memory_save/load/delete/forget` | _memory | Persistent memory operations via Cognee |
+| `document_query` | (core) | Query PDFs, CSVs, HTML, text files |
+| `scheduler` | (core) | Cron-based task scheduling |
+| `skills_tool` | (core) | Discover and install Skills (SKILL.md standard) |
+| `notify_user` | (core) | Send notifications to the user |
+| `a2a_chat` | (core) | Agent-to-Agent protocol communication |
+| `vision_load` | (core) | Image analysis |
 | `behaviour_adjustment` | _memory | Runtime behaviour tuning |
 | `text_editor` | _text_editor | Native file read/write/patch |
 
@@ -96,15 +103,15 @@ agent-zero/
 │   └── api.py            ← ApiHandler base class
 ├── tools/                ← Core tools (call_subordinate, response, unknown, wait)
 ├── api/                  ← Core API endpoints + backward-compat shims for plugin APIs
-├── plugins/              ← Plugin system (10 built-in plugins)
+├── plugins/              ← Plugin system (10 built-in plugins, _ prefix convention)
 │   ├── _memory/          ← Memory tools, helpers (Cognee), extensions, API
 │   ├── _code_execution/  ← Code execution tool, shell/SSH/Docker helpers
 │   ├── _browser_agent/   ← Browser automation (CDP monkeypatch preserved)
-│   ├── _model_config/    ← Model configuration extension
 │   ├── _error_retry/     ← Critical exception retry extension
 │   ├── _infection_check/ ← Prompt injection safety check extension
 │   ├── _text_editor/     ← Native file read/write/patch tool
 │   ├── _chat_branching/  ← Chat branch-from-message API
+│   ├── _model_config/    ← Model configuration and presets
 │   ├── _plugin_installer/← ZIP/Git plugin installation
 │   └── _plugin_scan/     ← Plugin scanning/indexing
 ├── extensions/
@@ -118,15 +125,16 @@ agent-zero/
 
 ## Versioning & Release
 
-- Current: **v0.9.8.N** (auto-incremented)
-- Tags follow: `v0.9.8.N` increments
+- Current: **v1.3.N** (auto-incremented, aligned with upstream v1.3 architecture)
+- Tags follow: `v1.3.N` increments (v1.3.0 = Phase 1–3 architectural parity with upstream)
 - The hassio addon version MUST match the fork tag
+- Previous scheme `v0.9.8.N` was used before the upstream backport (Phases 1–3)
 
 Automated release flow (on merge to `main`):
 1. CI runs unit tests → integration tests
 2. Auto-determines next version from latest git tag
-3. Builds Docker image `ghcr.io/nafania/agent-zero:v0.9.8.N`
-4. Creates and pushes git tag `v0.9.8.N`
+3. Builds Docker image `ghcr.io/nafania/agent-zero:v1.3.N`
+4. Creates and pushes git tag `v1.3.N`
 5. Triggers `repository_dispatch` in `Nafania/agent-zero-hassio`
 
 Required secrets:
@@ -184,7 +192,7 @@ Git-based projects with clone authentication for public/private repositories. Ea
 ## Fork Changes vs Upstream
 
 Key additions over [agent0ai/agent-zero](https://github.com/agent0ai/agent-zero):
-- **Plugin system** with 10 built-in plugins (8 moved back to core: a2a, document_query, notifications, scheduler, search, skills, vision), `@extensible` decorator, dynamic API dispatch
+- **Plugin system** with 10 built-in plugins (`_` prefix convention, 8 moved back to core), `@extensible` decorator, dynamic API dispatch
 - **A2 path restructure** — `python/` prefix removed, aligned with upstream v1.1
 - Cognee memory persistence on addon volume (env vars before import)
 - Auto re-import knowledge when Cognee DB is empty
@@ -203,11 +211,12 @@ Key additions over [agent0ai/agent-zero](https://github.com/agent0ai/agent-zero)
 - **Markers:** `integration` (real services), `slow` (>5s), `regression` (fixed bugs)
 - **CI:** GitHub Actions (`ci.yml`) on push to `main`/`develop`, runs `pytest tests/ -m "not integration"`. On merge to `main`: integration tests → Docker build → auto-tag → notify hassio.
 - **Dependencies in CI:** `requirements.txt` + `requirements2.txt` + `requirements.dev.txt`
-- **Coverage:** ~76% line coverage, ~2400 tests
+- **Coverage:** ~76% line coverage, ~2650 tests
 - **Structure:** mirrors top-level packages — `tests/helpers/`, `tests/api/`, `tests/extensions/`, `tests/tools/`, `tests/integration/`
 
 ## Origin
 
 - Originally forked from [agent0ai/agent-zero](https://github.com/agent0ai/agent-zero) v0.9.8
-- Upstream remote removed — this is now an independent repository
-- No further upstream syncs planned; fork diverges significantly in memory, MCP, and addon areas
+- Upstream remote: `https://github.com/frdel/agent-zero.git` (for ongoing backport)
+- Architectural parity with upstream v1.3 achieved (Phases 1–3 of backport plan)
+- Phase 4 (features + backlog) in progress — see `docs/specs/2026-03-28-upstream-backport-design.md`
