@@ -33,7 +33,7 @@ class TestFunctionsDirectoryStructure:
         [
             "plugins/_error_retry/extensions/python/_functions/agent/Agent/handle_exception/end/_80_retry_critical_exception.py",
             "plugins/_error_retry/extensions/python/_functions/agent/Agent/monologue/start/_10_reset_critical_exception_counter.py",
-            "plugins/browser/extensions/python/_functions/agent/Agent/get_browser_model/start/_10_browser_agent.py",
+            "plugins/_browser_agent/extensions/python/_functions/agent/Agent/get_browser_model/start/_10_browser_agent.py",
         ],
     )
     def test_plugin_extension_file_exists(self, rel_path):
@@ -43,10 +43,10 @@ class TestFunctionsDirectoryStructure:
     @pytest.mark.parametrize(
         "rel_path",
         [
-            "plugins/model_config/extensions/python/_functions/agent/Agent/get_chat_model/start/_10_model_config.py",
-            "plugins/model_config/extensions/python/_functions/agent/Agent/get_embedding_model/start/_10_model_config.py",
-            "plugins/model_config/extensions/python/_functions/agent/Agent/get_utility_model/start/_10_model_config.py",
-            "plugins/model_config/extensions/python/_functions/agent/Agent/get_browser_model/start/_10_model_config.py",
+            "plugins/_model_config/extensions/python/_functions/agent/Agent/get_chat_model/start/_10_model_config.py",
+            "plugins/_model_config/extensions/python/_functions/agent/Agent/get_embedding_model/start/_10_model_config.py",
+            "plugins/_model_config/extensions/python/_functions/agent/Agent/get_utility_model/start/_10_model_config.py",
+            "plugins/_model_config/extensions/python/_functions/agent/Agent/get_browser_model/start/_10_model_config.py",
         ],
     )
     def test_model_config_extension_file_exists(self, rel_path):
