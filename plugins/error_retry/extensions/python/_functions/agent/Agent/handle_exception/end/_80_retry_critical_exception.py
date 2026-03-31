@@ -7,7 +7,7 @@ from helpers import errors, plugins
 from helpers.print_style import PrintStyle
 from agent import HandledException
 
-from plugins.error_retry.extensions.python._functions.agent.Agent.monologue.start._10_reset_critical_exception_counter import DATA_NAME_COUNTER
+from plugins.error_retry.constants import DATA_NAME_COUNTER
 
 
 # NOTE: This extension becomes active when handle_exception is refactored to be the
@@ -15,7 +15,9 @@ from plugins.error_retry.extensions.python._functions.agent.Agent.monologue.star
 # retry_critical_exception code path in agent.py monologue(). Until then, the fork's
 # handle_exception() simply re-raises, so this code path is not reached in production.
 class RetryCriticalException(Extension):
-    async def execute(self, data: dict = {}, **kwargs):
+    async def execute(self, data: dict | None = None, **kwargs):
+        if data is None:
+            data = {}
         if not self.agent:
             return
 
@@ -29,6 +31,10 @@ class RetryCriticalException(Extension):
             return
 
         config = plugins.get_plugin_config("error_retry", agent=self.agent) or {}
+
+        if not config.get("retry_on_critical", True):
+            return
+
         max_retries = config.get("max_retries", 3)
         delay = config.get("retry_delay", 3)
 

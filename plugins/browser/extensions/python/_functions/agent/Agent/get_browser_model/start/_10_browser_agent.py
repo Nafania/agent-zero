@@ -8,5 +8,5 @@ from helpers.extension import Extension
 
 
 class BrowserModelProvider(Extension):
-    def execute(self, data: dict = {}, **kwargs):
+    def execute(self, data: dict | None = None, **kwargs):
         pass

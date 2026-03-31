@@ -1,2 +1,3 @@
 max_retries: 3
+retry_delay: 3
 retry_on_critical: true

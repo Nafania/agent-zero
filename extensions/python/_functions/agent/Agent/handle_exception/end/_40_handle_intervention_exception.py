@@ -5,7 +5,9 @@ from agent import InterventionException
 # NOTE: Active when handle_exception is refactored to delegate to extensions
 # instead of the current inline re-raise pattern in agent.py.
 class HandleInterventionException(Extension):
-    async def execute(self, data: dict = {}, **kwargs):
+    async def execute(self, data: dict | None = None, **kwargs):
+        if data is None:
+            data = {}
         if not self.agent:
             return
 

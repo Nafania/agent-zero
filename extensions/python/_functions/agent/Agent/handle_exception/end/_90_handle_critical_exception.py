@@ -9,7 +9,9 @@ from agent import HandledException
 # NOTE: Active when handle_exception is refactored to delegate to extensions
 # instead of the current inline re-raise pattern in agent.py.
 class HandleCriticalException(Extension):
-    async def execute(self, data: dict = {}, **kwargs):
+    async def execute(self, data: dict | None = None, **kwargs):
+        if data is None:
+            data = {}
         if not self.agent:
             return
 

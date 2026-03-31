@@ -195,6 +195,19 @@ class TestHandleCriticalException:
         assert data["exception"] is original
 
     @pytest.mark.asyncio
+    async def test_wraps_cancelled_error(self, mock_agent):
+        import asyncio
+        from agent import HandledException
+        from extensions.python._functions.agent.Agent.handle_exception.end._90_handle_critical_exception import (
+            HandleCriticalException,
+        )
+
+        data = {"exception": asyncio.CancelledError()}
+        ext = HandleCriticalException(agent=mock_agent)
+        await ext.execute(data=data)
+        assert isinstance(data["exception"], HandledException)
+
+    @pytest.mark.asyncio
     async def test_noop_without_exception(self, mock_agent):
         from extensions.python._functions.agent.Agent.handle_exception.end._90_handle_critical_exception import (
             HandleCriticalException,
@@ -211,9 +224,9 @@ class TestResetCriticalExceptionCounter:
 
     @pytest.mark.asyncio
     async def test_resets_counter(self, mock_agent):
+        from plugins.error_retry.constants import DATA_NAME_COUNTER
         from plugins.error_retry.extensions.python._functions.agent.Agent.monologue.start._10_reset_critical_exception_counter import (
             ResetCriticalExceptionCounter,
-            DATA_NAME_COUNTER,
         )
 
         ext = ResetCriticalExceptionCounter(agent=mock_agent)
@@ -235,9 +248,7 @@ class TestRetryCriticalException:
 
     @pytest.mark.asyncio
     async def test_resets_counter_when_no_exception(self, mock_agent):
-        from plugins.error_retry.extensions.python._functions.agent.Agent.monologue.start._10_reset_critical_exception_counter import (
-            DATA_NAME_COUNTER,
-        )
+        from plugins.error_retry.constants import DATA_NAME_COUNTER
         from plugins.error_retry.extensions.python._functions.agent.Agent.handle_exception.end._80_retry_critical_exception import (
             RetryCriticalException,
         )
@@ -250,9 +261,7 @@ class TestRetryCriticalException:
     @pytest.mark.asyncio
     async def test_resets_counter_on_handled_exception(self, mock_agent):
         from agent import HandledException
-        from plugins.error_retry.extensions.python._functions.agent.Agent.monologue.start._10_reset_critical_exception_counter import (
-            DATA_NAME_COUNTER,
-        )
+        from plugins.error_retry.constants import DATA_NAME_COUNTER
         from plugins.error_retry.extensions.python._functions.agent.Agent.handle_exception.end._80_retry_critical_exception import (
             RetryCriticalException,
         )
