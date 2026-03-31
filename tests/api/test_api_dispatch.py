@@ -44,13 +44,23 @@ class TestRegisterApiRoute:
         rules = {rule.rule for rule in app.url_map.iter_rules()}
         assert "/<path:path>" in rules
 
-    def test_both_routes_accept_all_methods(self):
+    def test_canonical_route_accepts_all_methods(self):
         app = _make_app()
         lock = threading.Lock()
         register_api_route(app, lock)
         for rule in app.url_map.iter_rules():
-            if rule.rule in ("/api/<path:path>", "/<path:path>"):
+            if rule.rule == "/api/<path:path>":
                 for method in ("GET", "POST", "PUT", "PATCH", "DELETE"):
+                    assert method in rule.methods
+
+    def test_compat_catchall_excludes_get(self):
+        app = _make_app()
+        lock = threading.Lock()
+        register_api_route(app, lock)
+        for rule in app.url_map.iter_rules():
+            if rule.rule == "/<path:path>" and rule.endpoint == "api_dispatch_compat":
+                assert "GET" not in rule.methods
+                for method in ("POST", "PUT", "PATCH", "DELETE"):
                     assert method in rule.methods
 
 
