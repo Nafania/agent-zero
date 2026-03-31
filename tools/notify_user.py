@@ -1,6 +1,6 @@
 from helpers.tool import Tool, Response
 from agent import AgentContext
-from plugins._notifications.helpers.notification import NotificationPriority, NotificationType
+from helpers.notification import NotificationPriority, NotificationType
 
 class NotifyUserTool(Tool):
 

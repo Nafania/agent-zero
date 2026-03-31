@@ -12,7 +12,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from api.scheduler_task_run import SchedulerTaskRun
-from plugins._scheduler.helpers.task_scheduler import TaskState
+from helpers.task_scheduler import TaskState
 
 
 def _make_handler():

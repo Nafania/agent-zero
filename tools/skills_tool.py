@@ -5,7 +5,7 @@ from typing import List
 
 from helpers.tool import Tool, Response
 from helpers import projects, files, file_tree, runtime
-from plugins._skills.helpers import skills as skills_helper
+from helpers import skills as skills_helper
 
 
 DATA_NAME_LOADED_SKILLS = "loaded_skills"

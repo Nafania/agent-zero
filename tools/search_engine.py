@@ -4,7 +4,7 @@ from helpers import dotenv
 from helpers.tool import Tool, Response
 from helpers.print_style import PrintStyle
 from helpers.errors import handle_error
-from plugins._search.helpers.searxng import search as searxng
+from helpers.searxng import search as searxng
 
 SEARCH_ENGINE_RESULTS = 10
 

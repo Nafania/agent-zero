@@ -38,7 +38,7 @@ _STUB_MODULES = [
     "helpers.dotenv",
     "helpers.runtime",
     "helpers.secrets",
-    "plugins._notifications.helpers.notification",
+    "helpers.notification",
     "helpers.providers",
     "helpers.dirty_json",
     "helpers.whisper",
@@ -84,7 +84,7 @@ sys.modules["helpers.files"].make_dirs = lambda *a: None
 sys.modules["helpers.files"].read_file = lambda *a: "{}"
 sys.modules["helpers.files"].write_file = lambda *a: None
 
-from plugins._scheduler.helpers.task_scheduler import (
+from helpers.task_scheduler import (
     TaskState,
     TaskType,
     TaskSchedule,
@@ -507,7 +507,7 @@ class TestRecoverStuckTasks:
         mock_deferred = MagicMock()
         mock_deferred.is_alive.return_value = True
         sched._running_deferred_tasks[task.uuid] = mock_deferred
-        with patch("plugins._scheduler.helpers.task_scheduler._stuck_timeout", return_value=1800):
+        with patch("helpers.task_scheduler._stuck_timeout", return_value=1800):
             await sched._recover_stuck_tasks()
         mock_deferred.kill.assert_called_once_with(terminate_thread=True)
         sched.update_task.assert_called_once_with(task.uuid, state=TaskState.IDLE)

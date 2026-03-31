@@ -4,7 +4,7 @@ import json
 import random
 import re
 from helpers.tool import Tool, Response
-from plugins._scheduler.helpers.task_scheduler import (
+from helpers.task_scheduler import (
     TaskScheduler, ScheduledTask, AdHocTask, PlannedTask,
     serialize_task, TaskState, TaskSchedule, TaskPlan, parse_datetime, serialize_datetime
 )

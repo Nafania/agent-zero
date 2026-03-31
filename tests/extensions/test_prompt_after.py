@@ -44,7 +44,7 @@ class TestIncludeLoadedSkills:
         mock_agent.data = MagicMock()
         mock_agent.data.get.return_value = None
 
-        from plugins._skills.extensions.python.message_loop_prompts_after._65_include_loaded_skills import (
+        from extensions.python.message_loop_prompts_after._65_include_loaded_skills import (
             IncludeLoadedSkills,
         )
 
@@ -62,10 +62,10 @@ class TestIncludeLoadedSkills:
         )
 
         with patch(
-            "plugins._skills.extensions.python.message_loop_prompts_after._65_include_loaded_skills.skills.load_skill_for_agent",
+            "extensions.python.message_loop_prompts_after._65_include_loaded_skills.skills.load_skill_for_agent",
             side_effect=lambda **kw: "skill content",
         ):
-            from plugins._skills.extensions.python.message_loop_prompts_after._65_include_loaded_skills import (
+            from extensions.python.message_loop_prompts_after._65_include_loaded_skills import (
                 IncludeLoadedSkills,
             )
 
