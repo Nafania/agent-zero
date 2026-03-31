@@ -500,6 +500,8 @@ def _flatten_search_results(results: Any) -> list[tuple[Any, str]]:
         sr = None
         if isinstance(result, dict):
             sr = result.get("search_result") or result.get("context_result")
+            if sr is None:
+                sr = result.get("text")
         elif hasattr(result, "search_result"):
             sr = result.search_result
 
@@ -509,10 +511,9 @@ def _flatten_search_results(results: Any) -> list[tuple[Any, str]]:
         if isinstance(sr, str) and sr.strip():
             flat.append((sr.strip(), str(ds)))
         elif isinstance(sr, list):
-            for item in sr:
-                text = str(item).strip() if item else ""
-                if text:
-                    flat.append((text, str(ds)))
+            joined = "\n".join(str(item).strip() for item in sr if item)
+            if joined.strip():
+                flat.append((joined.strip(), str(ds)))
 
     return flat
 
