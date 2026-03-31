@@ -4,6 +4,7 @@ import * as modals from "/js/modals.js";
 import * as notifications from "/components/notifications/notification-store.js";
 import { store as chatsStore } from "/components/sidebar/chats/chats-store.js";
 import { store as browserStore } from "/components/modals/file-browser/file-browser-store.js";
+import { store as skillsImportStore } from "/components/settings/skills/skills-import-store.js";
 import * as shortcuts from "/js/shortcuts.js";
 import { showConfirmDialog } from "/js/confirmDialog.js";
 
@@ -63,6 +64,27 @@ const model = {
       .replace(/^-+|-+$/g, "") // remove any leading and trailing underscores
       .replace(/^_+|_+$/g, "");
     return s;
+  },
+
+  getSelectedProjectSkillsPath() {
+    const projectName = this.selectedProject?.name;
+    if (!projectName) return "";
+    return `usr/projects/${projectName}/.a0proj/skills/`;
+  },
+
+  async openSelectedProjectSkillsImport() {
+    const projectName = this.selectedProject?.name;
+    if (!projectName) return;
+
+    skillsImportStore.projectKey = projectName;
+    skillsImportStore.agentProfileKey = "";
+    await modals.openModal("settings/skills/import.html");
+  },
+
+  async openSelectedProjectSkillsFolder() {
+    const path = this.getSelectedProjectSkillsPath();
+    if (!path) return;
+    await browserStore.open(path);
   },
 
   async openProjectsModal() {
@@ -132,7 +154,7 @@ const model = {
     project.name = this._toFolderName(project.title);
 
     try {
-      const response = await api.callJsonApi("/api/projects", {
+      const response = await api.callJsonApi("projects", {
         action: "clone",
         project: {
           name: project.name,
@@ -183,7 +205,7 @@ const model = {
 
   async activateProject(name) {
     try {
-      const response = await api.callJsonApi("/api/projects", {
+      const response = await api.callJsonApi("projects", {
         action: "activate",
         context_id: chatsStore.getSelectedChatId(),
         name: name,
@@ -223,7 +245,7 @@ const model = {
 
   async deactivateProject() {
     try {
-      const response = await api.callJsonApi("/api/projects", {
+      const response = await api.callJsonApi("projects", {
         action: "deactivate",
         context_id: chatsStore.getSelectedChatId(),
       });
@@ -272,10 +294,10 @@ const model = {
     );
     if (!confirmed) return;
     try {
-      const response = await api.callJsonApi("/api/projects", {
+      const response = await api.callJsonApi("projects", {
         action: "delete",
         name: name,
-      });
+        });
       if (response.ok) {
         notifications.toastFrontendSuccess(
           "Project deleted successfully",
@@ -312,7 +334,7 @@ const model = {
   async loadProjectsList() {
     this.loading = true;
     try {
-      const response = await api.callJsonApi("/api/projects", {
+      const response = await api.callJsonApi("projects", {
         action: "list",
       });
       this.projectList = response.data || [];
@@ -334,7 +356,7 @@ const model = {
         if (kvp[0].startsWith("_")) delete data[kvp[0]];
 
       // call backend
-      const response = await api.callJsonApi("/api/projects", {
+      const response = await api.callJsonApi("projects", {
         action: creating ? "create" : "update",
         project: data,
       });
@@ -391,7 +413,7 @@ const model = {
 
   async _createEditProjectData(name) {
     const projectData = (
-      await api.callJsonApi("/api/projects", {
+      await api.callJsonApi("projects", {
         action: "load",
         name: name,
       })
@@ -422,6 +444,56 @@ const model = {
     }
   },
 
+  async browseKnowledgeFiles() {
+    await this.browseSelected(".a0proj", "knowledge");
+    // refresh and reindex project
+    try {
+      // progress notification
+      shortcuts.frontendNotification({
+        type: shortcuts.NotificationType.PROGRESS,
+        message: "Loading knowledge...",
+        priority: shortcuts.NotificationPriority.NORMAL,
+        displayTime: 999,
+        group: "knowledge_load",
+        frontendOnly: true,
+      });
+
+      // call reindex knowledge
+      const reindexCall = api.callJsonApi("/plugins/_memory/knowledge_reindex", {
+        ctxid: shortcuts.getCurrentContextId(),
+      });
+
+      const newData = await this._createEditProjectData(
+        this.selectedProject.name
+      );
+      this.selectedProject.knowledge_files_count =
+        newData.knowledge_files_count;
+
+      // wait for reindex to finish
+      await reindexCall;
+
+      // finished notification
+      shortcuts.frontendNotification({
+        type: shortcuts.NotificationType.SUCCESS,
+        message: "Knowledge loaded successfully",
+        priority: shortcuts.NotificationPriority.NORMAL,
+        displayTime: 2,
+        group: "knowledge_load",
+        frontendOnly: true,
+      });
+    } catch (error) {
+      // error notification
+      shortcuts.frontendNotification({
+        type: shortcuts.NotificationType.ERROR,
+        message: "Error loading knowledge",
+        priority: shortcuts.NotificationPriority.NORMAL,
+        displayTime: 5,
+        group: "knowledge_load",
+        frontendOnly: true,
+      });
+    }
+  },
+
   getSelectedAbsPath(...relPath) {
     return ["/a0/usr/projects", this.selectedProject.name, ...relPath]
       .join("/")
@@ -436,7 +508,7 @@ const model = {
 
   async testFileStructure() {
     try {
-      const response = await api.callJsonApi("/api/projects", {
+      const response = await api.callJsonApi("projects", {
         action: "file_structure",
         name: this.selectedProject.name,
         settings: this.selectedProject.file_structure,

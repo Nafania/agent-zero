@@ -54,7 +54,7 @@ const model = {
     this.isLoading = true;
     
     try {
-      const response = await API.callJsonApi("/api/settings_get", null);
+      const response = await API.callJsonApi("settings_get", null);
       if (response && response.settings) {
         this.settings = response.settings;
         this.additional = response.additional || null;
@@ -119,7 +119,7 @@ const model = {
 
     this.isLoading = true;
     try {
-      const response = await API.callJsonApi("/api/settings_set", { settings: this.settings });
+      const response = await API.callJsonApi("settings_set", { settings: this.settings });
       if (response && response.settings) {
         this.settings = response.settings;
         this.additional = response.additional || this.additional;
@@ -156,7 +156,7 @@ const model = {
   async testWorkdirFileStructure() {
     if (!this.settings) return;
     try {
-      const response = await API.callJsonApi("/api/settings_workdir_file_structure", {
+      const response = await API.callJsonApi("settings_workdir_file_structure", {
         workdir_path: this.settings.workdir_path,
         workdir_max_depth: this.settings.workdir_max_depth,
         workdir_max_files: this.settings.workdir_max_files,

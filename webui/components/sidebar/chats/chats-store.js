@@ -12,33 +12,13 @@ import {
 import { store as notificationStore } from "/components/notifications/notification-store.js";
 import { store as tasksStore } from "/components/sidebar/tasks/tasks-store.js";
 import { store as syncStore } from "/components/sync/sync-store.js";
-
-function formatRelativeTime(isoString, _tick) {
-  if (!isoString) return "";
-  const then = new Date(isoString).getTime();
-  if (isNaN(then)) return "";
-  const seconds = Math.max(0, Math.floor((Date.now() - then) / 1000));
-  if (seconds < 60) return seconds + "s";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return minutes + "m";
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return hours + "h";
-  const days = Math.floor(hours / 24);
-  if (days < 7) return days + "d";
-  const weeks = Math.floor(days / 7);
-  return weeks + "w";
-}
+import { store as chatInputStore } from "/components/chat/input/input-store.js";
 
 const model = {
   contexts: [],
   selected: "",
   selectedContext: null,
   loggedIn: false,
-  _prevRunning: {},
-  _unreadIds: {},
-
-  formatRelativeTime,
-  _tick: 0,
 
   // for convenience
   getSelectedChatId() {
@@ -51,34 +31,31 @@ const model = {
 
   init() {
     this.loggedIn = Boolean(window.runtimeInfo && window.runtimeInfo.loggedIn);
+
+    // URL parameter takes priority (e.g. ?ctxid=abc from "open in new window")
+    const urlParams = new URL(window.location.href).searchParams;
+    const urlCtxId = urlParams.get("ctxid");
+    if (urlCtxId) {
+      const cleanUrl = new URL(window.location.href);
+      cleanUrl.searchParams.delete("ctxid");
+      window.history.replaceState({}, "", cleanUrl);
+      this.selectChat(urlCtxId);
+      return;
+    }
+
     // Initialize from sessionStorage
     const lastSelectedChat = sessionStorage.getItem("lastSelectedChat");
     if (lastSelectedChat) {
       this.selectChat(lastSelectedChat);
     }
-    setInterval(() => { this._tick++; }, 10000);
   },
 
   // Update contexts from polling
   applyContexts(contextsList) {
-    if (contextsList === null || contextsList === undefined) return;
-    this.contexts = contextsList.sort((a, b) => {
-      const ta = a.last_message ? new Date(a.last_message).getTime() : 0;
-      const tb = b.last_message ? new Date(b.last_message).getTime() : 0;
-      return tb - ta;
-    });
-
-    // Detect running → stopped transitions for non-selected chats
-    for (const ctx of this.contexts) {
-      const wasRunning = this._prevRunning[ctx.id] || false;
-      const isRunning = ctx.running || false;
-
-      if (wasRunning && !isRunning && ctx.id !== this.selected) {
-        this._unreadIds[ctx.id] = true;
-      }
-      this._prevRunning[ctx.id] = isRunning;
-      ctx.unread = !!this._unreadIds[ctx.id];
-    }
+    // Sort by created_at time (newer first)
+    this.contexts = contextsList.sort(
+      (a, b) => (b.created_at || 0) - (a.created_at || 0)
+    );
 
     // Keep selectedContext in sync when the currently selected context's
     // metadata changes (e.g. project activation/deactivation).
@@ -95,13 +72,6 @@ const model = {
   async selectChat(id) {
     const currentContext = getContext();
     if (id === currentContext) return; // already selected
-
-    // Clear unread state for this chat
-    if (this._unreadIds[id]) {
-      delete this._unreadIds[id];
-      const ctx = this.contexts.find((c) => c.id === id);
-      if (ctx) ctx.unread = false;
-    }
 
     // Proceed with context selection
     setContext(id);
@@ -129,8 +99,6 @@ const model = {
       return;
     }
 
-    console.log("Deleting chat with ID:", id);
-
     try {
       // Switch to another context if deleting current
       if (this.selected === id) {
@@ -138,15 +106,10 @@ const model = {
       }
 
       // Delete the chat on the server
-      await sendJsonData("/api/chat_remove", { context: id });
+      await sendJsonData("/chat_remove", { context: id });
 
       // Update the UI - remove from contexts
       const updatedContexts = this.contexts.filter((ctx) => ctx.id !== id);
-      console.log(
-        "Updated contexts after deletion:",
-        JSON.stringify(updatedContexts.map((c) => ({ id: c.id, name: c.name })))
-      );
-
       // Force UI update by creating a new array
       this.contexts = [...updatedContexts];
 
@@ -182,7 +145,7 @@ const model = {
   async resetChat(ctxid = null) {
     try {
       const context = ctxid || this.selected || getContext();
-      await sendJsonData("/api/chat_reset", {
+      await sendJsonData("/chat_reset", {
         context
       });
 
@@ -200,7 +163,7 @@ const model = {
     try {
 
       // first create a new chat on the backend
-      const response = await sendJsonData("/api/chat_create", {
+      const response = await sendJsonData("/chat_create", {
         current_context: this.selected
       });
 
@@ -229,7 +192,7 @@ const model = {
   async loadChats() {
     try {
       const fileContents = await this.readJsonFiles();
-      const response = await sendJsonData("/api/chat_load", { chats: fileContents });
+      const response = await sendJsonData("/chat_load", { chats: fileContents });
 
       if (!response) {
         toast("No response returned.", "error");
@@ -249,7 +212,7 @@ const model = {
   async saveChat() {
     try {
       const context = this.selected || getContext();
-      const response = await sendJsonData("/api/chat_export", { ctxid: context });
+      const response = await sendJsonData("/chat_export", { ctxid: context });
 
       if (!response) {
         toast("No response returned.", "error");
@@ -378,7 +341,7 @@ const model = {
     // The restart endpoint usually drops the connection as the process is replaced.
     // Do not wait on /health - recovery is driven by WebSocket CSRF preflight + reconnect.
     try {
-      await sendJsonData("/api/restart", {});
+      await sendJsonData("/restart", {});
     } catch (_e) {
       // ignore
     }
@@ -386,7 +349,7 @@ const model = {
 
   async logout() {
     try {
-      await callJsonApi("/api/logout", {});
+      await callJsonApi("/logout", {});
     } catch (_e) {
       // ignore
     }

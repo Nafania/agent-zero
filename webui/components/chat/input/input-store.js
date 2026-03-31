@@ -8,7 +8,18 @@ import { store as chatsStore } from "/components/sidebar/chats/chats-store.js";
 const model = {
   paused: false,
   message: "",
-  activeSkill: "",
+  /** Composer + menu (bottom actions moved into dropdown) */
+  chatMoreMenuOpen: false,
+  progressText: "",
+  progressActive: false,
+
+  toggleChatMoreMenu() {
+    this.chatMoreMenuOpen = !this.chatMoreMenuOpen;
+  },
+
+  closeChatMoreMenu() {
+    this.chatMoreMenuOpen = false;
+  },
 
   _getSendState() {
     const hasInput = this.message.trim() || attachmentsStore?.attachments?.length > 0;
@@ -23,6 +34,10 @@ const model = {
   get inputPlaceholder() {
     const state = this._getSendState();
     if (state === "all") return "Press Enter to send queued messages";
+    // Show progress as ghost text when agent is working and input is empty
+    if (this.progressText && !this.message) {
+      return "|>  " + this.progressText;
+    }
     return "Type your message here...";
   },
 
@@ -68,6 +83,7 @@ const model = {
       if (!this.message) chatInput.value = "";
       chatInput.style.height = "auto";
       chatInput.style.height = chatInput.scrollHeight + "px";
+      // pick up any layout shift triggered by the height assignment
       chatInput.style.height = Math.max(chatInput.scrollHeight, parseInt(chatInput.style.height)) + "px";
     }
   },
@@ -79,7 +95,7 @@ const model = {
       const context = globalThis.getContext?.();
       if (!globalThis.sendJsonData)
         throw new Error("sendJsonData not available");
-      await globalThis.sendJsonData("/api/pause", { paused, context });
+      await globalThis.sendJsonData("/pause", { paused, context });
     } catch (e) {
       this.paused = prev;
       if (globalThis.toastFetchError) {
@@ -91,7 +107,7 @@ const model = {
   async nudge() {
     try {
       const context = globalThis.getContext();
-      await globalThis.sendJsonData("/api/nudge", { ctxid: context });
+      await globalThis.sendJsonData("/nudge", { ctxid: context });
     } catch (e) {
       if (globalThis.toastFetchError) {
         globalThis.toastFetchError("Error nudging agent", e);
@@ -101,9 +117,10 @@ const model = {
 
   async loadKnowledge() {
     try {
-      const resp = await shortcuts.callJsonApi("/api/knowledge_path_get", {
-        ctxid: shortcuts.getCurrentContextId(),
-      });
+      const resp = await shortcuts.callJsonApi(
+        "/plugins/_memory/knowledge_path_get",
+        { ctxid: shortcuts.getCurrentContextId() }
+      );
       if (!resp.ok) throw new Error("Error getting knowledge path");
       const path = resp.path;
 
@@ -121,7 +138,7 @@ const model = {
       });
 
       // then reindex knowledge
-      await globalThis.sendJsonData("/api/knowledge_reindex", {
+      await globalThis.sendJsonData("/plugins/_memory/knowledge_reindex", {
         ctxid: shortcuts.getCurrentContextId(),
       });
 
@@ -163,7 +180,7 @@ const model = {
 
         formData.append("ctxid", globalThis.getContext());
 
-        const response = await globalThis.fetchApi("/api/import_knowledge", {
+        const response = await globalThis.fetchApi("/import_knowledge", {
           method: "POST",
           body: formData,
         });
@@ -196,7 +213,7 @@ const model = {
 
       if (ctxid) {
         try {
-          const resp = await shortcuts.callJsonApi("/api/chat_files_path_get", {
+          const resp = await shortcuts.callJsonApi("/chat_files_path_get", {
             ctxid,
           });
           if (resp.ok) path = resp.path;
@@ -208,14 +225,17 @@ const model = {
     await fileBrowserStore.open(path);
   },
 
-  clearSkill() {
-    this.activeSkill = "";
+  focus() {
+    const chatInput = document.getElementById("chat-input");
+    if (chatInput) {
+      chatInput.focus();
+    }
   },
 
   reset() {
     this.message = "";
-    this.activeSkill = "";
     attachmentsStore.clearAttachments();
+    this.chatMoreMenuOpen = false;
     this.adjustTextareaHeight();
   }
 };

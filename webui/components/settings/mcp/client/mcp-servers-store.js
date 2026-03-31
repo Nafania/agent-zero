@@ -87,7 +87,7 @@ const model = {
   },
 
   async _statusCheck() {
-    const resp = await API.callJsonApi("/api/mcp_servers_status", null);
+    const resp = await API.callJsonApi("mcp_servers_status", null);
     if (resp.success) {
       this.servers = resp.status;
       this.servers.sort((a, b) => a.name.localeCompare(b.name));
@@ -103,7 +103,7 @@ const model = {
     this.loading = true;
     try {
       scrollModal("mcp-servers-status");
-      const resp = await API.callJsonApi("/api/mcp_servers_apply", {
+      const resp = await API.callJsonApi("mcp_servers_apply", {
         mcp_servers: this.getEditorValue(),
       });
       if (resp.success) {
@@ -121,7 +121,7 @@ const model = {
 
   async getServerLog(serverName) {
     this.serverLog = "";
-    const resp = await API.callJsonApi("/api/mcp_server_get_log", {
+    const resp = await API.callJsonApi("mcp_server_get_log", {
       server_name: serverName,
     });
     if (resp.success) {
@@ -131,7 +131,7 @@ const model = {
   },
 
   async onToolCountClick(serverName) {
-    const resp = await API.callJsonApi("/api/mcp_server_get_detail", {
+    const resp = await API.callJsonApi("mcp_server_get_detail", {
       server_name: serverName,
     });
     if (resp.success) {
