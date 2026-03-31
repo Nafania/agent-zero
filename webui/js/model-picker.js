@@ -1,4 +1,5 @@
 import { createStore } from "/js/AlpineStore.js";
+import { callJsonApi } from "/js/api.js";
 
 const _STALE_MS = 5 * 60 * 1000;
 
@@ -31,22 +32,14 @@ const model = {
   async loadModels() {
     this.loading = true;
     try {
-      const resp = await fetch("/api/connected_providers", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
-      const data = await resp.json();
+      const data = await callJsonApi("/api/connected_providers", {});
       const providers = (data.providers || []).filter((p) => p.is_active);
 
       const modelPromises = providers.map(async (p) => {
         try {
-          const mResp = await fetch("/api/provider_models", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ provider_id: p.provider_id }),
+          const mData = await callJsonApi("/api/provider_models", {
+            provider_id: p.provider_id,
           });
-          const mData = await mResp.json();
           return { providerId: p.provider_id, models: mData.models || [] };
         } catch (e) {
           console.error(`Failed to load models for ${p.provider_id}:`, e);
@@ -73,12 +66,9 @@ const model = {
   async loadOverride(chatId) {
     this.chatId = chatId;
     try {
-      const resp = await fetch("/api/chat_model_override", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat_id: chatId }),
+      const data = await callJsonApi("/api/chat_model_override", {
+        chat_id: chatId,
       });
-      const data = await resp.json();
       this.currentOverride = data.override;
     } catch (e) {
       this.currentOverride = null;
@@ -88,14 +78,10 @@ const model = {
   async selectModel(providerId, modelId) {
     if (!this.chatId) return;
     try {
-      await fetch("/api/chat_model_override", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: this.chatId,
-          provider: providerId,
-          model: modelId,
-        }),
+      await callJsonApi("/api/chat_model_override", {
+        chat_id: this.chatId,
+        provider: providerId,
+        model: modelId,
       });
       this.currentOverride = { provider: providerId, model: modelId };
       this.open = false;
@@ -107,10 +93,9 @@ const model = {
   async resetToDefault() {
     if (!this.chatId) return;
     try {
-      await fetch("/api/chat_model_override", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat_id: this.chatId, reset: true }),
+      await callJsonApi("/api/chat_model_override", {
+        chat_id: this.chatId,
+        reset: true,
       });
       this.currentOverride = null;
       this.open = false;

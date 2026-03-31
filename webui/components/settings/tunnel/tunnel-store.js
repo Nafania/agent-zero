@@ -95,7 +95,7 @@ const model = {
     this.hasError = false;
     this.notificationPollInterval = setInterval(async () => {
       try {
-        const response = await fetchApi("/tunnel_proxy", {
+        const response = await fetchApi("/api/tunnel_proxy", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "notifications" }),
@@ -151,7 +151,7 @@ const model = {
 
   async checkTunnelStatus() {
     try {
-      const response = await fetchApi("/tunnel_proxy", {
+      const response = await fetchApi("/api/tunnel_proxy", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -176,7 +176,7 @@ const model = {
 
         if (storedTunnelUrl) {
           // Use the stored URL but verify it's still valid
-          const verifyResponse = await fetchApi("/tunnel_proxy", {
+          const verifyResponse = await fetchApi("/api/tunnel_proxy", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -233,7 +233,7 @@ const model = {
 
       try {
         // First stop any existing tunnel
-        const stopResponse = await fetchApi("/tunnel_proxy", {
+        const stopResponse = await fetchApi("/api/tunnel_proxy", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -267,7 +267,7 @@ const model = {
   async generateLink() {
     // First check if authentication is enabled
     try {
-      const authCheckResponse = await fetchApi("/settings_get");
+      const authCheckResponse = await fetchApi("/api/settings_get");
       const authData = await authCheckResponse.json();
 
       // Find the auth_login and auth_password in the settings
@@ -317,7 +317,7 @@ const model = {
 
     try {
       // Call the backend API to create a tunnel
-      const response = await fetchApi("/tunnel_proxy", {
+      const response = await fetchApi("/api/tunnel_proxy", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -392,7 +392,7 @@ const model = {
 
       try {
         // Call the backend to stop the tunnel
-        const response = await fetchApi("/tunnel_proxy", {
+        const response = await fetchApi("/api/tunnel_proxy", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

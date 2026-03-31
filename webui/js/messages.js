@@ -1693,7 +1693,7 @@ function convertImgFilePaths(str) {
 }
 
 function convertFilePaths(str) {
-  return str.replace(/file:\/\//g, "/download_work_dir_file?path=");
+  return str.replace(/file:\/\//g, "/api/download_work_dir_file?path=");
 }
 
 function escapeHTML(str) {

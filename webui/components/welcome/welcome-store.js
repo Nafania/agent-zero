@@ -50,7 +50,7 @@ const model = {
   // Call backend API for additional banners
   async runBackendBannerChecks(frontendBanners, frontendContext) {
     try {
-      const response = await API.callJsonApi("/banners", {
+      const response = await API.callJsonApi("/api/banners", {
         banners: frontendBanners,
         context: frontendContext,
       });

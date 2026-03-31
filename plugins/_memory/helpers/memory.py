@@ -228,6 +228,10 @@ class Memory:
         datasets = self.get_search_datasets() if include_default else [self.dataset_name]
 
         try:
+            # GRAPH_COMPLETION traverses the knowledge graph for relevance.
+            # only_context=True skips Cognee's internal LLM (prevents hallucination).
+            # verbose=True returns structured Edge/Node objects in objects_result
+            # instead of a raw context string with internal markers.
             results = await cognee.search(
                 query_text=query,
                 top_k=limit,
@@ -235,6 +239,8 @@ class Memory:
                 node_type=NodeSet,
                 node_name=node_names if node_names else None,
                 session_id=session_id,
+                only_context=True,
+                verbose=True,
             )
         except Exception as e:
             PrintStyle.error(f"cognee.search failed: {e}")
@@ -413,29 +419,31 @@ def _results_to_documents(results: Any, limit: int) -> list[Document]:
     if not results:
         return docs
 
-    for result in results:
+    flat = _flatten_search_results(results)
+
+    for item, dataset_name in flat:
         if len(docs) >= limit:
             break
 
         content = ""
         metadata: dict[str, Any] = {}
 
-        raw = _unwrap_search_result(result)
-
-        if isinstance(raw, str):
-            content, metadata = _extract_metadata_from_text(raw)
-        elif hasattr(raw, "text"):
-            content, metadata = _extract_metadata_from_text(str(raw.text))
-        elif hasattr(raw, "page_content"):
-            content = raw.page_content
-            metadata = getattr(raw, "metadata", {})
-        elif isinstance(raw, dict):
-            content = raw.get("text", raw.get("content", str(raw)))
-            content, metadata = _extract_metadata_from_text(content)
+        if isinstance(item, str):
+            content, metadata = _extract_metadata_from_text(item)
+        elif isinstance(item, dict):
+            content = item.get("text", item.get("content", ""))
+            if content:
+                content, metadata = _extract_metadata_from_text(content)
+            if item.get("id") and not metadata.get("id"):
+                metadata["id"] = str(item["id"])
+        elif hasattr(item, "text"):
+            content, metadata = _extract_metadata_from_text(str(item.text))
+        elif hasattr(item, "page_content"):
+            content = item.page_content
+            metadata = getattr(item, "metadata", {})
         else:
-            content, metadata = _extract_metadata_from_text(str(raw))
+            content, metadata = _extract_metadata_from_text(str(item))
 
-        dataset_name = _extract_dataset_name(result)
         if dataset_name:
             metadata.setdefault("dataset", dataset_name)
 
@@ -455,30 +463,85 @@ def _results_to_documents(results: Any, limit: int) -> list[Document]:
     return docs
 
 
-def _unwrap_search_result(result: Any) -> Any:
-    """Extract the actual content from a Cognee search result wrapper.
+def _flatten_search_results(results: Any) -> list[tuple[Any, str]]:
+    """Flatten verbose Cognee results into (node_text, dataset_name) pairs.
 
-    Cognee >=0.5 returns objects/dicts with structure:
-      {dataset_id, dataset_name, dataset_tenant_id, search_result: [str, ...]}
-    where search_result is a list of strings. Earlier versions returned
-    objects with a .search_result attribute holding a single value.
+    With verbose=True, each result is a dict:
+      {objects_result: [Edge, ...], context_result: str, text_result: str,
+       dataset_name: str, ...}
+
+    We extract unique graph nodes from Edge objects in objects_result and
+    return each node's text content. This avoids parsing Cognee's internal
+    context format (__node_content_start__ markers) entirely.
+
+    Falls back to search_result/context_result for non-verbose results.
     """
-    raw = result
+    flat: list[tuple[Any, str]] = []
+    if not results:
+        return flat
 
-    # Object with .search_result attribute
-    if hasattr(result, "search_result"):
-        raw = result.search_result
-    # Dict with 'search_result' key
-    elif isinstance(result, dict) and "search_result" in result:
-        raw = result["search_result"]
+    for result in results:
+        ds = ""
+        objects = None
 
-    # search_result is often a list — unwrap single-element lists,
-    # join multi-element lists into one string
-    if isinstance(raw, list):
-        texts = [str(item) for item in raw if item]
-        raw = "\n".join(texts) if texts else ""
+        if isinstance(result, dict):
+            ds = result.get("dataset_name", "") or ""
+            objects = result.get("objects_result")
+        elif hasattr(result, "dataset_name"):
+            ds = str(getattr(result, "dataset_name", "") or "")
+            objects = (getattr(result, "objects_result", None)
+                       or getattr(result, "result_object", None))
 
-    return raw
+        if objects and isinstance(objects, list):
+            _extract_nodes_to_flat(objects, str(ds), flat)
+            continue
+
+        # Fallback for non-verbose / legacy results
+        sr = None
+        if isinstance(result, dict):
+            sr = result.get("search_result") or result.get("context_result")
+        elif hasattr(result, "search_result"):
+            sr = result.search_result
+
+        if sr is None:
+            sr = result
+
+        if isinstance(sr, str) and sr.strip():
+            flat.append((sr.strip(), str(ds)))
+        elif isinstance(sr, list):
+            for item in sr:
+                text = str(item).strip() if item else ""
+                if text:
+                    flat.append((text, str(ds)))
+
+    return flat
+
+
+def _extract_nodes_to_flat(
+    objects: list, dataset_name: str, flat: list[tuple[Any, str]]
+) -> None:
+    """Extract unique node texts from a list of Cognee Edge objects."""
+    seen_ids: set = set()
+    for obj in objects:
+        nodes = []
+        if hasattr(obj, "node1") and hasattr(obj, "node2"):
+            nodes = [obj.node1, obj.node2]
+        elif hasattr(obj, "attributes") and hasattr(obj, "id"):
+            nodes = [obj]
+
+        for node in nodes:
+            node_id = getattr(node, "id", None)
+            if node_id and node_id in seen_ids:
+                continue
+            if node_id:
+                seen_ids.add(node_id)
+
+            attrs = getattr(node, "attributes", {}) or {}
+            text = attrs.get("text", "")
+            if not text:
+                text = attrs.get("description", attrs.get("name", ""))
+            if text and text.strip():
+                flat.append((text.strip(), dataset_name))
 
 
 def _extract_dataset_name(result: Any) -> str:

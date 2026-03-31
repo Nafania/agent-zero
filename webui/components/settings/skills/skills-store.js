@@ -47,7 +47,7 @@ const model = {
         this.catalogError = "";
         this.catalogResults = [];
         try {
-            const resp = await fetchApi("/skills_catalog", {
+            const resp = await fetchApi("/api/skills_catalog", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ query }),
@@ -73,7 +73,7 @@ const model = {
         this.installSuccess = "";
         this.installResult = null;
         try {
-            const resp = await fetchApi("/skill_install", {
+            const resp = await fetchApi("/api/skill_install", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ source }),
@@ -109,7 +109,7 @@ const model = {
         this.installedLoading = true;
         this.installedError = "";
         try {
-            const resp = await fetchApi("/skills", {
+            const resp = await fetchApi("/api/skills", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -135,7 +135,7 @@ const model = {
     async deleteSkill(skill) {
         if (!skill) return;
         try {
-            const resp = await fetchApi("/skills", {
+            const resp = await fetchApi("/api/skills", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ action: "delete", skill_path: skill.path }),
@@ -155,7 +155,7 @@ const model = {
 
     async loadProjects() {
         try {
-            const resp = await fetchApi("/projects", {
+            const resp = await fetchApi("/api/projects", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ action: "list_options" }),
@@ -171,7 +171,7 @@ const model = {
         if (!skill) return;
         const actualTarget = targetProject === "__global__" ? "" : targetProject;
         try {
-            const resp = await fetchApi("/skills", {
+            const resp = await fetchApi("/api/skills", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -200,7 +200,7 @@ const model = {
         this.updateLoading = true;
         this.updateStatus = "";
         try {
-            const resp = await fetchApi("/skills", {
+            const resp = await fetchApi("/api/skills", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ action: "check_updates" }),
@@ -222,7 +222,7 @@ const model = {
         this.updateLoading = true;
         this.updateStatus = "";
         try {
-            const resp = await fetchApi("/skills", {
+            const resp = await fetchApi("/api/skills", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ action: "update" }),

@@ -71,7 +71,7 @@ export function mountMemoryRecallFeedback(container, rawItems) {
         status.textContent = "Sending…";
         b.disabled = true;
         try {
-          const out = await callJsonApi("/memory_feedback", {
+          const out = await callJsonApi("/api/memory_feedback", {
             context_id: ctx,
             dataset: ds,
             memory_id: mid,

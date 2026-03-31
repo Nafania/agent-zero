@@ -387,7 +387,7 @@ const model = {
   async downloadAttachment(filename) {
     try {
       const path = this.getServerFileUrl(filename);
-      const response = await fetchApi("/download_work_dir_file?path=" + path);
+      const response = await fetchApi("/api/download_work_dir_file?path=" + path);
 
       if (!response.ok) {
         throw new Error("Network response was not ok");

@@ -70,6 +70,12 @@ class RecallMemories(Extension):
 
         try:
             session_id = getattr(self.agent.context, 'id', None)
+            # GRAPH_COMPLETION returns more relevant results than CHUNKS because
+            # it traverses the knowledge graph and follows entity relationships.
+            # only_context=True prevents Cognee's internal LLM from synthesizing
+            # an answer (which hallucinated). verbose=True gives us structured
+            # objects_result (Edge/Node objects) instead of a raw context string
+            # with internal markers — no fragile text parsing needed.
             mem_answers, sol_answers = await asyncio.gather(
                 cognee.search(
                     query_text=query,
@@ -78,6 +84,8 @@ class RecallMemories(Extension):
                     node_type=NodeSet,
                     node_name=mem_node_name,
                     session_id=session_id,
+                    only_context=True,
+                    verbose=True,
                 ),
                 cognee.search(
                     query_text=query,
@@ -86,6 +94,8 @@ class RecallMemories(Extension):
                     node_type=NodeSet,
                     node_name=sol_node_name,
                     session_id=session_id,
+                    only_context=True,
+                    verbose=True,
                 ),
             )
         except OSError as e:

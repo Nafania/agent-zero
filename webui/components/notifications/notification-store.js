@@ -232,7 +232,7 @@ const model = {
 
       // Sync with backend (non-blocking)
       try {
-        await API.callJsonApi("notifications_mark_read", {
+        await API.callJsonApi("/api/notifications_mark_read", {
           notification_ids: [notificationId],
         });
       } catch (error) {
@@ -258,7 +258,7 @@ const model = {
 
     // Sync with backend (non-blocking)
     try {
-      await API.callJsonApi("notifications_mark_read", {
+      await API.callJsonApi("/api/notifications_mark_read", {
         mark_all: true,
       });
     } catch (error) {
@@ -276,7 +276,7 @@ const model = {
 
   async clearBackendNotifications() {
     try {
-      await API.callJsonApi("notifications_clear", null);
+      await API.callJsonApi("/api/notifications_clear", null);
     } catch (error) {
       console.error("Failed to clear notifications:", error);
     }
@@ -387,7 +387,7 @@ const model = {
     priority = defaultPriority
   ) {
     try {
-      const response = await globalThis.sendJsonData("/notification_create", {
+      const response = await globalThis.sendJsonData("/api/notification_create", {
         type: type,
         message: message,
         title: title,

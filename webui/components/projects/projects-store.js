@@ -132,7 +132,7 @@ const model = {
     project.name = this._toFolderName(project.title);
 
     try {
-      const response = await api.callJsonApi("projects", {
+      const response = await api.callJsonApi("/api/projects", {
         action: "clone",
         project: {
           name: project.name,
@@ -183,7 +183,7 @@ const model = {
 
   async activateProject(name) {
     try {
-      const response = await api.callJsonApi("projects", {
+      const response = await api.callJsonApi("/api/projects", {
         action: "activate",
         context_id: chatsStore.getSelectedChatId(),
         name: name,
@@ -223,7 +223,7 @@ const model = {
 
   async deactivateProject() {
     try {
-      const response = await api.callJsonApi("projects", {
+      const response = await api.callJsonApi("/api/projects", {
         action: "deactivate",
         context_id: chatsStore.getSelectedChatId(),
       });
@@ -272,7 +272,7 @@ const model = {
     );
     if (!confirmed) return;
     try {
-      const response = await api.callJsonApi("projects", {
+      const response = await api.callJsonApi("/api/projects", {
         action: "delete",
         name: name,
       });
@@ -312,7 +312,7 @@ const model = {
   async loadProjectsList() {
     this.loading = true;
     try {
-      const response = await api.callJsonApi("projects", {
+      const response = await api.callJsonApi("/api/projects", {
         action: "list",
       });
       this.projectList = response.data || [];
@@ -334,7 +334,7 @@ const model = {
         if (kvp[0].startsWith("_")) delete data[kvp[0]];
 
       // call backend
-      const response = await api.callJsonApi("projects", {
+      const response = await api.callJsonApi("/api/projects", {
         action: creating ? "create" : "update",
         project: data,
       });
@@ -391,7 +391,7 @@ const model = {
 
   async _createEditProjectData(name) {
     const projectData = (
-      await api.callJsonApi("projects", {
+      await api.callJsonApi("/api/projects", {
         action: "load",
         name: name,
       })
@@ -436,7 +436,7 @@ const model = {
 
   async testFileStructure() {
     try {
-      const response = await api.callJsonApi("projects", {
+      const response = await api.callJsonApi("/api/projects", {
         action: "file_structure",
         name: this.selectedProject.name,
         settings: this.selectedProject.file_structure,

@@ -77,7 +77,7 @@ const model = {
       const context = globalThis.getContext?.();
       if (!globalThis.sendJsonData)
         throw new Error("sendJsonData not available");
-      await globalThis.sendJsonData("/pause", { paused, context });
+      await globalThis.sendJsonData("/api/pause", { paused, context });
     } catch (e) {
       this.paused = prev;
       if (globalThis.toastFetchError) {
@@ -89,7 +89,7 @@ const model = {
   async nudge() {
     try {
       const context = globalThis.getContext();
-      await globalThis.sendJsonData("/nudge", { ctxid: context });
+      await globalThis.sendJsonData("/api/nudge", { ctxid: context });
     } catch (e) {
       if (globalThis.toastFetchError) {
         globalThis.toastFetchError("Error nudging agent", e);
@@ -99,7 +99,7 @@ const model = {
 
   async loadKnowledge() {
     try {
-      const resp = await shortcuts.callJsonApi("/knowledge_path_get", {
+      const resp = await shortcuts.callJsonApi("/api/knowledge_path_get", {
         ctxid: shortcuts.getCurrentContextId(),
       });
       if (!resp.ok) throw new Error("Error getting knowledge path");
@@ -119,7 +119,7 @@ const model = {
       });
 
       // then reindex knowledge
-      await globalThis.sendJsonData("/knowledge_reindex", {
+      await globalThis.sendJsonData("/api/knowledge_reindex", {
         ctxid: shortcuts.getCurrentContextId(),
       });
 
@@ -161,7 +161,7 @@ const model = {
 
         formData.append("ctxid", globalThis.getContext());
 
-        const response = await globalThis.fetchApi("/import_knowledge", {
+        const response = await globalThis.fetchApi("/api/import_knowledge", {
           method: "POST",
           body: formData,
         });
@@ -191,7 +191,7 @@ const model = {
   async browseFiles(path) {
     if (!path) {
       try {
-        const resp = await shortcuts.callJsonApi("/chat_files_path_get", {
+        const resp = await shortcuts.callJsonApi("/api/chat_files_path_get", {
           ctxid: shortcuts.getCurrentContextId(),
         });
         if (resp.ok) path = resp.path;
