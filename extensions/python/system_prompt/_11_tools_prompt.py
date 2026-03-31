@@ -47,7 +47,7 @@ async def build_prompt(agent: Agent) -> str:
     tools_str = "\n\n".join(tools)
     prompt = agent.read_prompt("agent.system.tools.md", tools=tools_str)
 
-    from plugins.model_config.helpers.model_config import get_chat_model_config
+    from plugins._model_config.helpers.model_config import get_chat_model_config
 
     chat_cfg = get_chat_model_config(agent)
     if chat_cfg.get("vision", False):

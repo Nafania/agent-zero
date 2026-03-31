@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
 import models
-from plugins.model_config.helpers.model_config import (
+from plugins._model_config.helpers.model_config import (
     build_model_config,
     _normalize_kwargs,
     get_config,
@@ -86,39 +86,39 @@ class TestBuildModelConfig:
 
 
 class TestGetConfigHelpers:
-    @patch("plugins.model_config.helpers.model_config.plugins.get_plugin_config")
+    @patch("plugins._model_config.helpers.model_config.plugins.get_plugin_config")
     def test_get_config_delegates_to_plugins(self, mock_get):
         mock_get.return_value = {"chat_model": {"provider": "openai"}}
         result = get_config(agent=None)
-        mock_get.assert_called_once_with("model_config", agent=None, project_name=None, agent_profile=None)
+        mock_get.assert_called_once_with("_model_config", agent=None, project_name=None, agent_profile=None)
         assert result == {"chat_model": {"provider": "openai"}}
 
-    @patch("plugins.model_config.helpers.model_config.plugins.get_plugin_config")
+    @patch("plugins._model_config.helpers.model_config.plugins.get_plugin_config")
     def test_get_config_returns_empty_dict_when_none(self, mock_get):
         mock_get.return_value = None
         assert get_config() == {}
 
-    @patch("plugins.model_config.helpers.model_config.get_config")
+    @patch("plugins._model_config.helpers.model_config.get_config")
     def test_get_chat_model_config(self, mock_cfg):
         mock_cfg.return_value = {"chat_model": {"provider": "anthropic"}}
         assert get_chat_model_config() == {"provider": "anthropic"}
 
-    @patch("plugins.model_config.helpers.model_config.get_config")
+    @patch("plugins._model_config.helpers.model_config.get_config")
     def test_get_utility_model_config(self, mock_cfg):
         mock_cfg.return_value = {"utility_model": {"provider": "openai"}}
         assert get_utility_model_config() == {"provider": "openai"}
 
-    @patch("plugins.model_config.helpers.model_config.get_config")
+    @patch("plugins._model_config.helpers.model_config.get_config")
     def test_get_embedding_model_config(self, mock_cfg):
         mock_cfg.return_value = {"embedding_model": {"name": "all-MiniLM-L6-v2"}}
         assert get_embedding_model_config() == {"name": "all-MiniLM-L6-v2"}
 
-    @patch("plugins.model_config.helpers.model_config.get_config")
+    @patch("plugins._model_config.helpers.model_config.get_config")
     def test_get_browser_model_config(self, mock_cfg):
         mock_cfg.return_value = {"browser_model": {"vision": True}}
         assert get_browser_model_config() == {"vision": True}
 
-    @patch("plugins.model_config.helpers.model_config.get_config")
+    @patch("plugins._model_config.helpers.model_config.get_config")
     def test_missing_section_returns_empty_dict(self, mock_cfg):
         mock_cfg.return_value = {}
         assert get_chat_model_config() == {}
@@ -128,22 +128,22 @@ class TestGetConfigHelpers:
 
 
 class TestCtxHelpers:
-    @patch("plugins.model_config.helpers.model_config.get_chat_model_config")
+    @patch("plugins._model_config.helpers.model_config.get_chat_model_config")
     def test_get_ctx_history_default(self, mock_cfg):
         mock_cfg.return_value = {}
         assert get_ctx_history() == 0.7
 
-    @patch("plugins.model_config.helpers.model_config.get_chat_model_config")
+    @patch("plugins._model_config.helpers.model_config.get_chat_model_config")
     def test_get_ctx_history_from_config(self, mock_cfg):
         mock_cfg.return_value = {"ctx_history": 0.5}
         assert get_ctx_history() == 0.5
 
-    @patch("plugins.model_config.helpers.model_config.get_utility_model_config")
+    @patch("plugins._model_config.helpers.model_config.get_utility_model_config")
     def test_get_ctx_input_default(self, mock_cfg):
         mock_cfg.return_value = {}
         assert get_ctx_input() == 0.7
 
-    @patch("plugins.model_config.helpers.model_config.get_utility_model_config")
+    @patch("plugins._model_config.helpers.model_config.get_utility_model_config")
     def test_get_ctx_input_from_config(self, mock_cfg):
         mock_cfg.return_value = {"ctx_input": 0.3}
         assert get_ctx_input() == 0.3

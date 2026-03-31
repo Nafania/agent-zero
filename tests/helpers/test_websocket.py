@@ -187,68 +187,36 @@ class TestWebSocketResult:
 
 
 class TestWebSocketHandler:
-    def test_validate_event_types_accepts_valid(self):
+    def test_validate_event_type_accepts_valid(self):
         from helpers.websocket import WebSocketHandler
 
-        class DummyHandler(WebSocketHandler):
-            @classmethod
-            def get_event_types(cls):
-                return ["my_event", "another_event"]
+        assert WebSocketHandler.validate_event_type("my_event") == "my_event"
+        assert WebSocketHandler.validate_event_type("another_event") == "another_event"
 
-        validated = DummyHandler.validate_event_types(["my_event", "another_event"])
-        assert validated == ["my_event", "another_event"]
-
-    def test_validate_event_types_rejects_reserved(self):
+    def test_validate_event_type_rejects_non_string(self):
         from helpers.websocket import WebSocketHandler
 
-        class DummyHandler(WebSocketHandler):
-            @classmethod
-            def get_event_types(cls):
-                return []
+        with pytest.raises(TypeError, match="must be a string"):
+            WebSocketHandler.validate_event_type(123)
 
-        with pytest.raises(ValueError, match="reserved"):
-            DummyHandler.validate_event_types(["connect"])
-
-    def test_validate_event_types_rejects_invalid_format(self):
+    def test_validate_event_type_rejects_invalid_format(self):
         from helpers.websocket import WebSocketHandler
-
-        class DummyHandler(WebSocketHandler):
-            @classmethod
-            def get_event_types(cls):
-                return []
 
         with pytest.raises(ValueError, match="lowercase_snake_case"):
-            DummyHandler.validate_event_types(["InvalidEvent"])
+            WebSocketHandler.validate_event_type("InvalidEvent")
 
-    def test_validate_event_types_rejects_duplicates(self):
+    def test_validate_event_type_rejects_reserved(self):
         from helpers.websocket import WebSocketHandler
 
-        class DummyHandler(WebSocketHandler):
-            @classmethod
-            def get_event_types(cls):
-                return []
-
-        with pytest.raises(ValueError, match="Duplicate"):
-            DummyHandler.validate_event_types(["foo", "foo"])
-
-    def test_validate_event_types_requires_at_least_one(self):
-        from helpers.websocket import WebSocketHandler
-
-        class DummyHandler(WebSocketHandler):
-            @classmethod
-            def get_event_types(cls):
-                return []
-
-        with pytest.raises(ValueError, match="at least one"):
-            DummyHandler.validate_event_types([])
+        with pytest.raises(ValueError, match="reserved"):
+            WebSocketHandler.validate_event_type("connect")
 
     def test_requires_auth_default_true(self):
         from helpers.websocket import WebSocketHandler
 
         class DummyHandler(WebSocketHandler):
-            @classmethod
-            def get_event_types(cls):
-                return ["x"]
+            async def process_event(self, event_type, data, sid):
+                return None
 
         assert DummyHandler.requires_auth() is True
 
@@ -256,9 +224,8 @@ class TestWebSocketHandler:
         from helpers.websocket import WebSocketHandler
 
         class DummyHandler(WebSocketHandler):
-            @classmethod
-            def get_event_types(cls):
-                return ["x"]
+            async def process_event(self, event_type, data, sid):
+                return None
 
         assert DummyHandler.requires_csrf() == DummyHandler.requires_auth()
 

@@ -5,7 +5,7 @@ from agent import LoopData
 class IncludeAgentInfo(Extension):
     async def execute(self, loop_data: LoopData = LoopData(), **kwargs):
 
-        from plugins.model_config.helpers.model_config import get_chat_model_config
+        from plugins._model_config.helpers.model_config import get_chat_model_config
         chat_cfg = get_chat_model_config(self.agent)
         agent_info_prompt = self.agent.read_prompt(
             "agent.extras.agent_info.md",

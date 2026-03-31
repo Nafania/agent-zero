@@ -26,7 +26,7 @@ class TestSystemPrompt:
         mock_agent.get_data = MagicMock(return_value=None)
 
         with patch(
-            "plugins.model_config.helpers.model_config.get_chat_model_config",
+            "plugins._model_config.helpers.model_config.get_chat_model_config",
             return_value={"vision": False},
         ), patch(
             "extensions.python.system_prompt._11_tools_prompt.subagents.get_paths",
@@ -68,7 +68,7 @@ class TestSystemPrompt:
         mock_agent.get_data.return_value = None
 
         with patch(
-            "plugins.model_config.helpers.model_config.get_chat_model_config",
+            "plugins._model_config.helpers.model_config.get_chat_model_config",
             return_value={"vision": False},
         ), patch(
             "extensions.python.system_prompt._11_tools_prompt.subagents.get_paths",
@@ -325,19 +325,19 @@ class TestBehaviourPrompt:
         mock_agent.read_prompt.return_value = "behaviour rules"
 
         with patch(
-            "plugins.memory.extensions.python.system_prompt._20_behaviour_prompt.memory.get_memory_subdir_abs",
+            "plugins._memory.extensions.python.system_prompt._20_behaviour_prompt.memory.get_memory_subdir_abs",
             return_value="/mem",
         ), patch(
-            "plugins.memory.extensions.python.system_prompt._20_behaviour_prompt.files.get_abs_path",
+            "plugins._memory.extensions.python.system_prompt._20_behaviour_prompt.files.get_abs_path",
             return_value="/mem/behaviour.md",
         ), patch(
-            "plugins.memory.extensions.python.system_prompt._20_behaviour_prompt.files.exists",
+            "plugins._memory.extensions.python.system_prompt._20_behaviour_prompt.files.exists",
             return_value=True,
         ), patch(
-            "plugins.memory.extensions.python.system_prompt._20_behaviour_prompt.files.read_file",
+            "plugins._memory.extensions.python.system_prompt._20_behaviour_prompt.files.read_file",
             return_value="custom rules",
         ):
-            from plugins.memory.extensions.python.system_prompt._20_behaviour_prompt import (
+            from plugins._memory.extensions.python.system_prompt._20_behaviour_prompt import (
                 BehaviourPrompt,
             )
 

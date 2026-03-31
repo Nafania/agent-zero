@@ -1,0 +1,32 @@
+---
+description: When reviewing a GitHub PR, always leave inline comments for ALL findings
+alwaysApply: true
+---
+
+# PR Review Comments
+
+When reviewing a GitHub Pull Request (via `/requesting-code-review` or any code review workflow), you MUST leave comments directly on the PR for **every single finding** — Critical, Important, and Minor alike.
+
+## Rules
+
+1. **Every finding gets a PR comment** — no exceptions, even the smallest nitpicks
+2. **Always in English** — regardless of what language the user speaks
+3. **Attach to file and line** — use inline review comments (`path` + `line`) whenever possible
+4. **Use the `create_pull_request_review` MCP tool** — submit all comments as a single review (not individual comments)
+5. **Findings that can't be attached to a diff line** (e.g., missing files, files not in the PR) go in the review body
+
+## Comment Format
+
+Each inline comment must include:
+- **Severity tag**: `**Critical:**`, `**Important:**`, `**Minor:**`, or `**Positive:**`
+- **What's wrong** (or right, for positive feedback)
+- **Why it matters**
+- **How to fix** (if not obvious)
+
+## Review Structure
+
+- `event: "COMMENT"` for neutral reviews
+- `event: "REQUEST_CHANGES"` when there are Critical issues
+- `event: "APPROVE"` only when everything looks good
+- Body: overall summary + findings not attachable to specific lines
+- Comments array: every file-level finding with `path` and `line`
