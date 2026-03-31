@@ -78,3 +78,11 @@ def format_error(e: Exception, start_entries=20, end_entries=15, error_message_p
 class RepairableException(Exception):
     """An exception type indicating errors that can be surfaced to the LLM for potential self-repair."""
     pass
+
+
+class InterventionException(Exception):
+    pass
+
+
+class HandledException(Exception):
+    pass
