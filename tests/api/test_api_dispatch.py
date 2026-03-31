@@ -246,10 +246,10 @@ class TestDispatchResolution:
                 return ["POST"]
 
             async def process(self, input, request):
-                return {"plugin": "memory"}
+                return {"plugin": "_memory"}
 
         with patch("helpers.api.files") as mock_files, \
-             patch("helpers.plugins.find_plugin_dir", return_value="/fake/plugins/memory"), \
+             patch("helpers.plugins.find_plugin_dir", return_value="/fake/plugins/_memory"), \
              patch(LOAD_CLASSES_PATCH, return_value=[PluginHandler]):
             mock_files.get_abs_path = MagicMock(
                 side_effect=lambda *args: "/fake/" + "/".join(str(a) for a in args)
@@ -260,9 +260,9 @@ class TestDispatchResolution:
             mock_files.USER_DIR = "usr"
 
             with patch.object(Path, "is_file", return_value=True):
-                resp = client.post("/api/plugins/memory/dashboard")
+                resp = client.post("/api/plugins/_memory/dashboard")
                 assert resp.status_code == 200
-                assert resp.json == {"plugin": "memory"}
+                assert resp.json == {"plugin": "_memory"}
 
 
 
