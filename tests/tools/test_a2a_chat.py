@@ -21,7 +21,7 @@ def mock_agent():
 
 @pytest.fixture
 def tool(mock_agent):
-    from plugins.a2a.tools.a2a_chat import A2AChatTool
+    from tools.a2a_chat import A2AChatTool
     return A2AChatTool(
         agent=mock_agent,
         name="a2a_chat",
@@ -35,20 +35,20 @@ def tool(mock_agent):
 class TestA2AChatToolExecute:
     @pytest.mark.asyncio
     async def test_client_not_available_returns_message(self, tool):
-        with patch("plugins.a2a.tools.a2a_chat.is_client_available", return_value=False):
+        with patch("tools.a2a_chat.is_client_available", return_value=False):
             resp = await tool.execute(agent_url="http://agent", message="hi")
         assert "not available" in resp.message
         assert resp.break_loop is False
 
     @pytest.mark.asyncio
     async def test_missing_agent_url_returns_error(self, tool):
-        with patch("plugins.a2a.tools.a2a_chat.is_client_available", return_value=True):
+        with patch("tools.a2a_chat.is_client_available", return_value=True):
             resp = await tool.execute(agent_url="", message="hi")
         assert "agent_url" in resp.message
 
     @pytest.mark.asyncio
     async def test_missing_message_returns_error(self, tool):
-        with patch("plugins.a2a.tools.a2a_chat.is_client_available", return_value=True):
+        with patch("tools.a2a_chat.is_client_available", return_value=True):
             resp = await tool.execute(agent_url="http://agent", message="")
         assert "message" in resp.message
 
@@ -64,8 +64,8 @@ class TestA2AChatToolExecute:
                 "history": [{"parts": [{"kind": "text", "text": "Hello from agent"}]}],
             }
         })
-        with patch("plugins.a2a.tools.a2a_chat.is_client_available", return_value=True):
-            with patch("plugins.a2a.tools.a2a_chat.connect_to_agent", new_callable=AsyncMock) as mock_connect:
+        with patch("tools.a2a_chat.is_client_available", return_value=True):
+            with patch("tools.a2a_chat.connect_to_agent", new_callable=AsyncMock) as mock_connect:
                 mock_connect.return_value = mock_conn
                 resp = await tool.execute(agent_url="http://agent", message="hi")
         assert "Hello from agent" in resp.message
@@ -73,7 +73,7 @@ class TestA2AChatToolExecute:
 
     @pytest.mark.asyncio
     async def test_exception_returns_error_message(self, tool):
-        with patch("plugins.a2a.tools.a2a_chat.is_client_available", return_value=True):
-            with patch("plugins.a2a.tools.a2a_chat.connect_to_agent", new_callable=AsyncMock, side_effect=Exception("Connection failed")):
+        with patch("tools.a2a_chat.is_client_available", return_value=True):
+            with patch("tools.a2a_chat.connect_to_agent", new_callable=AsyncMock, side_effect=Exception("Connection failed")):
                 resp = await tool.execute(agent_url="http://agent", message="hi")
         assert "A2A chat error" in resp.message or "Connection failed" in resp.message

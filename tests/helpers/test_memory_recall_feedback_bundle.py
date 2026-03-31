@@ -10,7 +10,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from plugins.memory.helpers.memory import recall_text_and_feedback_items
+from plugins._memory.helpers.memory import recall_text_and_feedback_items
 
 
 def test_recall_bundle_extracts_id_and_dataset_from_meta_prefix():

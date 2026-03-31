@@ -18,7 +18,7 @@ def _make_handler():
 
 class TestCheckUpdates:
     @pytest.mark.asyncio
-    @patch("plugins.skills.api.skills.skills_cli")
+    @patch("api.skills.skills_cli")
     async def test_check_updates(self, mock_cli):
         mock_cli.check_updates = AsyncMock(return_value="All skills up to date.")
 
@@ -32,7 +32,7 @@ class TestCheckUpdates:
 
 class TestUpdate:
     @pytest.mark.asyncio
-    @patch("plugins.skills.api.skills.skills_cli")
+    @patch("api.skills.skills_cli")
     async def test_update_all(self, mock_cli):
         mock_cli.update = AsyncMock(return_value="Updated 2 skills.")
 
@@ -46,11 +46,11 @@ class TestUpdate:
 
 class TestMoveSkill:
     @pytest.mark.asyncio
-    @patch("plugins.skills.api.skills.os.path.exists", return_value=False)
-    @patch("plugins.skills.api.skills.os.makedirs")
-    @patch("plugins.skills.api.skills.shutil.move")
-    @patch("plugins.skills.api.skills.os.path.isdir", return_value=True)
-    @patch("plugins.skills.api.skills.projects")
+    @patch("api.skills.os.path.exists", return_value=False)
+    @patch("api.skills.os.makedirs")
+    @patch("api.skills.shutil.move")
+    @patch("api.skills.os.path.isdir", return_value=True)
+    @patch("api.skills.projects")
     async def test_move_skill(self, mock_projects, mock_isdir, mock_move, mock_makedirs, mock_exists):
         mock_projects.get_project_meta_folder.return_value = "/a0/projects/myproj/.meta/skills"
 
@@ -77,7 +77,7 @@ class TestMoveSkill:
         assert "skill_path is required" in result["error"]
 
     @pytest.mark.asyncio
-    @patch("plugins.skills.api.skills.os.path.isdir", return_value=False)
+    @patch("api.skills.os.path.isdir", return_value=False)
     async def test_move_skill_dir_not_found(self, mock_isdir):
         handler = _make_handler()
         result = await handler.process(
@@ -89,10 +89,10 @@ class TestMoveSkill:
         assert "not found" in result["error"]
 
     @pytest.mark.asyncio
-    @patch("plugins.skills.api.skills.os.path.exists", return_value=True)
-    @patch("plugins.skills.api.skills.os.makedirs")
-    @patch("plugins.skills.api.skills.os.path.isdir", return_value=True)
-    @patch("plugins.skills.api.skills.files")
+    @patch("api.skills.os.path.exists", return_value=True)
+    @patch("api.skills.os.makedirs")
+    @patch("api.skills.os.path.isdir", return_value=True)
+    @patch("api.skills.files")
     async def test_move_skill_to_global(self, mock_files, mock_isdir, mock_makedirs, mock_exists):
         mock_files.get_abs_path.return_value = "/a0/usr/skills"
 
@@ -106,11 +106,11 @@ class TestMoveSkill:
         assert "already exists" in result["error"]
 
     @pytest.mark.asyncio
-    @patch("plugins.skills.api.skills.os.path.exists", return_value=False)
-    @patch("plugins.skills.api.skills.os.makedirs")
-    @patch("plugins.skills.api.skills.shutil.move")
-    @patch("plugins.skills.api.skills.os.path.isdir", return_value=True)
-    @patch("plugins.skills.api.skills.files")
+    @patch("api.skills.os.path.exists", return_value=False)
+    @patch("api.skills.os.makedirs")
+    @patch("api.skills.shutil.move")
+    @patch("api.skills.os.path.isdir", return_value=True)
+    @patch("api.skills.files")
     async def test_move_skill_to_global_success(self, mock_files, mock_isdir, mock_move, mock_makedirs, mock_exists):
         mock_files.get_abs_path.return_value = "/a0/usr/skills"
 

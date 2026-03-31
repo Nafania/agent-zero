@@ -19,13 +19,13 @@ class TestBrowserModule:
 
     def test_browser_module_imports(self):
         """Module can be imported without error."""
-        import plugins.browser.helpers.browser as browser_module
+        import plugins._browser_agent.helpers.browser as browser_module
 
         assert browser_module is not None
 
     def test_browser_module_has_no_exports_when_commented(self):
         """When implementation is commented out, module has no public exports."""
-        import plugins.browser.helpers.browser as browser_module
+        import plugins._browser_agent.helpers.browser as browser_module
 
         # Filter out dunder and private names
         public = [
@@ -39,13 +39,13 @@ class TestBrowserModule:
 
     def test_browser_file_exists(self):
         """Source file exists at expected path."""
-        browser_path = PROJECT_ROOT / "plugins" / "browser" / "helpers" / "browser.py"
+        browser_path = PROJECT_ROOT / "plugins" / "_browser_agent" / "helpers" / "browser.py"
         assert browser_path.exists()
         assert browser_path.is_file()
 
     def test_browser_file_contains_browser_reference(self):
         """Source file contains expected class/exception names (in comments)."""
-        browser_path = PROJECT_ROOT / "plugins" / "browser" / "helpers" / "browser.py"
+        browser_path = PROJECT_ROOT / "plugins" / "_browser_agent" / "helpers" / "browser.py"
         content = browser_path.read_text()
         assert "Browser" in content
         assert "NoPageError" in content
